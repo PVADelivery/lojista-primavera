@@ -9,38 +9,221 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PendingApprovalRouteImport } from './routes/pending-approval'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as BusinessRouteImport } from './routes/business'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BusinessIndexRouteImport } from './routes/business.index'
+import { Route as LoginBusinessRouteImport } from './routes/login.business'
+import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as BusinessProfileRouteImport } from './routes/business.profile'
+import { Route as BusinessProductsRouteImport } from './routes/business.products'
+import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
+import { Route as BusinessHistoryRouteImport } from './routes/business.history'
+import { Route as BusinessFinanceRouteImport } from './routes/business.finance'
+import { Route as BusinessCustomersRouteImport } from './routes/business.customers'
+import { Route as BusinessCouponsRouteImport } from './routes/business.coupons'
 
+const PendingApprovalRoute = PendingApprovalRouteImport.update({
+  id: '/pending-approval',
+  path: '/pending-approval',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessIndexRoute = BusinessIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const LoginBusinessRoute = LoginBusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => LoginRoute,
+} as any)
+const InviteTokenRoute = InviteTokenRouteImport.update({
+  id: '/invite/$token',
+  path: '/invite/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessProfileRoute = BusinessProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessProductsRoute = BusinessProductsRouteImport.update({
+  id: '/products',
+  path: '/products',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessOrdersRoute = BusinessOrdersRouteImport.update({
+  id: '/orders',
+  path: '/orders',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessHistoryRoute = BusinessHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessFinanceRoute = BusinessFinanceRouteImport.update({
+  id: '/finance',
+  path: '/finance',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessCustomersRoute = BusinessCustomersRouteImport.update({
+  id: '/customers',
+  path: '/customers',
+  getParentRoute: () => BusinessRoute,
+} as any)
+const BusinessCouponsRoute = BusinessCouponsRouteImport.update({
+  id: '/coupons',
+  path: '/coupons',
+  getParentRoute: () => BusinessRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/business': typeof BusinessRouteWithChildren
+  '/login': typeof LoginRouteWithChildren
+  '/pending-approval': typeof PendingApprovalRoute
+  '/business/coupons': typeof BusinessCouponsRoute
+  '/business/customers': typeof BusinessCustomersRoute
+  '/business/finance': typeof BusinessFinanceRoute
+  '/business/history': typeof BusinessHistoryRoute
+  '/business/orders': typeof BusinessOrdersRoute
+  '/business/products': typeof BusinessProductsRoute
+  '/business/profile': typeof BusinessProfileRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/login/business': typeof LoginBusinessRoute
+  '/business/': typeof BusinessIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRouteWithChildren
+  '/pending-approval': typeof PendingApprovalRoute
+  '/business/coupons': typeof BusinessCouponsRoute
+  '/business/customers': typeof BusinessCustomersRoute
+  '/business/finance': typeof BusinessFinanceRoute
+  '/business/history': typeof BusinessHistoryRoute
+  '/business/orders': typeof BusinessOrdersRoute
+  '/business/products': typeof BusinessProductsRoute
+  '/business/profile': typeof BusinessProfileRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/login/business': typeof LoginBusinessRoute
+  '/business': typeof BusinessIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/business': typeof BusinessRouteWithChildren
+  '/login': typeof LoginRouteWithChildren
+  '/pending-approval': typeof PendingApprovalRoute
+  '/business/coupons': typeof BusinessCouponsRoute
+  '/business/customers': typeof BusinessCustomersRoute
+  '/business/finance': typeof BusinessFinanceRoute
+  '/business/history': typeof BusinessHistoryRoute
+  '/business/orders': typeof BusinessOrdersRoute
+  '/business/products': typeof BusinessProductsRoute
+  '/business/profile': typeof BusinessProfileRoute
+  '/invite/$token': typeof InviteTokenRoute
+  '/login/business': typeof LoginBusinessRoute
+  '/business/': typeof BusinessIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/business'
+    | '/login'
+    | '/pending-approval'
+    | '/business/coupons'
+    | '/business/customers'
+    | '/business/finance'
+    | '/business/history'
+    | '/business/orders'
+    | '/business/products'
+    | '/business/profile'
+    | '/invite/$token'
+    | '/login/business'
+    | '/business/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/pending-approval'
+    | '/business/coupons'
+    | '/business/customers'
+    | '/business/finance'
+    | '/business/history'
+    | '/business/orders'
+    | '/business/products'
+    | '/business/profile'
+    | '/invite/$token'
+    | '/login/business'
+    | '/business'
+  id:
+    | '__root__'
+    | '/'
+    | '/business'
+    | '/login'
+    | '/pending-approval'
+    | '/business/coupons'
+    | '/business/customers'
+    | '/business/finance'
+    | '/business/history'
+    | '/business/orders'
+    | '/business/products'
+    | '/business/profile'
+    | '/invite/$token'
+    | '/login/business'
+    | '/business/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BusinessRoute: typeof BusinessRouteWithChildren
+  LoginRoute: typeof LoginRouteWithChildren
+  PendingApprovalRoute: typeof PendingApprovalRoute
+  InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/pending-approval': {
+      id: '/pending-approval'
+      path: '/pending-approval'
+      fullPath: '/pending-approval'
+      preLoaderRoute: typeof PendingApprovalRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +231,122 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/business/': {
+      id: '/business/'
+      path: '/'
+      fullPath: '/business/'
+      preLoaderRoute: typeof BusinessIndexRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/login/business': {
+      id: '/login/business'
+      path: '/business'
+      fullPath: '/login/business'
+      preLoaderRoute: typeof LoginBusinessRouteImport
+      parentRoute: typeof LoginRoute
+    }
+    '/invite/$token': {
+      id: '/invite/$token'
+      path: '/invite/$token'
+      fullPath: '/invite/$token'
+      preLoaderRoute: typeof InviteTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/business/profile': {
+      id: '/business/profile'
+      path: '/profile'
+      fullPath: '/business/profile'
+      preLoaderRoute: typeof BusinessProfileRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/products': {
+      id: '/business/products'
+      path: '/products'
+      fullPath: '/business/products'
+      preLoaderRoute: typeof BusinessProductsRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/orders': {
+      id: '/business/orders'
+      path: '/orders'
+      fullPath: '/business/orders'
+      preLoaderRoute: typeof BusinessOrdersRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/history': {
+      id: '/business/history'
+      path: '/history'
+      fullPath: '/business/history'
+      preLoaderRoute: typeof BusinessHistoryRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/finance': {
+      id: '/business/finance'
+      path: '/finance'
+      fullPath: '/business/finance'
+      preLoaderRoute: typeof BusinessFinanceRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/customers': {
+      id: '/business/customers'
+      path: '/customers'
+      fullPath: '/business/customers'
+      preLoaderRoute: typeof BusinessCustomersRouteImport
+      parentRoute: typeof BusinessRoute
+    }
+    '/business/coupons': {
+      id: '/business/coupons'
+      path: '/coupons'
+      fullPath: '/business/coupons'
+      preLoaderRoute: typeof BusinessCouponsRouteImport
+      parentRoute: typeof BusinessRoute
+    }
   }
 }
 
+interface BusinessRouteChildren {
+  BusinessCouponsRoute: typeof BusinessCouponsRoute
+  BusinessCustomersRoute: typeof BusinessCustomersRoute
+  BusinessFinanceRoute: typeof BusinessFinanceRoute
+  BusinessHistoryRoute: typeof BusinessHistoryRoute
+  BusinessOrdersRoute: typeof BusinessOrdersRoute
+  BusinessProductsRoute: typeof BusinessProductsRoute
+  BusinessProfileRoute: typeof BusinessProfileRoute
+  BusinessIndexRoute: typeof BusinessIndexRoute
+}
+
+const BusinessRouteChildren: BusinessRouteChildren = {
+  BusinessCouponsRoute: BusinessCouponsRoute,
+  BusinessCustomersRoute: BusinessCustomersRoute,
+  BusinessFinanceRoute: BusinessFinanceRoute,
+  BusinessHistoryRoute: BusinessHistoryRoute,
+  BusinessOrdersRoute: BusinessOrdersRoute,
+  BusinessProductsRoute: BusinessProductsRoute,
+  BusinessProfileRoute: BusinessProfileRoute,
+  BusinessIndexRoute: BusinessIndexRoute,
+}
+
+const BusinessRouteWithChildren = BusinessRoute._addFileChildren(
+  BusinessRouteChildren,
+)
+
+interface LoginRouteChildren {
+  LoginBusinessRoute: typeof LoginBusinessRoute
+}
+
+const LoginRouteChildren: LoginRouteChildren = {
+  LoginBusinessRoute: LoginBusinessRoute,
+}
+
+const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BusinessRoute: BusinessRouteWithChildren,
+  LoginRoute: LoginRouteWithChildren,
+  PendingApprovalRoute: PendingApprovalRoute,
+  InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
