@@ -11,7 +11,9 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PendingApprovalRouteImport } from './routes/pending-approval'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as BusinessRouteImport } from './routes/business'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as BusinessIndexRouteImport } from './routes/business.index'
 import { Route as LoginBusinessRouteImport } from './routes/login.business'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 
@@ -25,10 +27,20 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BusinessRoute = BusinessRouteImport.update({
+  id: '/business',
+  path: '/business',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessIndexRoute = BusinessIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => BusinessRoute,
 } as any)
 const LoginBusinessRoute = LoginBusinessRouteImport.update({
   id: '/business',
@@ -43,10 +55,12 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/business': typeof BusinessRouteWithChildren
   '/login': typeof LoginRouteWithChildren
   '/pending-approval': typeof PendingApprovalRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
+  '/business/': typeof BusinessIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -54,23 +68,28 @@ export interface FileRoutesByTo {
   '/pending-approval': typeof PendingApprovalRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
+  '/business': typeof BusinessIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/business': typeof BusinessRouteWithChildren
   '/login': typeof LoginRouteWithChildren
   '/pending-approval': typeof PendingApprovalRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
+  '/business/': typeof BusinessIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/business'
     | '/login'
     | '/pending-approval'
     | '/invite/$token'
     | '/login/business'
+    | '/business/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -78,17 +97,21 @@ export interface FileRouteTypes {
     | '/pending-approval'
     | '/invite/$token'
     | '/login/business'
+    | '/business'
   id:
     | '__root__'
     | '/'
+    | '/business'
     | '/login'
     | '/pending-approval'
     | '/invite/$token'
     | '/login/business'
+    | '/business/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  BusinessRoute: typeof BusinessRouteWithChildren
   LoginRoute: typeof LoginRouteWithChildren
   PendingApprovalRoute: typeof PendingApprovalRoute
   InviteTokenRoute: typeof InviteTokenRoute
@@ -110,12 +133,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/business': {
+      id: '/business'
+      path: '/business'
+      fullPath: '/business'
+      preLoaderRoute: typeof BusinessRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/business/': {
+      id: '/business/'
+      path: '/'
+      fullPath: '/business/'
+      preLoaderRoute: typeof BusinessIndexRouteImport
+      parentRoute: typeof BusinessRoute
     }
     '/login/business': {
       id: '/login/business'
@@ -134,6 +171,18 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface BusinessRouteChildren {
+  BusinessIndexRoute: typeof BusinessIndexRoute
+}
+
+const BusinessRouteChildren: BusinessRouteChildren = {
+  BusinessIndexRoute: BusinessIndexRoute,
+}
+
+const BusinessRouteWithChildren = BusinessRoute._addFileChildren(
+  BusinessRouteChildren,
+)
+
 interface LoginRouteChildren {
   LoginBusinessRoute: typeof LoginBusinessRoute
 }
@@ -146,6 +195,7 @@ const LoginRouteWithChildren = LoginRoute._addFileChildren(LoginRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  BusinessRoute: BusinessRouteWithChildren,
   LoginRoute: LoginRouteWithChildren,
   PendingApprovalRoute: PendingApprovalRoute,
   InviteTokenRoute: InviteTokenRoute,
@@ -153,3 +203,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
