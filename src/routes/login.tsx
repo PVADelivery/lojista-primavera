@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import logoFull from "@/assets/logo-full.png";
+
 import logoIcon from "@/assets/logo-icon.png";
 
 
