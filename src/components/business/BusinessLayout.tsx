@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet, Users, History, Tag,
-  Settings, LogOut, Bell, Search, Sprout, Power, User as UserIcon,
+  Settings, LogOut, Bell, Search, Power, User as UserIcon,
   ChevronLeft, ChevronRight, HelpCircle, Smartphone
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
