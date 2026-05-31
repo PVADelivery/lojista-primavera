@@ -52,8 +52,9 @@ function LoginPage() {
 
       <div className="hidden lg:flex flex-col justify-between p-12 bg-black text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 20% 30%, hsl(var(--primary)) 1px, transparent 1px), radial-gradient(circle at 70% 60%, hsl(var(--primary)) 1px, transparent 1px)", backgroundSize:"40px 40px"}} />
-        <div className="relative">
-          <img src={logoFull} alt="Primavera Delivery" className="h-20 w-auto object-contain" />
+        <div className="relative flex items-center gap-3">
+          <div className="h-14 w-14 rounded-2xl bg-black flex items-center justify-center overflow-hidden ring-1 ring-primary/30"><img src={logoIcon} alt="Delivery Primavera" className="h-12 w-12 object-contain"/></div>
+          <span className="text-2xl font-black tracking-tight">Delivery Primavera</span>
         </div>
         <div className="relative">
           <h1 className="text-5xl font-black leading-tight tracking-tight">
