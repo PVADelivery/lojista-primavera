@@ -71,7 +71,7 @@ function LoginPage() {
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8 flex items-center gap-2">
             <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden"><img src={logoIcon} alt="" className="h-9 w-9 object-contain"/></div>
-            <span className="text-xl font-black">Primavera</span>
+            <span className="text-xl font-black">Delivery Primavera</span>
           </div>
 
           <p className="label-tiny">Painel do Lojista</p>
