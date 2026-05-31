@@ -16,7 +16,6 @@ import { toast } from "sonner";
 import { initials } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon.png";
-import logoFull from "@/assets/logo-full.png";
 
 
 interface Company {
