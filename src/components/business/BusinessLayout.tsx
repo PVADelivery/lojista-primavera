@@ -109,10 +109,11 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         <aside className="hidden lg:flex flex-col w-16 bg-sidebar border-r border-sidebar-border flex-shrink-0">
           {/* Logo */}
           <Link to="/business" className="h-16 flex items-center justify-center border-b border-sidebar-border">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg shadow-primary/30">
-              <Sprout className="h-5 w-5 text-primary-foreground" />
+            <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
+              <img src={logoIcon} alt="Primavera" className="h-9 w-9 object-contain" />
             </div>
           </Link>
+
 
           {/* Nav icons */}
           <nav className="flex-1 flex flex-col items-center gap-1 py-4">
