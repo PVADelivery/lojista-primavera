@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import logoFull from "@/assets/logo-full.png";
+
 import logoIcon from "@/assets/logo-icon.png";
 
 
@@ -52,8 +52,9 @@ function LoginPage() {
 
       <div className="hidden lg:flex flex-col justify-between p-12 bg-black text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 20% 30%, hsl(var(--primary)) 1px, transparent 1px), radial-gradient(circle at 70% 60%, hsl(var(--primary)) 1px, transparent 1px)", backgroundSize:"40px 40px"}} />
-        <div className="relative">
-          <img src={logoFull} alt="Primavera Delivery" className="h-20 w-auto object-contain" />
+        <div className="relative flex items-center gap-3">
+          <div className="h-14 w-14 rounded-2xl bg-black flex items-center justify-center overflow-hidden ring-1 ring-primary/30"><img src={logoIcon} alt="Delivery Primavera" className="h-12 w-12 object-contain"/></div>
+          <span className="text-2xl font-black tracking-tight">Delivery Primavera</span>
         </div>
         <div className="relative">
           <h1 className="text-5xl font-black leading-tight tracking-tight">
@@ -63,14 +64,14 @@ function LoginPage() {
             Pedidos, entregas, cardápio e clientes — tudo no mesmo painel.
           </p>
         </div>
-        <p className="relative text-xs opacity-60 font-semibold">© Primavera Delivery</p>
+        <p className="relative text-xs opacity-60 font-semibold">© Delivery Primavera</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8 flex items-center gap-2">
             <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden"><img src={logoIcon} alt="" className="h-9 w-9 object-contain"/></div>
-            <span className="text-xl font-black">Primavera</span>
+            <span className="text-xl font-black">Delivery Primavera</span>
           </div>
 
           <p className="label-tiny">Painel do Lojista</p>
