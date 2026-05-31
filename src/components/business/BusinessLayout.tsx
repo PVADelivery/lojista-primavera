@@ -170,10 +170,11 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <header className="h-16 flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0">
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                <Sprout className="h-4 w-4 text-primary-foreground" />
+              <div className="h-9 w-9 rounded-xl bg-black flex items-center justify-center overflow-hidden">
+                <img src={logoIcon} alt="Primavera" className="h-8 w-8 object-contain" />
               </div>
             </div>
+
 
             {/* Back / Forward arrows */}
             <div className="hidden sm:flex items-center gap-1">
