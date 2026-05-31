@@ -30,7 +30,7 @@ function OrdersPage() {
     queryKey: ["orders", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*,order_items(*)")
+      const { data } = await supabase.from("deliveries").select("*")
         .eq("company_id", company!.id)
         .order("created_at", { ascending: false }).limit(200);
       return data ?? [];
@@ -52,13 +52,13 @@ function OrdersPage() {
     const flow: any = { pending: "preparing", preparing: "ready", ready: "in_route", in_route: "delivered" };
     const next = flow[current];
     if (!next) return;
-    await supabase.from("orders").update({ status: next }).eq("id", id);
+    await supabase.from("deliveries").update({ status: next }).eq("id", id);
     qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success(`Pedido movido para ${next}`);
   };
 
   const todayRevenue = orders.filter((o: any) => o.status === "delivered" && new Date(o.created_at).toDateString() === new Date().toDateString())
-    .reduce((s: number, o: any) => s + Number(o.total), 0);
+    .reduce((s: number, o: any) => s + Number(o.value), 0);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -95,12 +95,9 @@ function OrdersPage() {
                 {items.map((o: any) => (
                   <div key={o.id} className="bg-secondary/50 rounded-2xl p-3 hover:bg-secondary transition cursor-pointer">
                     <p className="font-black text-sm">{o.customer_name ?? "Cliente"}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{o.delivery_address}</p>
-                    {o.order_items?.length > 0 && (
-                      <p className="text-xs mt-1 text-muted-foreground">{o.order_items.length} {o.order_items.length === 1 ? "item" : "itens"}</p>
-                    )}
+                    <p className="text-xs text-muted-foreground line-clamp-1">{o.address}</p>
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="font-black text-primary">{brl(o.total)}</span>
+                      <span className="font-black text-primary">{brl(o.value)}</span>
                       {o.status !== "delivered" && o.status !== "cancelled" && (
                         <button onClick={() => advance(o.id, o.status)} className="text-[10px] font-black uppercase tracking-widest text-primary hover:underline">Avançar →</button>
                       )}

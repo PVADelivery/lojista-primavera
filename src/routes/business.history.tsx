@@ -20,8 +20,7 @@ function HistoryPage() {
     queryKey: ["hist-orders", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*").eq("company_id", company!.id).order("created_at",{ascending:false}).limit(500);
-      return data ?? [];
+      return [];
     },
   });
   const { data: deliveries = [] } = useQuery({

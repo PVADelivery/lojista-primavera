@@ -26,8 +26,7 @@ function FinancePage() {
     queryKey: ["fin-orders", company?.id, days],
     enabled: !!company?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*").eq("company_id", company!.id).gte("created_at", since);
-      return data ?? [];
+      return [];
     },
   });
   const { data: deliveries = [] } = useQuery({
@@ -41,9 +40,9 @@ function FinancePage() {
 
   const completedOrders = orders.filter((o: any) => ["delivered","completed"].includes(o.status));
   const revenue = completedOrders.reduce((s: number, o: any) => s + Number(o.total), 0);
-  const logistics = deliveries.filter((d: any) => d.status !== "cancelled" && !d.order_id).reduce((s: number, d: any) => s + Number(d.value), 0);
-  const todayOrders = orders.filter((o: any) => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const todayRevenue = todayOrders.filter((o: any) => ["delivered","completed"].includes(o.status)).reduce((s:number,o:any)=>s+Number(o.total),0);
+  const logistics = deliveries.filter((d: any) => d.status !== "cancelled").reduce((s: number, d: any) => s + Number(d.value), 0);
+  const todayOrders = deliveries.filter((o: any) => new Date(o.created_at).toDateString() === new Date().toDateString());
+  const todayRevenue = todayOrders.filter((o: any) => ["delivered","completed"].includes(o.status)).reduce((s:number,o:any)=>s+Number(o.value),0);
 
   // daily series
   const series = useMemo(() => {
@@ -67,9 +66,8 @@ function FinancePage() {
 
   const payments = useMemo(() => {
     const counts: Record<string, number> = {};
-    orders.forEach((o: any) => { const k = o.payment_method || "Não informado"; counts[k] = (counts[k]||0) + Number(o.total); });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [orders]);
+  }, []);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
