@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Sprout } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logoFull from "@/assets/logo-full.png";
+import logoIcon from "@/assets/logo-icon.png";
+
 
 
 export const Route = createFileRoute("/login")({
