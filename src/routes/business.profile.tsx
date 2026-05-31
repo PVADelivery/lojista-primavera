@@ -8,8 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Camera, Sprout, Save } from "lucide-react";
+import { Camera, Save } from "lucide-react";
 import { toast } from "sonner";
+import logoIcon from "@/assets/logo-icon.png";
+
 
 export const Route = createFileRoute("/business/profile")({
   component: ProfilePage,
@@ -68,7 +70,7 @@ function ProfilePage() {
             <div className="px-6 pb-6 -mt-12 relative">
               <div className="relative inline-block group">
                 <div className="h-24 w-24 rounded-3xl bg-card border-4 border-card overflow-hidden shadow-lg">
-                  {f.logo_url ? <img src={f.logo_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full bg-secondary flex items-center justify-center"><Sprout className="h-10 w-10 text-primary"/></div>}
+                  {f.logo_url ? <img src={f.logo_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full bg-black flex items-center justify-center"><img src={logoIcon} alt="" className="w-20 h-20 object-contain"/></div>}
                 </div>
                 <label className="absolute inset-0 rounded-3xl bg-black/40 opacity-0 group-hover:opacity-100 transition flex items-center justify-center cursor-pointer">
                   <Camera className="h-6 w-6 text-white"/>
@@ -107,7 +109,7 @@ function ProfilePage() {
               </div>
               <div className="px-3 -mt-8 relative">
                 <div className="h-14 w-14 rounded-2xl bg-card border-4 border-card overflow-hidden">
-                  {f.logo_url ? <img src={f.logo_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full bg-secondary flex items-center justify-center"><Sprout className="h-6 w-6 text-primary"/></div>}
+                  {f.logo_url ? <img src={f.logo_url} alt="" className="w-full h-full object-cover"/> : <div className="w-full h-full bg-black flex items-center justify-center"><img src={logoIcon} alt="" className="w-12 h-12 object-contain"/></div>}
                 </div>
                 <p className="mt-2 font-black text-sm truncate">{f.name ?? "Sua Loja"}</p>
                 <p className="text-[10px] text-muted-foreground line-clamp-2">{f.description ?? "Bio aparece aqui"}</p>

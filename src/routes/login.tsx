@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, Sprout } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logoFull from "@/assets/logo-full.png";
+import logoIcon from "@/assets/logo-icon.png";
+
 
 
 export const Route = createFileRoute("/login")({
@@ -47,33 +50,29 @@ function LoginPage() {
         <ThemeToggle />
       </div>
 
-      <div className="hidden lg:flex flex-col justify-between p-12 bg-gradient-to-br from-primary via-primary to-info text-primary-foreground relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20" style={{backgroundImage:"radial-gradient(circle at 20% 30%, white 1px, transparent 1px), radial-gradient(circle at 70% 60%, white 1px, transparent 1px)", backgroundSize:"40px 40px"}} />
+      <div className="hidden lg:flex flex-col justify-between p-12 bg-black text-white relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10" style={{backgroundImage:"radial-gradient(circle at 20% 30%, hsl(var(--primary)) 1px, transparent 1px), radial-gradient(circle at 70% 60%, hsl(var(--primary)) 1px, transparent 1px)", backgroundSize:"40px 40px"}} />
         <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <Sprout className="h-7 w-7" />
-            </div>
-            <span className="text-2xl font-black tracking-tight">Primavera Delivery</span>
-          </div>
+          <img src={logoFull} alt="Primavera Delivery" className="h-20 w-auto object-contain" />
         </div>
         <div className="relative">
           <h1 className="text-5xl font-black leading-tight tracking-tight">
-            Sua loja em<br/>florescimento.
+            Sua loja<br/>acelerada.
           </h1>
-          <p className="mt-4 text-lg opacity-90 max-w-md font-medium">
-            Pedidos, entregas, cardápio e clientes — tudo no mesmo painel, simples e bonito.
+          <p className="mt-4 text-lg opacity-80 max-w-md font-medium">
+            Pedidos, entregas, cardápio e clientes — tudo no mesmo painel.
           </p>
         </div>
-        <p className="relative text-xs opacity-70 font-semibold">© Primavera Delivery</p>
+        <p className="relative text-xs opacity-60 font-semibold">© Primavera Delivery</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
         <div className="w-full max-w-md">
           <div className="lg:hidden mb-8 flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-primary text-primary-foreground flex items-center justify-center"><Sprout className="h-6 w-6"/></div>
+            <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden"><img src={logoIcon} alt="" className="h-9 w-9 object-contain"/></div>
             <span className="text-xl font-black">Primavera</span>
           </div>
+
           <p className="label-tiny">Painel do Lojista</p>
           <h2 className="mt-2 text-3xl font-black tracking-tight">{mode === "login" ? "Entrar na conta" : "Criar conta"}</h2>
           <p className="text-muted-foreground mt-2">

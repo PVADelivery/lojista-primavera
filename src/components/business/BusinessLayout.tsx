@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet, Users, History, Tag,
-  Settings, LogOut, Bell, Search, Sprout, Power, User as UserIcon,
+  Settings, LogOut, Bell, Search, Power, User as UserIcon,
   ChevronLeft, ChevronRight, HelpCircle, Smartphone
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
@@ -15,6 +15,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { toast } from "sonner";
 import { initials } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import logoIcon from "@/assets/logo-icon.png";
+import logoFull from "@/assets/logo-full.png";
+
 
 interface Company {
   id: string; name: string; logo_url: string | null; is_open: boolean;
@@ -109,10 +112,11 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         <aside className="hidden lg:flex flex-col w-16 bg-sidebar border-r border-sidebar-border flex-shrink-0">
           {/* Logo */}
           <Link to="/business" className="h-16 flex items-center justify-center border-b border-sidebar-border">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg shadow-primary/30">
-              <Sprout className="h-5 w-5 text-primary-foreground" />
+            <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
+              <img src={logoIcon} alt="Primavera" className="h-9 w-9 object-contain" />
             </div>
           </Link>
+
 
           {/* Nav icons */}
           <nav className="flex-1 flex flex-col items-center gap-1 py-4">
@@ -166,10 +170,11 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <header className="h-16 flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0">
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
-              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center">
-                <Sprout className="h-4 w-4 text-primary-foreground" />
+              <div className="h-9 w-9 rounded-xl bg-black flex items-center justify-center overflow-hidden">
+                <img src={logoIcon} alt="Primavera" className="h-8 w-8 object-contain" />
               </div>
             </div>
+
 
             {/* Back / Forward arrows */}
             <div className="hidden sm:flex items-center gap-1">
