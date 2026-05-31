@@ -112,7 +112,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           {/* Logo */}
           <Link to="/business" className="h-16 flex items-center justify-center border-b border-sidebar-border">
             <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
-              <img src={logoIcon} alt="Primavera" className="h-9 w-9 object-contain" />
+              <img src={logoIcon} alt="Delivery Primavera" className="h-9 w-9 object-contain" />
             </div>
           </Link>
 
