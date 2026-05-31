@@ -75,9 +75,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Delivery Primavera — Painel do Lojista" },
+      { title: "Primavera Delivery — Painel do Lojista" },
       { name: "description", content: "Gerencie pedidos, entregas, cardápio e clientes em um só lugar." },
-      { property: "og:title", content: "Delivery Primavera" },
+      { property: "og:title", content: "Primavera Delivery" },
       { property: "og:description", content: "Painel do Lojista para sua operação de delivery." },
       { property: "og:type", content: "website" },
     ],
