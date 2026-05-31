@@ -64,7 +64,7 @@ function LoginPage() {
             Pedidos, entregas, cardápio e clientes — tudo no mesmo painel.
           </p>
         </div>
-        <p className="relative text-xs opacity-60 font-semibold">© Primavera Delivery</p>
+        <p className="relative text-xs opacity-60 font-semibold">© Delivery Primavera</p>
       </div>
 
       <div className="flex items-center justify-center p-6 sm:p-12 bg-background">
