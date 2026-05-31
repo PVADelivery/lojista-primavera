@@ -170,8 +170,9 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
               <div className="h-9 w-9 rounded-xl bg-black flex items-center justify-center overflow-hidden">
-                <img src={logoIcon} alt="Primavera" className="h-8 w-8 object-contain" />
+                <img src={logoIcon} alt="Delivery Primavera" className="h-8 w-8 object-contain" />
               </div>
+              <span className="font-black text-sm">Delivery Primavera</span>
             </div>
 
 
