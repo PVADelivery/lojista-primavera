@@ -1,4 +1,28 @@
 -- =============================================
+-- RESET DATABASE (DROP EXISTING)
+-- =============================================
+DROP TABLE IF EXISTS public.invitations CASCADE;
+DROP TABLE IF EXISTS public.occurrences CASCADE;
+DROP TABLE IF EXISTS public.reviews CASCADE;
+DROP TABLE IF EXISTS public.order_items CASCADE;
+DROP TABLE IF EXISTS public.orders CASCADE;
+DROP TABLE IF EXISTS public.deliveries CASCADE;
+DROP TABLE IF EXISTS public.addresses CASCADE;
+DROP TABLE IF EXISTS public.products CASCADE;
+DROP TABLE IF EXISTS public.customers CASCADE;
+DROP TABLE IF EXISTS public.delivery_drivers CASCADE;
+DROP TABLE IF EXISTS public.companies CASCADE;
+DROP TABLE IF EXISTS public.regions CASCADE;
+DROP TABLE IF EXISTS public.user_roles CASCADE;
+DROP TABLE IF EXISTS public.profiles CASCADE;
+
+DROP TYPE IF EXISTS public.app_role CASCADE;
+DROP TYPE IF EXISTS public.delivery_status CASCADE;
+DROP TYPE IF EXISTS public.occurrence_type CASCADE;
+DROP TYPE IF EXISTS public.order_status CASCADE;
+DROP TYPE IF EXISTS public.invitation_status CASCADE;
+
+-- =============================================
 -- ENUM TYPES
 -- =============================================
 CREATE TYPE public.app_role AS ENUM ('admin', 'company', 'driver', 'customer');
