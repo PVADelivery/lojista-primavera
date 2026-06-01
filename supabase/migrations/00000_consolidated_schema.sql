@@ -22,6 +22,8 @@ DROP TYPE IF EXISTS public.occurrence_type CASCADE;
 DROP TYPE IF EXISTS public.order_status CASCADE;
 DROP TYPE IF EXISTS public.invitation_status CASCADE;
 
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+
 -- =============================================
 -- ENUM TYPES
 -- =============================================
