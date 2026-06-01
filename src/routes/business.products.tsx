@@ -34,12 +34,21 @@ function ProductsPage() {
     queryKey: ["products", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      return [];
+      const { data } = await supabase.from("products").select("*").eq("company_id", company!.id).order("created_at", { ascending: false });
+      return data ?? [];
     },
   });
 
-  const toggleActive = async (p: any) => {};
-  const remove = async (id: string) => {};
+  const toggleActive = async (p: any) => {
+    await supabase.from("products").update({ is_active: !p.is_active }).eq("id", p.id);
+    qc.invalidateQueries({ queryKey: ["products"] });
+  };
+  const remove = async (id: string) => {
+    if (!confirm("Remover este produto?")) return;
+    await supabase.from("products").delete().eq("id", id);
+    qc.invalidateQueries({ queryKey: ["products"] });
+    toast.success("Produto removido");
+  };
 
   if (creating || editing) {
     return <ProductForm companyId={company?.id} initial={editing} onClose={() => { setCreating(false); setEditing(null); qc.invalidateQueries({queryKey:["products"]}); }}/>;
@@ -114,6 +123,21 @@ function ProductForm({ companyId, initial, onClose }: any) {
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBusy(true);
+    const payload = {
+      company_id: companyId,
+      name: f.name,
+      description: f.description,
+      category: f.category,
+      price: Number(f.price || 0),
+      image_url: f.images,
+    };
+    const { error } = initial
+      ? await supabase.from("products").update(payload).eq("id", initial.id)
+      : await supabase.from("products").insert(payload);
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else { toast.success("Salvo!"); onClose(); }
   };
 
   return (

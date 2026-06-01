@@ -70,11 +70,11 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   });
 
   const { data: pendingOrders = [] } = useQuery({
-    queryKey: ["pending-deliveries", company?.id],
+    queryKey: ["pending-orders", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("deliveries")
-        .select("id,customer_name,value,created_at")
+      const { data } = await supabase.from("orders")
+        .select("id,customer_name,total,created_at")
         .eq("company_id", company!.id).eq("status", "pending")
         .order("created_at", { ascending: false }).limit(10);
       return data ?? [];
@@ -86,8 +86,10 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   useEffect(() => {
     if (!company?.id) return;
     const ch = supabase.channel(`co-${company.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "orders", filter: `company_id=eq.${company.id}` },
+        () => { qc.invalidateQueries({ queryKey: ["pending-orders"] }); qc.invalidateQueries({ queryKey: ["orders"] }); })
       .on("postgres_changes", { event: "*", schema: "public", table: "deliveries", filter: `company_id=eq.${company.id}` },
-        () => { qc.invalidateQueries({ queryKey: ["pending-deliveries"] }); qc.invalidateQueries({ queryKey: ["deliveries"] }); })
+        () => qc.invalidateQueries({ queryKey: ["deliveries"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
   }, [company?.id, qc]);
@@ -263,7 +265,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                           onClick={() => nav({ to: "/business/orders" })}
                         >
                           <p className="font-bold text-sm">Novo pedido — {o.customer_name ?? "Cliente"}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">R$ {Number(o.value).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">R$ {Number(o.total).toFixed(2)}</p>
                         </li>
                       ))}
                     </ul>

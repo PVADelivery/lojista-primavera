@@ -26,7 +26,8 @@ function CustomersPage() {
     queryKey: ["customers", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      return [];
+      const { data } = await supabase.from("customers").select("*").eq("company_id", company!.id).order("created_at", { ascending: false });
+      return data ?? [];
     },
   });
 
@@ -36,6 +37,9 @@ function CustomersPage() {
 
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
+    const { error } = await supabase.from("customers").insert({ company_id: company!.id, ...f });
+    if (error) toast.error(error.message);
+    else { toast.success("Cliente cadastrado"); setOpen(false); setF({name:"",phone:"",cpf:""}); qc.invalidateQueries({queryKey:["customers"]}); }
   };
 
   return (

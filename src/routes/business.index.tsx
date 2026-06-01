@@ -37,10 +37,11 @@ function BusinessHomePage() {
   const stats = {
     pending: deliveries.filter((d: any) => d.status === "pending").length,
     inRoute: deliveries.filter((d: any) => ["in_route","in_transit","accepted","collecting"].includes(d.status)).length,
-    todayManual: deliveries.filter((d: any) => new Date(d.created_at) >= today).reduce((s: number, d: any) => s + Number(d.value || 0), 0),
+    todayManual: deliveries.filter((d: any) => !d.order_id && new Date(d.created_at) >= today).reduce((s: number, d: any) => s + Number(d.value || 0), 0),
   };
 
-  const manual = deliveries;
+  const marketplace = deliveries.filter((d: any) => d.order_id);
+  const manual = deliveries.filter((d: any) => !d.order_id);
 
   const finishDelivery = async (id: string) => {
     await supabase.from("deliveries").update({ status: "delivered" }).eq("id", id);
@@ -79,6 +80,14 @@ function BusinessHomePage() {
             <StatCard icon={Truck} label="Em Rota" value={stats.inRoute} tone="primary"/>
             <StatCard icon={Wallet} label="Hoje (Manual)" value={brl(stats.todayManual)} tone="accent"/>
           </div>
+
+          <Section title="Entregas do Marketplace" empty={marketplace.length === 0} emptyText="Nenhum pedido em entrega.">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+              {marketplace.map((d: any) => (
+                <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)}/>
+              ))}
+            </div>
+          </Section>
 
           <Section title="Entregas Manuais" empty={manual.length === 0} emptyText="Crie sua primeira entrega manual.">
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
