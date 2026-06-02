@@ -158,8 +158,8 @@ export function useAcceptDelivery() {
         .update({
           driver_id: driverId,
           status: "accepted" as any,
-          accepted_at: new Date().toISOString()
-        })
+          updated_at: new Date().toISOString(),
+        } as any)
         .eq("id", deliveryId)
         .select()
         .single();

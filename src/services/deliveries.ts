@@ -169,9 +169,9 @@ export function useDeliveryStats() {
       ]);
 
       if (todayRes.error) throw todayRes.error;
-      const data = todayRes.data;
+      const data = (todayRes.data ?? []) as any[];
 
-      const normalizedData = data.map((d) => ({
+      const normalizedData = data.map((d: any) => ({
         ...d,
         status: toAppStatus(d.status),
       }));
@@ -200,8 +200,8 @@ export function useUpdateDeliveryStatus() {
       // 1. Try the safe, bulletproof, RLS-bypassing RPC function first
       try {
         const { data, error } = await supabase.rpc("update_delivery_status_safe", {
-          p_delivery_id: id,
-          p_status: status,
+          _delivery_id: id,
+          _status: status,
         });
 
         if (!error && data && (data as any).success) {
@@ -311,11 +311,12 @@ export async function createDeliveryRequest(orderId: string) {
   const { data: address } = await supabase
     .from("addresses")
     .select("*")
-    .eq("user_id", order.user_id)
+    .eq("user_id", (order as any).user_id ?? order.customer_id ?? "")
     .limit(1)
     .maybeSingle();
 
-  const dropoff = address ? `${address.street}, ${address.number} - ${address.neighborhood}` : "Endereço não cadastrado";
+  const a = address as any;
+  const dropoff = a ? `${a.street ?? ""}, ${a.number ?? ""} - ${a.neighborhood ?? ""}` : "Endereço não cadastrado";
 
   // VERIFICAÇÃO DE DUPLICIDADE
   const { data: existingDelivery } = await supabase
