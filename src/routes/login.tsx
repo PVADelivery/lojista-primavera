@@ -17,12 +17,10 @@ export const Route = createFileRoute("/login")({
 });
 
 function LoginPage() {
-  const { signIn, signUp, user, loading } = useAuth();
+  const { signIn, user, loading } = useAuth();
   const nav = useNavigate();
-  const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -32,15 +30,9 @@ function LoginPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
-    if (mode === "login") {
-      const { error } = await signIn(email, password);
-      if (error) toast.error(error.message);
-      else toast.success("Bem-vindo(a)!");
-    } else {
-      const { error } = await signUp(email, password, fullName);
-      if (error) toast.error(error.message);
-      else toast.success("Conta criada! Verifique seu e-mail.");
-    }
+    const { error } = await signIn(email, password);
+    if (error) toast.error(error.message);
+    else toast.success("Bem-vindo(a)!");
     setBusy(false);
   };
 
@@ -75,18 +67,12 @@ function LoginPage() {
           </div>
 
           <p className="label-tiny">Painel do Lojista</p>
-          <h2 className="mt-2 text-3xl font-black tracking-tight">{mode === "login" ? "Entrar na conta" : "Criar conta"}</h2>
+          <h2 className="mt-2 text-3xl font-black tracking-tight">Entrar na conta</h2>
           <p className="text-muted-foreground mt-2">
-            {mode === "login" ? "Bom te ver de novo." : "Comece a receber pedidos hoje."}
+            Bom te ver de novo.
           </p>
 
           <form onSubmit={submit} className="mt-8 space-y-4">
-            {mode === "signup" && (
-              <div className="space-y-2">
-                <Label htmlFor="fn">Nome completo</Label>
-                <Input id="fn" value={fullName} onChange={(e) => setFullName(e.target.value)} required className="rounded-xl h-12" />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="em">E-mail</Label>
               <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl h-12" />
@@ -97,18 +83,12 @@ function LoginPage() {
             </div>
             <Button type="submit" disabled={busy} className="w-full h-12 rounded-xl font-bold text-base">
               {busy && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-              {mode === "login" ? "Entrar" : "Criar conta"}
+              Entrar
             </Button>
           </form>
 
           <p className="mt-6 text-sm text-center text-muted-foreground">
-            {mode === "login" ? "Não tem conta?" : "Já tem conta?"}{" "}
-            <button onClick={() => setMode(mode === "login" ? "signup" : "login")} className="text-primary font-bold hover:underline">
-              {mode === "login" ? "Criar uma" : "Entrar"}
-            </button>
-          </p>
-          <p className="mt-3 text-xs text-center text-muted-foreground">
-            <Link to="/login/business" className="hover:underline">Acesso de lojista parceiro →</Link>
+            Acesso exclusivo para lojistas parceiros.
           </p>
         </div>
       </div>
