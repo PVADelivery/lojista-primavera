@@ -50,7 +50,7 @@ export function useProductsManager(companyId?: string) {
   const query = useQuery({
     queryKey: ["products-manager", companyId],
     queryFn: async () => {
-       const { data, error } = await supabase.from("products").select("*").eq("company_id", companyId);
+       const { data, error } = await supabase.from("products").select("*").eq("company_id", companyId as string);
        if (error) throw error;
        return data;
     },

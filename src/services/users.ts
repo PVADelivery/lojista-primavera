@@ -94,7 +94,7 @@ export async function validateInvitation(token: string) {
   const inv = data as InvitationRow | null;
   if (!inv) throw new Error("Convite não encontrado");
   if (inv.status !== "pending") throw new Error("Este convite já foi utilizado ou está expirado.");
-  if (new Date(inv.expires_at) < new Date()) throw new Error("Convite expirado");
+  if (inv.expires_at && new Date(inv.expires_at) < new Date()) throw new Error("Convite expirado");
   return inv;
 }
 

@@ -14,22 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          city: string | null
+          complement: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          label: string | null
+          latitude: number | null
+          longitude: number | null
+          neighborhood: string | null
+          number: string | null
+          state: string | null
+          street: string | null
+          updated_at: string
+          user_id: string
+          zipcode: string | null
+        }
+        Insert: {
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
+          number?: string | null
+          state?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id: string
+          zipcode?: string | null
+        }
+        Update: {
+          city?: string | null
+          complement?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          label?: string | null
+          latitude?: number | null
+          longitude?: number | null
+          neighborhood?: string | null
+          number?: string | null
+          state?: string | null
+          street?: string | null
+          updated_at?: string
+          user_id?: string
+          zipcode?: string | null
+        }
+        Relationships: []
+      }
+      chat_message_logs: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          delivery_id: string | null
+          id: string
+          read: boolean
+          recipient_id: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          read?: boolean
+          recipient_id?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          read?: boolean
+          recipient_id?: string | null
+          sender_id?: string
+        }
+        Relationships: []
+      }
       companies: {
         Row: {
           address: string | null
           business_hours: string | null
           category: string | null
+          city_id: string | null
           cover_url: string | null
           created_at: string
           description: string | null
+          full_name: string | null
           id: string
+          is_active: boolean
           is_open: boolean
           latitude: number | null
           logo_url: string | null
           longitude: number | null
           name: string
+          neighborhood: string | null
+          number: string | null
           phone: string | null
           region_id: string | null
+          street: string | null
           updated_at: string
           user_id: string
         }
@@ -37,17 +154,23 @@ export type Database = {
           address?: string | null
           business_hours?: string | null
           category?: string | null
+          city_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
           name: string
+          neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           region_id?: string | null
+          street?: string | null
           updated_at?: string
           user_id: string
         }
@@ -55,17 +178,23 @@ export type Database = {
           address?: string | null
           business_hours?: string | null
           category?: string | null
+          city_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
           longitude?: number | null
           name?: string
+          neighborhood?: string | null
+          number?: string | null
           phone?: string | null
           region_id?: string | null
+          street?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -78,6 +207,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      conversations: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          delivery_id: string | null
+          id: string
+          order_id: string | null
+          participants: string[]
+          updated_at: string
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          order_id?: string | null
+          participants?: string[]
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          order_id?: string | null
+          participants?: string[]
+          updated_at?: string
+        }
+        Relationships: []
       }
       coupon_products: {
         Row: {
@@ -216,6 +375,7 @@ export type Database = {
           notes: string | null
           order_id: string | null
           pickup_address: string | null
+          price: number
           region_id: string | null
           status: Database["public"]["Enums"]["delivery_status"]
           updated_at: string
@@ -233,6 +393,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           pickup_address?: string | null
+          price?: number
           region_id?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
@@ -250,6 +411,7 @@ export type Database = {
           notes?: string | null
           order_id?: string | null
           pickup_address?: string | null
+          price?: number
           region_id?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
@@ -286,6 +448,75 @@ export type Database = {
           },
         ]
       }
+      delivery_drivers: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          is_online: boolean
+          phone: string | null
+          plate: string | null
+          rating: number | null
+          updated_at: string
+          user_id: string
+          vehicle: string | null
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          is_online?: boolean
+          phone?: string | null
+          plate?: string | null
+          rating?: number | null
+          updated_at?: string
+          user_id: string
+          vehicle?: string | null
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          is_online?: boolean
+          phone?: string | null
+          plate?: string | null
+          rating?: number | null
+          updated_at?: string
+          user_id?: string
+          vehicle?: string | null
+        }
+        Relationships: []
+      }
+      financial_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          delivery_id: string | null
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          delivery_id?: string | null
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          delivery_id?: string | null
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -319,6 +550,33 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read: boolean
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          sender_id?: string
+        }
+        Relationships: []
+      }
       motoboys: {
         Row: {
           created_at: string
@@ -349,6 +607,33 @@ export type Database = {
           rating?: number | null
           user_id?: string | null
           vehicle?: string | null
+        }
+        Relationships: []
+      }
+      occurrences: {
+        Row: {
+          created_at: string
+          delivery_id: string
+          description: string | null
+          driver_id: string | null
+          id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_id: string
+          description?: string | null
+          driver_id?: string | null
+          id?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          delivery_id?: string
+          description?: string | null
+          driver_id?: string | null
+          id?: string
+          type?: string
         }
         Relationships: []
       }
@@ -514,6 +799,7 @@ export type Database = {
           document: string | null
           full_name: string | null
           phone: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
           status: Database["public"]["Enums"]["profile_status"]
           updated_at: string
           user_id: string
@@ -524,6 +810,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           user_id: string
@@ -534,6 +821,7 @@ export type Database = {
           document?: string | null
           full_name?: string | null
           phone?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           user_id?: string
@@ -588,17 +876,49 @@ export type Database = {
         }
         Relationships: []
       }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      find_region_for_point: {
+        Args: { _lat: number; _lng: number }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      update_delivery_status_safe: {
+        Args: { _delivery_id: string; _status: string }
+        Returns: undefined
       }
       user_owns_company: { Args: { _company_id: string }; Returns: boolean }
     }

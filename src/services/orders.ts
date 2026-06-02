@@ -2,16 +2,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export async function calculateDeliveryFee(lat: number, lng: number) {
-  const { data, error: regionError } = await supabase.rpc("find_region_for_point", {
+  const { data: regionId, error: regionError } = await supabase.rpc("find_region_for_point", {
     _lat: lat,
     _lng: lng,
   });
 
   if (regionError) throw regionError;
-  if (!data || data.length === 0) return { fee: 0, regionId: null, message: "Fora da área de cobertura" };
+  if (!regionId) return { fee: 0, regionId: null, message: "Fora da área de cobertura" };
 
-  const region = data[0];
-  return { fee: region.region_price ?? 0, regionId: region.region_id };
+  const { data: region } = await supabase.from("regions").select("price").eq("id", regionId as string).maybeSingle();
+  return { fee: Number(region?.price ?? 0), regionId: regionId as string };
 }
 
 export async function createOrder(orderData: {
@@ -38,8 +38,10 @@ export async function createOrder(orderData: {
   const orderItems = orderData.items.map((item) => ({
     order_id: order.id,
     product_id: item.product_id,
+    product_name: "",
     quantity: item.quantity,
     price: item.price,
+    unit_price: item.price,
   }));
 
   const { error: itemsError } = await supabase.from("order_items").insert(orderItems);
