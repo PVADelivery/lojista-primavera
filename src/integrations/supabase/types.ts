@@ -130,11 +130,13 @@ export type Database = {
           address: string | null
           business_hours: string | null
           category: string | null
+          city_id: string | null
           cover_url: string | null
           created_at: string
           description: string | null
           full_name: string | null
           id: string
+          is_active: boolean
           is_open: boolean
           latitude: number | null
           logo_url: string | null
@@ -152,11 +154,13 @@ export type Database = {
           address?: string | null
           business_hours?: string | null
           category?: string | null
+          city_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
@@ -174,11 +178,13 @@ export type Database = {
           address?: string | null
           business_hours?: string | null
           category?: string | null
+          city_id?: string | null
           cover_url?: string | null
           created_at?: string
           description?: string | null
           full_name?: string | null
           id?: string
+          is_active?: boolean
           is_open?: boolean
           latitude?: number | null
           logo_url?: string | null
@@ -481,6 +487,36 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          delivery_id: string | null
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          delivery_id?: string | null
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          delivery_id?: string | null
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       invitations: {
         Row: {
           created_at: string
@@ -571,6 +607,33 @@ export type Database = {
           rating?: number | null
           user_id?: string | null
           vehicle?: string | null
+        }
+        Relationships: []
+      }
+      occurrences: {
+        Row: {
+          created_at: string
+          delivery_id: string
+          description: string | null
+          driver_id: string | null
+          id: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_id: string
+          description?: string | null
+          driver_id?: string | null
+          id?: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          delivery_id?: string
+          description?: string | null
+          driver_id?: string | null
+          id?: string
+          type?: string
         }
         Relationships: []
       }
@@ -813,17 +876,49 @@ export type Database = {
         }
         Relationships: []
       }
+      wallets: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      find_region_for_point: {
+        Args: { _lat: number; _lng: number }
+        Returns: string
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      update_delivery_status_safe: {
+        Args: { _delivery_id: string; _status: string }
+        Returns: undefined
       }
       user_owns_company: { Args: { _company_id: string }; Returns: boolean }
     }
