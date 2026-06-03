@@ -22,7 +22,7 @@ function createSupabaseClient() {
     auth: {
       storage: typeof window !== 'undefined' ? localStorage : undefined,
       persistSession: true,
-      autoRefreshToken: true,
+      autoRefreshToken: false,
     }
   });
 }
@@ -36,5 +36,16 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
     if (!_supabase) _supabase = createSupabaseClient();
     return Reflect.get(_supabase, prop, receiver);
   },
+});
+
+// Global auth state change handling – logout on refresh errors
+supabase.auth.onAuthStateChange((event, session) => {
+  if (event === 'TOKEN_REFRESH_ERROR' || event === 'SIGNED_OUT') {
+    supabase.auth.signOut().then(() => {
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login';
+      }
+    });
+  }
 });
 
