@@ -170,29 +170,6 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               );
             })}
           </nav>
-
-          {/* Bottom Actions */}
-          <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-2 overflow-hidden">
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <button className={`h-10 flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-12"}`}>
-                  <Smartphone className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
-                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Versão App</span>}
-                </button>
-              </TooltipTrigger>
-              {!isSidebarExpanded && <TooltipContent side="right">Versão App</TooltipContent>}
-            </Tooltip>
-
-            <Tooltip delayDuration={0}>
-              <TooltipTrigger asChild>
-                <button className={`h-10 flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-12"}`}>
-                  <HelpCircle className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
-                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Central de Ajuda</span>}
-                </button>
-              </TooltipTrigger>
-              {!isSidebarExpanded && <TooltipContent side="right">Central de Ajuda</TooltipContent>}
-            </Tooltip>
-          </div>
         </aside>
 
         {/* Main column */}
