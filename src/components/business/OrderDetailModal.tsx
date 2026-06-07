@@ -6,7 +6,7 @@ import {
   Package, ImagePlus, Loader2, RotateCcw, Truck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/lib/supabaseClient";
+import { supabase } from "@/integrations/supabase/client";
 import DeliveryTrackingMap from "./DeliveryTrackingMap";
 
 interface OrderDetailModalProps {
