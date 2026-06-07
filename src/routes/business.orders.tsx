@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
@@ -35,6 +36,43 @@ function OrdersPage() {
   const qc = useQueryClient();
   const [muted, setMuted] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [deliveryFee, setDeliveryFee] = useState("0,00");
+  const [busyDispatch, setBusyDispatch] = useState(false);
+
+  const confirmDispatch = async () => {
+    if (!selectedOrder || !company) return;
+    const fee = parseFloat(deliveryFee.replace(/\./g, "").replace(",", "."));
+    if (isNaN(fee) || fee <= 0) return toast.error("Valor inválido");
+    
+    setBusyDispatch(true);
+    // Cria entrega no painel do motoboy
+    const { data: d, error: e1 } = await supabase.from("deliveries").insert({
+      company_id: company.id,
+      order_id: selectedOrder.id,
+      customer_name: selectedOrder.customers?.name || selectedOrder.customer_name || "Cliente",
+      customer_phone: selectedOrder.customers?.phone || selectedOrder.customer_phone,
+      address: selectedOrder.delivery_address || "Não informado",
+      value: fee,
+      status: "pending"
+    }).select().single();
+
+    if (e1) {
+      toast.error(e1.message);
+      setBusyDispatch(false);
+      return;
+    }
+
+    // Avança o pedido para Em Rota e associa a entrega
+    await supabase.from("orders").update({ status: "in_route", delivery_id: d.id }).eq("id", selectedOrder.id);
+    
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    toast.success("Entregador solicitado!");
+    setIsDispatchModalOpen(false);
+    setBusyDispatch(false);
+  };
 
   const { data: orders = [] } = useQuery({
     queryKey: ["orders", company?.id],
@@ -272,14 +310,22 @@ function OrdersPage() {
                           
                           {order.status !== "delivered" && order.status !== "cancelled" && (
                             <button 
-                              onClick={() => advance(order.id, order.status)}
+                              onClick={() => {
+                                if (order.status === "ready") {
+                                  setSelectedOrder(order);
+                                  setDeliveryFee("0,00");
+                                  setIsDispatchModalOpen(true);
+                                } else {
+                                  advance(order.id, order.status);
+                                }
+                              }}
                               className={`flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-1.5
                                 ${isPending ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20' : 
                                 'bg-foreground text-background hover:bg-foreground/90'}`}
                             >
                               {order.status === "pending" ? "Aceitar Pedido" : 
                                order.status === "preparing" ? "Marcar Pronto" : 
-                               order.status === "ready" ? "Despachar" : "Concluir"}
+                               order.status === "ready" ? "Chamar Entregador" : "Concluir"}
                             </button>
                           )}
                         </div>
@@ -292,6 +338,63 @@ function OrdersPage() {
           );
         })}
       </div>
+
+      <Dialog open={isDispatchModalOpen} onOpenChange={setIsDispatchModalOpen}>
+        <DialogContent className="sm:max-w-md rounded-[2.5rem] border-none shadow-2xl overflow-hidden p-0">
+          <div className="bg-primary/5 p-8 pb-4">
+            <div className="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center mb-6">
+              <Truck className="h-8 w-8 text-primary" />
+            </div>
+            <DialogHeader className="text-left p-0">
+              <DialogTitle className="text-2xl font-black tracking-tight text-foreground">Chamar Entregador</DialogTitle>
+              <DialogDescription className="text-muted-foreground font-bold text-sm leading-relaxed mt-2">
+                Informe o valor que será pago ao entregador por esta entrega. Este valor será visível para os motoboys da região.
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          <div className="p-8 pt-6 space-y-6">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Valor da Entrega (R$)</label>
+              <div className="relative group">
+                <div className="absolute left-5 top-1/2 -translate-y-1/2 w-10 h-10 rounded-xl bg-primary/5 flex items-center justify-center">
+                   <span className="font-black text-primary">R$</span>
+                </div>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={deliveryFee}
+                  onChange={(e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    if(!v) v = '0';
+                    const n = parseInt(v, 10) / 100;
+                    setDeliveryFee(n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }));
+                  }}
+                  placeholder="0,00"
+                  className="w-full h-16 pl-16 pr-6 rounded-[1.25rem] bg-secondary/30 border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all text-2xl font-black tracking-tighter outline-none"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setIsDispatchModalOpen(false)}
+                className="flex-1 h-14 rounded-2xl bg-secondary text-foreground font-black text-xs uppercase tracking-widest hover:bg-secondary/80 transition-all border border-border"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDispatch}
+                disabled={busyDispatch}
+                className="flex-[2] h-14 rounded-2xl bg-foreground text-background font-black text-xs uppercase tracking-widest hover:bg-foreground/90 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {busyDispatch ? "Solicitando..." : "Confirmar Solicitação"}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
