@@ -1,185 +1,653 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useMyCompany } from "@/services/companies";
-import { brl } from "@/lib/format";
-import { TrendingUp, Wallet, ShoppingBag, ArrowDownCircle } from "lucide-react";
-import { useState, useMemo } from "react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
+import { BikeIcon } from "@/components/icons/BikeIcon";
 import {
-  AreaChart, Area, XAxis, YAxis, ResponsiveContainer, Tooltip, PieChart, Pie, Cell, BarChart, Bar
+  DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw,
+  ShoppingBag, ArrowUpRight, ArrowDownRight, Wallet, BarChart3,
+  Package, Clock, CheckCircle2, XCircle, Filter, Download
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import {
+  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, PieChart, Pie, Cell
 } from "recharts";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarUI } from "@/components/ui/calendar";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+type DateRange = { from: Date; to: Date };
+
+const PERIODS = [
+  { key: "7d", label: "7 dias", days: 7 },
+  { key: "15d", label: "15 dias", days: 15 },
+  { key: "30d", label: "30 dias", days: 30 },
+  { key: "custom", label: "Personalizado", days: 0 },
+] as const;
+
+const PIE_COLORS = [
+  "hsl(145, 63%, 42%)", // success
+  "hsl(38, 92%, 50%)",  // warning
+  "hsl(0, 84%, 60%)",   // destructive
+  "hsl(210, 100%, 52%)" // info
+];
+
+const PAYMENT_LABELS: Record<string, string> = {
+  money: "Dinheiro",
+  pix: "Pix",
+  credit_card: "Cartão de Crédito",
+  debit_card: "Cartão de Débito",
+  voucher: "Vale Refeição",
+  online: "Pagamento Online",
+  "Não informado": "Não informado"
+};
 
 export const Route = createFileRoute("/business/finance")({
-  component: FinancePage,
+  component: BusinessFinancePage,
 });
 
-const COLORS = ["hsl(var(--primary))", "hsl(var(--accent))", "hsl(var(--success))", "hsl(var(--warning))", "hsl(var(--info))"];
-
-function FinancePage() {
-  const { data: company } = useMyCompany();
-  const [days, setDays] = useState(7);
-  const since = useMemo(() => { const d = new Date(); d.setDate(d.getDate() - days); return d.toISOString(); }, [days]);
-
-  const { data: orders = [] } = useQuery({
-    queryKey: ["fin-orders", company?.id, days],
-    enabled: !!company?.id,
-    queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*").eq("company_id", company!.id).gte("created_at", since);
-      return data ?? [];
-    },
+function BusinessFinancePage() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<any[]>([]);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [commissionPercentage, setCommissionPercentage] = useState<number>(10.00);
+  const [activePeriod, setActivePeriod] = useState("30d");
+  const [customRange, setCustomRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
   });
-  const { data: deliveries = [] } = useQuery({
-    queryKey: ["fin-deliveries", company?.id, days],
-    enabled: !!company?.id,
-    queryFn: async () => {
-      const { data } = await supabase.from("deliveries").select("*").eq("company_id", company!.id).gte("created_at", since);
-      return data ?? [];
-    },
-  });
+  const [tab, setTab] = useState("overview");
 
-  const completedOrders = orders.filter((o: any) => ["delivered","completed"].includes(o.status));
-  const revenue = completedOrders.reduce((s: number, o: any) => s + Number(o.total), 0);
-  const logistics = deliveries.filter((d: any) => d.status !== "cancelled" && !d.order_id).reduce((s: number, d: any) => s + Number(d.value), 0);
-  const todayOrders = orders.filter((o: any) => new Date(o.created_at).toDateString() === new Date().toDateString());
-  const todayRevenue = todayOrders.filter((o: any) => ["delivered","completed"].includes(o.status)).reduce((s:number,o:any)=>s+Number(o.total),0);
+  const dateRange = useMemo(() => {
+    if (activePeriod === "custom") return customRange;
+    const days = PERIODS.find(p => p.key === activePeriod)?.days || 30;
+    return { from: subDays(new Date(), days), to: new Date() };
+  }, [activePeriod, customRange]);
 
-  // daily series
-  const series = useMemo(() => {
-    const map = new Map<string, number>();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(); d.setDate(d.getDate() - i);
-      map.set(d.toISOString().slice(0,10), 0);
-    }
-    completedOrders.forEach((o: any) => {
-      const k = o.created_at.slice(0,10);
-      if (map.has(k)) map.set(k, map.get(k)! + Number(o.total));
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      let { data } = await supabase.from("companies").select("id, commission_percentage").eq("user_id", user.id).maybeSingle();
+      
+      // Fallback para administradores
+      if (!data) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profile?.role === "admin") {
+          const { data: fallbackCompany } = await supabase
+            .from("companies")
+            .select("id, commission_percentage")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+          data = fallbackCompany;
+        }
+      }
+
+      if (data) {
+        setCompanyId(data.id);
+        setCommissionPercentage(data.commission_percentage !== null && data.commission_percentage !== undefined ? Number(data.commission_percentage) : 10.00);
+      }
+    })();
+  }, [user]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    (async () => {
+      setLoading(true);
+      const startIso = startOfDay(dateRange.from).toISOString();
+      const endIso = endOfDay(dateRange.to).toISOString();
+
+      // 1. Busca Pedidos do Marketplace
+      const { data: ordersData } = await supabase
+        .from("orders")
+        .select("id, total, status, created_at, delivery_fee, payment_method")
+        .eq("company_id", companyId)
+        .gte("created_at", startIso)
+        .lte("created_at", endIso)
+        .order("created_at", { ascending: false });
+
+      // 2. Busca Entregas Manuais (Gastos com logística direta)
+      const { data: deliveriesData } = await supabase
+        .from("deliveries")
+        .select("id, value, status, created_at, order_id")
+        .eq("company_id", companyId)
+        .gte("created_at", startIso)
+        .lte("created_at", endIso);
+
+      setOrders(ordersData || []);
+      setDeliveries(deliveriesData || []);
+      setLoading(false);
+    })();
+  }, [companyId, dateRange]);
+
+  // Computed metrics
+  const metrics = useMemo(() => {
+    const completedOrders = orders.filter(o => ["completed", "delivered"].includes(o.status));
+    const pendingOrders = orders.filter(o => !["completed", "delivered", "cancelled"].includes(o.status));
+    const cancelledOrders = orders.filter(o => o.status === "cancelled");
+
+    // Marketplace Revenue
+    const marketplaceRevenue = completedOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const marketplaceDeliveryFees = completedOrders.reduce((s, o) => s + (Number(o.delivery_fee) || 0), 0);
+    
+    // Manual Delivery Spending (only non-cancelled deliveries)
+    const activeDeliveries = deliveries.filter(d => d.status !== "cancelled");
+    const manualDeliverySpending = activeDeliveries.reduce((s, d) => s + (Number(d.value) || 0), 0);
+    const platformFee = marketplaceRevenue * (commissionPercentage / 100);
+
+    const avgTicket = completedOrders.length > 0 ? marketplaceRevenue / completedOrders.length : 0;
+
+    // Today
+    const todayOrders = completedOrders.filter(o => isSameDay(new Date(o.created_at), new Date()));
+    const todayRevenue = todayOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+
+    // Yesterday for comparison
+    const yesterday = subDays(new Date(), 1);
+    const yesterdayRevenue = completedOrders.filter(o => isSameDay(new Date(o.created_at), yesterday))
+      .reduce((s, o) => s + (Number(o.total) || 0), 0);
+    const revenueChange = yesterdayRevenue > 0 ? ((todayRevenue - yesterdayRevenue) / yesterdayRevenue) * 100 : 0;
+
+    return {
+      marketplaceRevenue,
+      manualDeliverySpending,
+      platformFee,
+      netBalance: marketplaceRevenue - manualDeliverySpending - platformFee,
+      avgTicket,
+      todayRevenue,
+      revenueChange,
+      completedCount: completedOrders.length,
+      pendingCount: pendingOrders.length,
+      cancelledCount: cancelledOrders.length,
+      totalOrders: orders.length,
+      conversionRate: orders.length > 0 ? (completedOrders.length / orders.length) * 100 : 0,
+      totalDeliveryVolume: deliveries.length,
+    };
+  }, [orders, deliveries, commissionPercentage]);
+
+  // Chart data: daily revenue
+  const dailyChartData = useMemo(() => {
+    const days = eachDayOfInterval({ start: dateRange.from, end: dateRange.to });
+    return days.map(day => {
+      const dayOrders = orders.filter(o =>
+        ["completed", "delivered"].includes(o.status) && isSameDay(new Date(o.created_at), day)
+      );
+      return {
+        date: format(day, "dd/MM", { locale: ptBR }),
+        fullDate: format(day, "dd 'de' MMM", { locale: ptBR }),
+        receita: dayOrders.reduce((s, o) => s + (o.total || 0), 0),
+        pedidos: dayOrders.length,
+      };
     });
-    return Array.from(map.entries()).map(([d, v]) => ({ d: d.slice(5), v }));
-  }, [completedOrders, days]);
+  }, [orders, dateRange]);
 
-  const statusDist = useMemo(() => {
-    const counts: Record<string, number> = {};
-    orders.forEach((o: any) => { counts[o.status] = (counts[o.status]||0) + 1; });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  // Pie data for status
+  const pieData = useMemo(() => [
+    { name: "Concluídos", value: metrics.completedCount, color: PIE_COLORS[0] },
+    { name: "Pendentes", value: metrics.pendingCount, color: PIE_COLORS[1] },
+    { name: "Cancelados", value: metrics.cancelledCount, color: PIE_COLORS[2] },
+  ].filter(d => d.value > 0), [metrics]);
+
+  // Payment methods breakdown
+  const paymentData = useMemo(() => {
+    const map: Record<string, number> = {};
+    orders.filter(o => ["completed", "delivered"].includes(o.status)).forEach(o => {
+      const method = o.payment_method || "Não informado";
+      map[method] = (map[method] || 0) + (o.total || 0);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [orders]);
 
-  const payments = useMemo(() => {
-    const counts: Record<string, number> = {};
-    orders.forEach((o: any) => { const k = o.payment_method || "Não informado"; counts[k] = (counts[k]||0) + Number(o.total); });
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
-  }, [orders]);
+  const fmt = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    return (
+      <div className="bg-card/95 backdrop-blur-xl border border-border rounded-2xl p-4 shadow-xl">
+        <p className="text-xs font-bold text-muted-foreground mb-2">{payload[0]?.payload?.fullDate || label}</p>
+        {payload.map((p: any, i: number) => (
+          <div key={i} className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full" style={{ background: p.color }} />
+            <span className="text-xs text-muted-foreground">{p.name === "receita" ? "Receita" : "Pedidos"}:</span>
+            <span className="text-sm font-black text-foreground">
+              {p.name === "receita" ? fmt(p.value) : p.value}
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <p className="label-tiny">Centro Financeiro</p>
-          <h1 className="text-3xl font-black tracking-tight">Sua loja em números</h1>
+          <h2 className="text-2xl font-black text-foreground tracking-tight">Centro Financeiro</h2>
+          <p className="text-sm text-muted-foreground font-medium mt-1">
+            Análise completa de receitas, pedidos e desempenho
+          </p>
         </div>
-        <div className="flex gap-2">
-          {[7,15,30].map(d => (
-            <Button key={d} variant={days===d?"default":"outline"} onClick={()=>setDays(d)} className="rounded-xl">{d} dias</Button>
+        <div className="flex items-center gap-2 flex-wrap">
+          {PERIODS.map(p => (
+            p.key !== "custom" ? (
+              <button
+                key={p.key}
+                onClick={() => setActivePeriod(p.key)}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200",
+                  activePeriod === p.key
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "bg-muted text-muted-foreground hover:bg-muted/80"
+                )}
+              >
+                {p.label}
+              </button>
+            ) : (
+              <Popover key={p.key}>
+                <PopoverTrigger asChild>
+                  <button className={cn(
+                    "px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 flex items-center gap-1.5",
+                    activePeriod === "custom"
+                      ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                      : "bg-muted text-muted-foreground hover:bg-muted/80"
+                  )}>
+                    <Calendar className="h-3 w-3" />
+                    {activePeriod === "custom"
+                      ? `${format(customRange.from, "dd/MM")} - ${format(customRange.to, "dd/MM")}`
+                      : "Período"}
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="end">
+                  <CalendarUI
+                    mode="range"
+                    selected={{ from: customRange.from, to: customRange.to }}
+                    onSelect={(range: any) => {
+                      if (range?.from && range?.to) {
+                        setCustomRange({ from: range.from, to: range.to });
+                        setActivePeriod("custom");
+                      }
+                    }}
+                    numberOfMonths={2}
+                    locale={ptBR}
+                    className="p-3 pointer-events-auto"
+                  />
+                </PopoverContent>
+              </Popover>
+            )
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPI icon={TrendingUp} label="Faturamento Marketplace" value={brl(revenue)} tone="primary"/>
-        <KPI icon={ShoppingBag} label="Vendas Hoje" value={brl(todayRevenue)} sub={`${todayOrders.length} pedidos`} tone="accent"/>
-        <KPI icon={ArrowDownCircle} label="Gasto Logística" value={brl(logistics)} tone="warning"/>
-        <KPI icon={Wallet} label="Saldo Líquido" value={brl(revenue - logistics)} tone="success"/>
-      </div>
-
-      <Tabs defaultValue="overview">
-        <TabsList className="rounded-2xl">
-          <TabsTrigger value="overview" className="rounded-xl">Visão Geral</TabsTrigger>
-          <TabsTrigger value="orders" className="rounded-xl">Pedidos</TabsTrigger>
-          <TabsTrigger value="analysis" className="rounded-xl">Análise</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-[2rem] p-6">
-            <h3 className="font-black mb-4">Receita diária</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <AreaChart data={series}>
-                <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/><stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/></linearGradient></defs>
-                <XAxis dataKey="d" stroke="hsl(var(--muted-foreground))" fontSize={12}/>
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12}/>
-                <Tooltip contentStyle={{borderRadius:16,border:"1px solid hsl(var(--border))",background:"hsl(var(--card))"}} formatter={(v:any)=>brl(v)}/>
-                <Area type="monotone" dataKey="v" stroke="hsl(var(--primary))" strokeWidth={3} fill="url(#g)"/>
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-
-          {statusDist.length > 0 && (
-            <div className="bg-card border border-border rounded-[2rem] p-6">
-              <h3 className="font-black mb-4">Distribuição por status</h3>
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie data={statusDist} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80}>
-                    {statusDist.map((_, i) => <Cell key={i} fill={COLORS[i%COLORS.length]}/>)}
-                  </Pie>
-                  <Tooltip/>
-                </PieChart>
-              </ResponsiveContainer>
+      {loading ? (
+        <div className="flex items-center justify-center py-24">
+          <RefreshCw className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {/* Marketplace Revenue */}
+            <div className="relative bg-gradient-to-br from-primary/10 via-card to-card border border-primary/20 rounded-2xl p-5 overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-8 translate-x-8" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
+                    <ShoppingBag className="h-4.5 w-4.5 text-primary" />
+                  </div>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Faturamento Marketplace</span>
+                </div>
+                <p className="text-2xl font-black text-foreground tracking-tight">{fmt(metrics.marketplaceRevenue)}</p>
+                <div className="flex items-center gap-1 mt-2">
+                  {metrics.revenueChange >= 0 ? (
+                    <ArrowUpRight className="h-3.5 w-3.5 text-success" />
+                  ) : (
+                    <ArrowDownRight className="h-3.5 w-3.5 text-destructive" />
+                  )}
+                  <span className={cn("text-xs font-bold", metrics.revenueChange >= 0 ? "text-success" : "text-destructive")}>
+                    {Math.abs(metrics.revenueChange).toFixed(1)}% vs ontem
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-        </TabsContent>
+ 
+            {/* Today Revenue */}
+            <div className="bg-card border border-border/60 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center">
+                  <TrendingUp className="h-4.5 w-4.5 text-success" />
+                </div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Vendas Hoje</span>
+              </div>
+              <p className="text-2xl font-black text-foreground tracking-tight">{fmt(metrics.todayRevenue)}</p>
+              <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                {metrics.completedCount} pedidos entregues
+              </p>
+            </div>
+ 
+            {/* Logistics Spending */}
+            <div className="bg-card border border-border/60 rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center">
+                  <BikeIcon className="h-4.5 w-4.5 text-destructive" />
+                </div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Gasto Logística</span>
+              </div>
+              <p className="text-2xl font-black text-destructive tracking-tight">{fmt(metrics.manualDeliverySpending)}</p>
+              <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                {metrics.totalDeliveryVolume} entregas manuais
+              </p>
+            </div>
 
-        <TabsContent value="orders" className="mt-4">
-          <div className="bg-card border border-border rounded-[2rem] overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary"><tr>
-                  <th className="text-left p-3 font-black">ID</th><th className="text-left p-3 font-black">Data</th>
-                  <th className="text-left p-3 font-black">Status</th><th className="text-left p-3 font-black">Pagamento</th>
-                  <th className="text-right p-3 font-black">Total</th>
-                </tr></thead>
-                <tbody>
-                  {orders.map((o: any) => (
-                    <tr key={o.id} className="border-t border-border">
-                      <td className="p-3 font-mono text-xs">{o.id.slice(0,8)}</td>
-                      <td className="p-3">{new Date(o.created_at).toLocaleString("pt-BR")}</td>
-                      <td className="p-3"><span className="px-2 py-0.5 rounded-full bg-secondary text-xs font-bold">{o.status}</span></td>
-                      <td className="p-3">{o.payment_method ?? "—"}</td>
-                      <td className="p-3 text-right font-bold">{brl(o.total)}</td>
-                    </tr>
-                  ))}
-                  {orders.length === 0 && <tr><td colSpan={5} className="p-8 text-center text-muted-foreground">Sem pedidos no período</td></tr>}
-                </tbody>
-              </table>
+            {/* Platform Commission */}
+            <div className="bg-card border border-primary/20 bg-primary/[0.01] rounded-2xl p-5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 rounded-full -translate-y-8 translate-x-8" />
+              <div className="relative">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <span className="text-sm">🪙</span>
+                  </div>
+                  <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Comissão Plataforma ({commissionPercentage.toFixed(1)}%)</span>
+                </div>
+                <p className="text-2xl font-black text-primary tracking-tight">{fmt(metrics.platformFee)}</p>
+                <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                  Comissão devida no período
+                </p>
+              </div>
+            </div>
+ 
+            {/* Net Balance */}
+            <div className="bg-card border border-primary/10 bg-primary/[0.02] rounded-2xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Wallet className="h-4.5 w-4.5 text-primary" />
+                </div>
+                <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Saldo Líquido</span>
+              </div>
+              <p className="text-2xl font-black text-foreground tracking-tight">{fmt(metrics.netBalance)}</p>
+              <p className="text-[11px] text-muted-foreground font-medium mt-2">
+                Faturamento - Logística - Comissão
+              </p>
             </div>
           </div>
-        </TabsContent>
 
-        <TabsContent value="analysis" className="mt-4">
-          <div className="bg-card border border-border rounded-[2rem] p-6">
-            <h3 className="font-black mb-4">Por forma de pagamento</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={payments} layout="vertical">
-                <XAxis type="number" stroke="hsl(var(--muted-foreground))" fontSize={12}/>
-                <YAxis dataKey="name" type="category" stroke="hsl(var(--muted-foreground))" fontSize={12} width={120}/>
-                <Tooltip formatter={(v:any)=>brl(v)} contentStyle={{borderRadius:16}}/>
-                <Bar dataKey="value" fill="hsl(var(--primary))" radius={[0,12,12,0]}/>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-}
+          {/* Tabs */}
+          <Tabs value={tab} onValueChange={setTab}>
+            <TabsList className="bg-muted/50 border border-border/50 rounded-xl p-1">
+              <TabsTrigger value="overview" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Visão Geral
+              </TabsTrigger>
+              <TabsTrigger value="orders" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Pedidos
+              </TabsTrigger>
+              <TabsTrigger value="analysis" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Análise
+              </TabsTrigger>
+            </TabsList>
 
-function KPI({ icon: Icon, label, value, sub, tone }: any) {
-  const tones: any = { primary:"bg-primary/10 text-primary", accent:"bg-accent/10 text-accent", warning:"bg-warning/10 text-warning", success:"bg-success/10 text-success" };
-  return (
-    <div className="bg-card border border-border rounded-[2rem] p-5">
-      <div className={`h-10 w-10 rounded-2xl flex items-center justify-center ${tones[tone]}`}><Icon className="h-5 w-5"/></div>
-      <p className="label-tiny mt-3">{label}</p>
-      <p className="text-2xl font-black tracking-tight">{value}</p>
-      {sub && <p className="text-xs text-muted-foreground">{sub}</p>}
+            {/* Overview Tab */}
+            <TabsContent value="overview" className="space-y-6 mt-4">
+              {/* Revenue Chart */}
+              <div className="bg-card border border-border/60 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h3 className="text-base font-black text-foreground">Receita Diária</h3>
+                    <p className="text-xs text-muted-foreground font-medium mt-0.5">Evolução de faturamento no período</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                      <span className="text-[10px] font-bold text-muted-foreground">Receita</span>
+                    </div>
+                  </div>
+                </div>
+                <ResponsiveContainer width="100%" height={280}>
+                  <AreaChart data={dailyChartData}>
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="hsl(217, 91%, 50%)" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" opacity={0.5} />
+                    <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 600 }} stroke="hsl(220, 10%, 50%)" tickLine={false} axisLine={false} />
+                    <YAxis tick={{ fontSize: 10, fontWeight: 600 }} stroke="hsl(220, 10%, 50%)" tickLine={false} axisLine={false} tickFormatter={(v) => `R$${v}`} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area type="monotone" dataKey="receita" stroke="hsl(217, 91%, 50%)" strokeWidth={2.5} fill="url(#revenueGrad)" name="receita" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Bottom row: Pie + Order volume */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Status Pie */}
+                <div className="bg-card border border-border/60 rounded-2xl p-6">
+                  <h3 className="text-base font-black text-foreground mb-1">Status dos Pedidos</h3>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Distribuição no período selecionado</p>
+                  {pieData.length > 0 ? (
+                    <div className="flex items-center gap-6">
+                      <ResponsiveContainer width={160} height={160}>
+                        <PieChart>
+                          <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={70} paddingAngle={4} dataKey="value" strokeWidth={0}>
+                            {pieData.map((entry, i) => (
+                              <Cell key={i} fill={entry.color} />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+                      <div className="flex-1 space-y-3">
+                        {pieData.map((item, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-3 h-3 rounded-full" style={{ background: item.color }} />
+                              <span className="text-xs font-bold text-muted-foreground">{item.name}</span>
+                            </div>
+                            <span className="text-sm font-black text-foreground">{item.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-40 text-muted-foreground text-sm">
+                      Sem dados no período
+                    </div>
+                  )}
+                </div>
+
+                {/* Orders Volume Bar */}
+                <div className="bg-card border border-border/60 rounded-2xl p-6">
+                  <h3 className="text-base font-black text-foreground mb-1">Volume de Pedidos</h3>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Quantidade diária de pedidos</p>
+                  <ResponsiveContainer width="100%" height={160}>
+                    <BarChart data={dailyChartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(220, 13%, 91%)" opacity={0.5} />
+                      <XAxis dataKey="date" tick={{ fontSize: 9, fontWeight: 600 }} stroke="hsl(220, 10%, 50%)" tickLine={false} axisLine={false} />
+                      <YAxis tick={{ fontSize: 9, fontWeight: 600 }} stroke="hsl(220, 10%, 50%)" tickLine={false} axisLine={false} allowDecimals={false} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="pedidos" fill="hsl(217, 91%, 50%)" radius={[6, 6, 0, 0]} name="pedidos" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Orders Tab */}
+            <TabsContent value="orders" className="mt-4">
+              <div className="bg-card border border-border/60 rounded-2xl overflow-hidden">
+                <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+                  <div>
+                    <h3 className="text-base font-black text-foreground">Todos os Pedidos</h3>
+                    <p className="text-xs text-muted-foreground font-medium">{orders.length} pedidos no período</p>
+                  </div>
+                </div>
+                {orders.length === 0 ? (
+                  <div className="p-16 text-center text-muted-foreground">
+                    <ShoppingBag className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                    <p className="font-bold text-sm">Nenhum pedido no período</p>
+                    <p className="text-xs mt-1">Ajuste o filtro de datas para ver mais resultados</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-border/40">
+                    {/* Table header */}
+                    <div className="grid grid-cols-12 gap-3 px-6 py-3 bg-muted/30">
+                      <span className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-wider">Pedido</span>
+                      <span className="col-span-3 text-[10px] font-black text-muted-foreground uppercase tracking-wider">Data/Hora</span>
+                      <span className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-wider">Status</span>
+                      <span className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-wider">Pagamento</span>
+                      <span className="col-span-2 text-[10px] font-black text-muted-foreground uppercase tracking-wider text-right">Valor</span>
+                    </div>
+                    {orders.map((order: any) => (
+                      <div key={order.id} className="grid grid-cols-12 gap-3 px-6 py-3.5 hover:bg-muted/20 transition-colors items-center">
+                        <div className="col-span-3">
+                          <span className="text-xs font-black text-foreground font-mono">#{order.id.slice(-6).toUpperCase()}</span>
+                        </div>
+                        <div className="col-span-3">
+                          <p className="text-xs font-medium text-foreground">
+                            {format(new Date(order.created_at), "dd/MM/yyyy", { locale: ptBR })}
+                          </p>
+                          <p className="text-[10px] text-muted-foreground">
+                            {format(new Date(order.created_at), "HH:mm", { locale: ptBR })}
+                          </p>
+                        </div>
+                        <div className="col-span-2">
+                          <span className={cn(
+                            "text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider inline-block",
+                            ["completed", "delivered"].includes(order.status) ? "bg-success/10 text-success" :
+                            order.status === "cancelled" ? "bg-destructive/10 text-destructive" :
+                            "bg-warning/10 text-warning"
+                          )}>
+                            {["completed", "delivered"].includes(order.status) ? "Concluído" :
+                             order.status === "cancelled" ? "Cancelado" :
+                             order.status === "preparing" ? "Preparo" :
+                             order.status === "ready" ? "Pronto" :
+                             order.status === "in_route" ? "Em rota" : "Pendente"}
+                          </span>
+                        </div>
+                        <div className="col-span-2">
+                          <span className="text-xs text-muted-foreground font-medium">
+                            {PAYMENT_LABELS[order.payment_method] || order.payment_method || "—"}
+                          </span>
+                        </div>
+                        <div className="col-span-2 text-right">
+                          <span className={cn(
+                            "text-sm font-black",
+                            order.status === "cancelled" ? "text-muted-foreground line-through" : "text-foreground"
+                          )}>
+                            {fmt(order.total || 0)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            {/* Analysis Tab */}
+            <TabsContent value="analysis" className="space-y-4 mt-4">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                {/* Key metrics */}
+                <div className="bg-card border border-border/60 rounded-2xl p-6 space-y-5">
+                  <h3 className="text-base font-black text-foreground">Indicadores</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-success/10 flex items-center justify-center">
+                          <CheckCircle2 className="h-4 w-4 text-success" />
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Concluídos</span>
+                      </div>
+                      <span className="text-lg font-black text-foreground">{metrics.completedCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-warning/10 flex items-center justify-center">
+                          <Clock className="h-4 w-4 text-warning" />
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Pendentes</span>
+                      </div>
+                      <span className="text-lg font-black text-foreground">{metrics.pendingCount}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
+                          <XCircle className="h-4 w-4 text-destructive" />
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Cancelados</span>
+                      </div>
+                      <span className="text-lg font-black text-foreground">{metrics.cancelledCount}</span>
+                    </div>
+                    <div className="border-t border-border/50 pt-4 flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Package className="h-4 w-4 text-primary" />
+                        </div>
+                        <span className="text-xs font-bold text-muted-foreground">Total</span>
+                      </div>
+                      <span className="text-lg font-black text-foreground">{metrics.totalOrders}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Logistics detail */}
+                <div className="bg-card border border-border/60 rounded-2xl p-6">
+                  <h3 className="text-base font-black text-foreground mb-1">Gastos com Entregas</h3>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Custo total de logística (Entregas Manuais)</p>
+                  <div className="flex flex-col items-center justify-center py-4">
+                    <p className="text-3xl font-black text-destructive tracking-tight">{fmt(metrics.manualDeliverySpending)}</p>
+                    <p className="text-xs text-muted-foreground font-medium mt-2 text-center">
+                      {metrics.totalDeliveryVolume > 0
+                        ? `${metrics.totalDeliveryVolume} entregas realizadas no período`
+                        : "Nenhuma entrega manual registrada"}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Payment methods */}
+                <div className="bg-card border border-border/60 rounded-2xl p-6">
+                  <h3 className="text-base font-black text-foreground mb-1">Formas de Pagamento</h3>
+                  <p className="text-xs text-muted-foreground font-medium mb-4">Distribuição por método</p>
+                  {paymentData.length > 0 ? (
+                    <div className="space-y-3">
+                      {paymentData.map((item, i) => {
+                        const total = paymentData.reduce((s, d) => s + d.value, 0);
+                        const pct = total > 0 ? (item.value / total) * 100 : 0;
+                        return (
+                          <div key={i}>
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-bold text-muted-foreground">{PAYMENT_LABELS[item.name] || item.name}</span>
+                              <span className="text-xs font-black text-foreground">{fmt(item.value)}</span>
+                            </div>
+                            <div className="h-2 bg-muted rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary rounded-full transition-all duration-500"
+                                style={{ width: `${pct}%` }}
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-24 text-muted-foreground text-xs">
+                      Sem dados
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 }
