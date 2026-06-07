@@ -75,6 +75,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
+      { name: "google", content: "notranslate" },
       { title: "Primavera Delivery — Painel do Lojista" },
       { name: "description", content: "Gerencie pedidos, entregas, cardápio e clientes em um só lugar." },
       { property: "og:title", content: "Primavera Delivery — Painel do Lojista" },
@@ -103,7 +104,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="pt-BR" translate="no">
       <head>
         <HeadContent />
       </head>

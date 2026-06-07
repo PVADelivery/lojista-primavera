@@ -132,7 +132,7 @@ function BusinessHomePage() {
             <StatCard n="03" icon={Wallet} label="Receita manual" value={brl(stats.todayManual)} hint="vendas diretas hoje" tone="primary" />
           </div>
 
-          <Section title="Marketplace" kicker="Entregas vindas dos seus pedidos online" count={marketplace.length}>
+          <Section title="Marketplace" kicker="Entregas geradas por pedidos online" count={marketplace.length}>
             {marketplace.length === 0 ? (
               <EmptyState icon={ShoppingBag} text="Nenhum pedido em entrega no momento." />
             ) : (
