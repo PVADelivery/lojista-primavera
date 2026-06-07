@@ -40,7 +40,7 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
 
 // Global auth state change handling – logout on refresh errors
 supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'TOKEN_REFRESH_ERROR' || event === 'SIGNED_OUT') {
+  if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
     supabase.auth.signOut().then(() => {
       if (typeof window !== 'undefined') {
         window.location.href = '/login';
