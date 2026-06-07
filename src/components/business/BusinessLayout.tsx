@@ -107,59 +107,53 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-background text-foreground flex">
-        {/* THIN ICON SIDEBAR — Medal style */}
-        <aside className="hidden lg:flex flex-col w-16 bg-sidebar border-r border-sidebar-border flex-shrink-0">
-          {/* Logo */}
-          <Link to="/business" className="h-16 flex items-center justify-center border-b border-sidebar-border">
-            <div className="h-10 w-10 rounded-xl bg-black flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20">
-              <img src={logoIcon} alt="Primavera Delivery" className="h-9 w-9 object-contain" />
+        {/* PREMIUM WIDE SIDEBAR */}
+        <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border flex-shrink-0 shadow-xl shadow-black/5 z-20">
+          {/* Logo & Brand */}
+          <Link to="/business" className="h-20 flex items-center px-6 gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 p-1">
+              <img src={logoIcon} alt="Primavera Delivery" className="h-full w-full object-contain filter brightness-0 invert" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-black text-base leading-tight tracking-tight text-sidebar-foreground">Primavera<br/>Delivery</span>
             </div>
           </Link>
 
-
-          {/* Nav icons */}
-          <nav className="flex-1 flex flex-col items-center gap-1 py-4">
+          {/* Nav Links */}
+          <nav className="flex-1 flex flex-col gap-1.5 p-4 overflow-y-auto">
+            <div className="text-xs font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-wider px-2">Menu Principal</div>
             {SIDE_ICONS.map((it) => {
               const active = isActive(it.to, it.exact);
               return (
-                <Tooltip key={it.to}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to={it.to}
-                      className={`relative h-11 w-11 rounded-xl flex items-center justify-center transition-all group ${
-                        active
-                          ? "bg-sidebar-accent text-sidebar-primary"
-                          : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                      }`}
-                    >
-                      {active && <span className="absolute -left-3 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-sidebar-primary" />}
-                      <it.icon className="h-5 w-5" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right" className="font-semibold">{it.label}</TooltipContent>
-                </Tooltip>
+                <Link
+                  key={it.to}
+                  to={it.to}
+                  className={`relative h-12 px-3 rounded-xl flex items-center gap-3 transition-all group overflow-hidden ${
+                    active
+                      ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
+                      : "text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                  }`}
+                >
+                  {/* Subtle active glow */}
+                  {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
+                  
+                  <it.icon className={`h-5 w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
+                  <span className="truncate">{it.label}</span>
+                </Link>
               );
             })}
           </nav>
 
-          {/* Bottom: storage info + mobile hint + help */}
-          <div className="flex flex-col items-center gap-3 pb-4 text-sidebar-foreground">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-sidebar-accent transition">
-                  <Smartphone className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Versão mobile</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button className="h-10 w-10 rounded-xl flex items-center justify-center hover:bg-sidebar-accent transition">
-                  <HelpCircle className="h-5 w-5" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Ajuda</TooltipContent>
-            </Tooltip>
+          {/* Bottom Actions */}
+          <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-2">
+            <button className="h-10 px-3 rounded-xl flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors w-full">
+              <Smartphone className="h-4 w-4 text-sidebar-foreground/50" />
+              <span className="text-sm">Versão App</span>
+            </button>
+            <button className="h-10 px-3 rounded-xl flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors w-full">
+              <HelpCircle className="h-4 w-4 text-sidebar-foreground/50" />
+              <span className="text-sm">Central de Ajuda</span>
+            </button>
           </div>
         </aside>
 
