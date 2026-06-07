@@ -52,6 +52,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   const nav = useNavigate();
   const qc = useQueryClient();
   const [historyIdx, setHistoryIdx] = useState(0);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const { data: company } = useQuery({
     queryKey: ["my-company", user?.id],
@@ -107,53 +108,90 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   return (
     <TooltipProvider delayDuration={200}>
       <div className="min-h-screen bg-background text-foreground flex">
-        {/* PREMIUM WIDE SIDEBAR */}
-        <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border flex-shrink-0 shadow-xl shadow-black/5 z-20">
+        {/* PREMIUM WIDE SIDEBAR WITH TOGGLE */}
+        <aside 
+          className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border flex-shrink-0 shadow-xl shadow-black/5 z-20 transition-all duration-300 relative ${
+            isSidebarExpanded ? "w-64" : "w-20"
+          }`}
+        >
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
+            className="absolute -right-3.5 top-8 h-7 w-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-30"
+            aria-label="Toggle Sidebar"
+          >
+            {isSidebarExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          </button>
+
           {/* Logo & Brand */}
-          <Link to="/business" className="h-20 flex items-center px-6 gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 p-1">
+          <Link to="/business" className={`h-20 flex items-center gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors ${isSidebarExpanded ? "px-6" : "px-0 justify-center"}`}>
+            <div className="h-10 w-10 min-w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 p-1">
               <img src={logoIcon} alt="Primavera Delivery" className="h-full w-full object-contain filter brightness-0 invert" />
             </div>
-            <div className="flex flex-col">
-              <span className="font-black text-base leading-tight tracking-tight text-sidebar-foreground">Primavera<br/>Delivery</span>
-            </div>
+            {isSidebarExpanded && (
+              <div className="flex flex-col whitespace-nowrap overflow-hidden">
+                <span className="font-black text-base leading-tight tracking-tight text-sidebar-foreground">Primavera<br/>Delivery</span>
+              </div>
+            )}
           </Link>
 
           {/* Nav Links */}
-          <nav className="flex-1 flex flex-col gap-1.5 p-4 overflow-y-auto">
-            <div className="text-xs font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-wider px-2">Menu Principal</div>
+          <nav className="flex-1 flex flex-col gap-1.5 p-4 overflow-y-auto overflow-x-hidden">
+            {isSidebarExpanded && (
+              <div className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-wider px-2 whitespace-nowrap">Menu Principal</div>
+            )}
             {SIDE_ICONS.map((it) => {
               const active = isActive(it.to, it.exact);
               return (
-                <Link
-                  key={it.to}
-                  to={it.to}
-                  className={`relative h-12 px-3 rounded-xl flex items-center gap-3 transition-all group overflow-hidden ${
-                    active
-                      ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
-                      : "text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                  }`}
-                >
-                  {/* Subtle active glow */}
-                  {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
-                  
-                  <it.icon className={`h-5 w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
-                  <span className="truncate">{it.label}</span>
-                </Link>
+                <Tooltip key={it.to} delayDuration={0}>
+                  <TooltipTrigger asChild>
+                    <Link
+                      to={it.to}
+                      className={`relative h-12 flex items-center gap-3 transition-all group overflow-hidden ${
+                        isSidebarExpanded ? "px-3 rounded-xl" : "justify-center rounded-xl mx-auto w-12"
+                      } ${
+                        active
+                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
+                          : "text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                      }`}
+                    >
+                      {/* Subtle active glow */}
+                      {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
+                      
+                      <it.icon className={`h-5 w-5 min-w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
+                      
+                      {isSidebarExpanded && (
+                        <span className="truncate whitespace-nowrap">{it.label}</span>
+                      )}
+                    </Link>
+                  </TooltipTrigger>
+                  {!isSidebarExpanded && <TooltipContent side="right" className="font-bold">{it.label}</TooltipContent>}
+                </Tooltip>
               );
             })}
           </nav>
 
           {/* Bottom Actions */}
-          <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-2">
-            <button className="h-10 px-3 rounded-xl flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors w-full">
-              <Smartphone className="h-4 w-4 text-sidebar-foreground/50" />
-              <span className="text-sm">Versão App</span>
-            </button>
-            <button className="h-10 px-3 rounded-xl flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors w-full">
-              <HelpCircle className="h-4 w-4 text-sidebar-foreground/50" />
-              <span className="text-sm">Central de Ajuda</span>
-            </button>
+          <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-2 overflow-hidden">
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button className={`h-10 flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-12"}`}>
+                  <Smartphone className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
+                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Versão App</span>}
+                </button>
+              </TooltipTrigger>
+              {!isSidebarExpanded && <TooltipContent side="right">Versão App</TooltipContent>}
+            </Tooltip>
+
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button className={`h-10 flex items-center gap-3 text-sidebar-foreground/70 font-medium hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-12"}`}>
+                  <HelpCircle className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
+                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Central de Ajuda</span>}
+                </button>
+              </TooltipTrigger>
+              {!isSidebarExpanded && <TooltipContent side="right">Central de Ajuda</TooltipContent>}
+            </Tooltip>
           </div>
         </aside>
 
