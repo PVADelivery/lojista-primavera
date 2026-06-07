@@ -55,7 +55,7 @@ function BusinessHomePage() {
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
-  const firstName = profile?.full_name?.split(" ")[0] ?? "lojista";
+  const companyName = company?.name || profile?.full_name?.split(" ")[0] || "lojista";
   const now = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   return (
@@ -77,7 +77,7 @@ function BusinessHomePage() {
             </div>
             <h1 className="mt-4 text-[clamp(2.4rem,5.5vw,4.5rem)] font-black leading-[0.95] tracking-tight">
               {greeting},<br />
-              <span className="text-primary">{firstName}.</span>
+              <span className="text-primary">{companyName}.</span>
             </h1>
             <p className="mt-4 max-w-md text-base opacity-75">
               {stats.total > 0
