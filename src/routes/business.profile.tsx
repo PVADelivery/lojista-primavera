@@ -126,6 +126,13 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* ── BONASOFT Watermark ── */}
+      <div className="pt-8 pb-4 flex justify-center opacity-40 select-none pointer-events-none">
+        <span className="text-[10px] font-black tracking-[0.5em] text-muted-foreground uppercase">
+          B O N A S O F T
+        </span>
+      </div>
     </div>
   );
 }
