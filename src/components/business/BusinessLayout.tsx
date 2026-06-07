@@ -170,6 +170,29 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               );
             })}
           </nav>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-1 overflow-hidden">
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <Link to="/business/profile" className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
+                  <Settings className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
+                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Configurações</span>}
+                </Link>
+              </TooltipTrigger>
+              {!isSidebarExpanded && <TooltipContent side="right">Configurações</TooltipContent>}
+            </Tooltip>
+
+            <Tooltip delayDuration={0}>
+              <TooltipTrigger asChild>
+                <button onClick={() => signOut()} className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-destructive/10 hover:text-destructive transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
+                  <LogOut className="h-5 w-5 min-w-5 text-sidebar-foreground/50 group-hover:text-destructive" />
+                  {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Sair do Painel</span>}
+                </button>
+              </TooltipTrigger>
+              {!isSidebarExpanded && <TooltipContent side="right">Sair do Painel</TooltipContent>}
+            </Tooltip>
+          </div>
         </aside>
 
         {/* Main column */}
