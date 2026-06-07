@@ -130,7 +130,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             </div>
             {isSidebarExpanded && (
               <div className="flex flex-col whitespace-nowrap overflow-hidden">
-                <span className="font-black text-base leading-tight tracking-tight text-sidebar-foreground">Primavera<br/>Delivery</span>
+                <span translate="no" className="font-black text-base leading-tight tracking-tight text-sidebar-foreground">Primavera<br/>Delivery</span>
               </div>
             )}
           </Link>
