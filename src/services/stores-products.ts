@@ -33,7 +33,14 @@ export function useProducts(companyId: string) {
   return useQuery({
     queryKey: ["products", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("products").select("*").eq("company_id", companyId).eq("is_active", true);
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("company_id", companyId)
+        .eq("is_active", true)
+        .order("category", { ascending: true })
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
       if (error) throw error;
       return data;
     },
@@ -46,13 +53,18 @@ export function useProducts(companyId: string) {
  */
 export function useProductsManager(companyId?: string) {
   const qc = useQueryClient();
-  
+
   const query = useQuery({
     queryKey: ["products-manager", companyId],
     queryFn: async () => {
-       const { data, error } = await supabase.from("products").select("*").eq("company_id", companyId as string);
-       if (error) throw error;
-       return data;
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("company_id", companyId as string)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      return data;
     },
     enabled: !!companyId,
   });
