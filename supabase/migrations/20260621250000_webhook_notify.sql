@@ -6,7 +6,7 @@ BEGIN
   -- Somente dispara se status for pending ou broadcasted
   IF NEW.status IN ('pending', 'broadcasted') THEN
     PERFORM net.http_post(
-      url:='https://nptkxlrhrlssdsevpgqe.supabase.co/functions/v1/notify-driver',
+      url:='https://trxjzszcgoxaujfobrdk.supabase.co/functions/v1/notify-driver',
       body:=jsonb_build_object(
         'type', TG_OP,
         'table', TG_TABLE_NAME,
