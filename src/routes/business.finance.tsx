@@ -6,8 +6,10 @@ import { BikeIcon } from "@/components/icons/BikeIcon";
 import {
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw,
   ShoppingBag, ArrowUpRight, ArrowDownRight, Wallet, BarChart3,
-  Package, Clock, CheckCircle2, XCircle, Filter, Download
+  Package, Clock, CheckCircle2, XCircle, Filter, Download,
+  Plus, Trash2, ArrowUpCircle, ArrowDownCircle
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -62,6 +64,17 @@ function BusinessFinancePage() {
     to: new Date(),
   });
   const [tab, setTab] = useState("overview");
+
+  // Cash Flow states
+  const [cashFlows, setCashFlows] = useState<any[]>([]);
+  const [isSubmittingCF, setIsSubmittingCF] = useState(false);
+  const [cfForm, setCfForm] = useState({
+    description: "",
+    category: "",
+    amount: "",
+    type: "expense" as "income" | "expense",
+    date: format(new Date(), "yyyy-MM-dd"),
+  });
 
   const dateRange = useMemo(() => {
     if (activePeriod === "custom") return customRange;
@@ -124,6 +137,16 @@ function BusinessFinancePage() {
         .gte("created_at", startIso)
         .lte("created_at", endIso);
 
+      // 3. Busca Lançamentos Manuais do Fluxo de Caixa
+      const { data: cfData } = await supabase
+        .from("company_cash_flow")
+        .select("*")
+        .eq("company_id", companyId)
+        .gte("date", startIso.split("T")[0])
+        .lte("date", endIso.split("T")[0])
+        .order("date", { ascending: false });
+
+      setCashFlows(cfData || []);
       setOrders(ordersData || []);
       setDeliveries(deliveriesData || []);
       setLoading(false);
@@ -173,6 +196,63 @@ function BusinessFinancePage() {
       totalDeliveryVolume: deliveries.length,
     };
   }, [orders, deliveries, commissionPercentage]);
+
+  const cfMetrics = useMemo(() => {
+    const totalIncome = cashFlows.filter(c => c.type === "income").reduce((s, c) => s + Number(c.amount), 0);
+    const totalExpense = cashFlows.filter(c => c.type === "expense").reduce((s, c) => s + Number(c.amount), 0);
+    return {
+      totalIncome,
+      totalExpense,
+      balance: totalIncome - totalExpense
+    };
+  }, [cashFlows]);
+
+  const handleAddCashFlow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!companyId || !cfForm.description || !cfForm.category || !cfForm.amount) return;
+    
+    setIsSubmittingCF(true);
+    const amountNum = parseFloat(cfForm.amount.replace(",", "."));
+    
+    const { data, error } = await supabase.from("company_cash_flow").insert({
+      company_id: companyId,
+      description: cfForm.description,
+      category: cfForm.category,
+      amount: amountNum,
+      type: cfForm.type,
+      date: cfForm.date,
+    }).select().single();
+    
+    setIsSubmittingCF(false);
+    
+    if (error) {
+      toast.error("Erro ao salvar lançamento");
+      console.error(error);
+      return;
+    }
+    
+    if (data) {
+      toast.success("Lançamento salvo com sucesso!");
+      setCashFlows(prev => [data, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+      setCfForm({
+        ...cfForm,
+        description: "",
+        category: "",
+        amount: "",
+      });
+    }
+  };
+
+  const handleDeleteCashFlow = async (id: string) => {
+    if (!confirm("Deseja realmente apagar este lançamento?")) return;
+    const { error } = await supabase.from("company_cash_flow").delete().eq("id", id);
+    if (!error) {
+      toast.success("Lançamento apagado!");
+      setCashFlows(prev => prev.filter(cf => cf.id !== id));
+    } else {
+      toast.error("Erro ao apagar lançamento");
+    }
+  };
 
   // Chart data: daily revenue
   const dailyChartData = useMemo(() => {
@@ -391,6 +471,9 @@ function BusinessFinancePage() {
               </TabsTrigger>
               <TabsTrigger value="analysis" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Análise
+              </TabsTrigger>
+              <TabsTrigger value="cashflow" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Fluxo de Caixa
               </TabsTrigger>
             </TabsList>
 
@@ -642,6 +725,187 @@ function BusinessFinancePage() {
                       Sem dados
                     </div>
                   )}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Cash Flow Tab */}
+            <TabsContent value="cashflow" className="mt-4 space-y-6">
+              {/* Resumo */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-card border border-border/60 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-success/10 flex items-center justify-center">
+                      <ArrowUpCircle className="h-4.5 w-4.5 text-success" />
+                    </div>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Receitas Manuais</span>
+                  </div>
+                  <p className="text-2xl font-black text-success tracking-tight">{fmt(cfMetrics.totalIncome)}</p>
+                </div>
+                <div className="bg-card border border-border/60 rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-destructive/10 flex items-center justify-center">
+                      <ArrowDownCircle className="h-4.5 w-4.5 text-destructive" />
+                    </div>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Despesas Manuais</span>
+                  </div>
+                  <p className="text-2xl font-black text-destructive tracking-tight">{fmt(cfMetrics.totalExpense)}</p>
+                </div>
+                <div className="bg-card border border-primary/10 bg-primary/[0.02] rounded-2xl p-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Wallet className="h-4.5 w-4.5 text-primary" />
+                    </div>
+                    <span className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.15em]">Saldo do Período</span>
+                  </div>
+                  <p className="text-2xl font-black text-foreground tracking-tight">{fmt(cfMetrics.balance)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Formulário */}
+                <div className="lg:col-span-1">
+                  <form onSubmit={handleAddCashFlow} className="bg-card border border-border/60 rounded-2xl p-6 space-y-4">
+                    <div>
+                      <h3 className="text-base font-black text-foreground mb-1">Novo Lançamento</h3>
+                      <p className="text-xs text-muted-foreground font-medium mb-4">Adicione receitas ou despesas da sua operação</p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground uppercase">Tipo</label>
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                          <button
+                            type="button"
+                            onClick={() => setCfForm({ ...cfForm, type: "income" })}
+                            className={cn(
+                              "py-2 rounded-xl text-xs font-bold transition-all border",
+                              cfForm.type === "income" ? "bg-success/10 text-success border-success/30" : "bg-muted border-transparent text-muted-foreground"
+                            )}
+                          >
+                            Receita
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setCfForm({ ...cfForm, type: "expense" })}
+                            className={cn(
+                              "py-2 rounded-xl text-xs font-bold transition-all border",
+                              cfForm.type === "expense" ? "bg-destructive/10 text-destructive border-destructive/30" : "bg-muted border-transparent text-muted-foreground"
+                            )}
+                          >
+                            Despesa
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground uppercase">Descrição</label>
+                        <input
+                          required
+                          value={cfForm.description}
+                          onChange={(e) => setCfForm({ ...cfForm, description: e.target.value })}
+                          placeholder="Ex: Conta de Luz"
+                          className="w-full mt-1 px-3 py-2 bg-muted rounded-xl text-sm border-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] font-bold text-muted-foreground uppercase">Categoria</label>
+                        <input
+                          required
+                          value={cfForm.category}
+                          onChange={(e) => setCfForm({ ...cfForm, category: e.target.value })}
+                          placeholder="Ex: Energia, Fornecedor"
+                          className="w-full mt-1 px-3 py-2 bg-muted rounded-xl text-sm border-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground uppercase">Valor</label>
+                          <input
+                            required
+                            type="number"
+                            step="0.01"
+                            value={cfForm.amount}
+                            onChange={(e) => setCfForm({ ...cfForm, amount: e.target.value })}
+                            placeholder="0.00"
+                            className="w-full mt-1 px-3 py-2 bg-muted rounded-xl text-sm border-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[11px] font-bold text-muted-foreground uppercase">Data</label>
+                          <input
+                            required
+                            type="date"
+                            value={cfForm.date}
+                            onChange={(e) => setCfForm({ ...cfForm, date: e.target.value })}
+                            className="w-full mt-1 px-3 py-2 bg-muted rounded-xl text-sm border-none focus:ring-2 focus:ring-primary"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isSubmittingCF}
+                      className="w-full py-2.5 rounded-xl bg-primary text-primary-foreground font-black text-sm flex items-center justify-center gap-2 hover:bg-primary/90 transition-all shadow-lg shadow-primary/25 disabled:opacity-50"
+                    >
+                      {isSubmittingCF ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                      Salvar Lançamento
+                    </button>
+                  </form>
+                </div>
+
+                {/* Tabela de Lançamentos */}
+                <div className="lg:col-span-2">
+                  <div className="bg-card border border-border/60 rounded-2xl overflow-hidden h-full">
+                    <div className="px-6 py-4 border-b border-border/50 flex items-center justify-between">
+                      <div>
+                        <h3 className="text-base font-black text-foreground">Movimentações</h3>
+                        <p className="text-xs text-muted-foreground font-medium">{cashFlows.length} lançamentos no período</p>
+                      </div>
+                    </div>
+                    {cashFlows.length === 0 ? (
+                      <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center h-full">
+                        <Wallet className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                        <p className="font-bold text-sm">Nenhum lançamento encontrado</p>
+                        <p className="text-xs mt-1">Lançamentos inseridos aparecerão aqui</p>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-border/40 max-h-[500px] overflow-y-auto">
+                        {cashFlows.map((cf) => (
+                          <div key={cf.id} className="grid grid-cols-12 gap-3 px-6 py-4 hover:bg-muted/20 transition-colors items-center">
+                            <div className="col-span-4 flex flex-col">
+                              <span className="text-sm font-bold text-foreground">{cf.description}</span>
+                              <span className="text-[10px] font-medium text-muted-foreground bg-muted self-start px-2 py-0.5 rounded-full mt-1">{cf.category}</span>
+                            </div>
+                            <div className="col-span-3">
+                              <p className="text-xs font-medium text-foreground">
+                                {format(new Date(cf.date), "dd/MM/yyyy", { locale: ptBR })}
+                              </p>
+                            </div>
+                            <div className="col-span-3 text-right">
+                              <span className={cn(
+                                "text-sm font-black",
+                                cf.type === "income" ? "text-success" : "text-destructive"
+                              )}>
+                                {cf.type === "income" ? "+" : "-"} {fmt(Number(cf.amount))}
+                              </span>
+                            </div>
+                            <div className="col-span-2 flex justify-end">
+                              <button
+                                onClick={() => handleDeleteCashFlow(cf.id)}
+                                className="p-2 text-muted-foreground hover:bg-destructive/10 hover:text-destructive rounded-xl transition-colors"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </TabsContent>
