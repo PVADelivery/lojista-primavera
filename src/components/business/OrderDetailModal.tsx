@@ -390,14 +390,14 @@ export default function OrderDetailModal({
         {/* Global Print Styles */}
         <style dangerouslySetInnerHTML={{ __html: `
           @media print {
-            @page { margin: 0; size: 80mm auto; }
-            body { margin: 0; padding: 0; background: white; width: 80mm; }
+            @page { margin: 0; }
+            body { margin: 0; padding: 0; background: white; width: 100%; }
             body * { visibility: hidden; }
             .DialogContent { 
               visibility: visible !important; 
               position: absolute !important; 
               left: 0 !important; top: 0 !important; 
-              width: 80mm !important;
+              width: 100% !important;
               max-height: none !important;
               padding: 5mm !important;
               display: block !important;
@@ -411,3 +411,6 @@ export default function OrderDetailModal({
     </Dialog>
   );
 }
+
+
+
