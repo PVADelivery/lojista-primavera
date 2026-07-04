@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet, Users, History, Tag,
   Settings, LogOut, Bell, Search, Power, User as UserIcon,
-  ChevronLeft, ChevronRight, HelpCircle, Smartphone
+  ChevronLeft, ChevronRight, HelpCircle, Smartphone, MapPin
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -30,12 +30,14 @@ const SIDE_ICONS = [
   { to: "/business/customers", label: "Clientes", icon: Users },
   { to: "/business/finance", label: "Financeiro", icon: Wallet },
   { to: "/business/history", label: "Histórico", icon: History },
+  { to: "/business/map", label: "Regiões", icon: MapPin },
 ];
 
 const TOP_TABS = [
   { to: "/business", label: "Painel", exact: true },
   { to: "/business/orders", label: "Pedidos" },
   { to: "/business/products", label: "Cardápio" },
+  { to: "/business/map", label: "Regiões" },
 ];
 
 const MOBILE_NAV = [
