@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
-import logoIcon from "@/assets/logo-icon.png";
+import logoIcon from "@/assets/logo-icon-v2.png";
 
 
 
