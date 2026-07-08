@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 export function ProtectedRoute({ children, requiredRole }: { children: React.ReactNode; requiredRole?: "company" | "admin" | "driver" }) {
-  const { user, loading, roles, userStatus, hasRole } = useAuth();
+  const { user, loading, roles, userStatus, hasRole, rolesLoaded } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -15,7 +15,19 @@ export function ProtectedRoute({ children, requiredRole }: { children: React.Rea
 
   if (loading) return <Center text="Carregando..." />;
   if (!user) return <Center text="Redirecionando..." />;
-  if (roles.length === 0) return <Center text="Verificando permissões..." />;
+  if (!rolesLoaded) return <Center text="Verificando permissões..." />;
+  
+  if (roles.length === 0) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-6 text-center">
+        <div>
+          <h1 className="text-2xl font-black">Sem Empresa Vínculada</h1>
+          <p className="text-muted-foreground mt-2">Sua conta ainda não possui uma empresa/cargo vinculada.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (userStatus === "rejected")
     return (
       <div className="flex min-h-screen items-center justify-center p-6 text-center">

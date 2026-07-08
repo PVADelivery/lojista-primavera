@@ -83,13 +83,13 @@
   --input: 0 0% 90%;
   --ring: 48 100% 50%;
 
-  --sidebar: 0 0% 18%;
-  --sidebar-foreground: 0 0% 85%;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 0 0% 15%;
   --sidebar-primary: 48 100% 50%;
   --sidebar-primary-foreground: 0 0% 10%;
-  --sidebar-accent: 0 0% 24%;
-  --sidebar-accent-foreground: 0 0% 100%;
-  --sidebar-border: 0 0% 24%;
+  --sidebar-accent: 0 0% 94%;
+  --sidebar-accent-foreground: 0 0% 10%;
+  --sidebar-border: 0 0% 88%;
 }
 
 /* DARK — Yellow accents on graphite */

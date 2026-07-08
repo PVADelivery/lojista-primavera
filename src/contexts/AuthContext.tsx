@@ -25,6 +25,7 @@ interface AuthCtx {
   signOut: () => Promise<void>;
   hasRole: (role: Role) => boolean;
   refresh: () => Promise<void>;
+  rolesLoaded: boolean;
 }
 
 const Ctx = createContext<AuthCtx | undefined>(undefined);
@@ -35,6 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   const fetchUserData = async (uid: string) => {
     const [{ data: r }, { data: p }] = await Promise.all([
@@ -43,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     ]);
     setRoles((r ?? []).map((x: { role: Role }) => x.role));
     setProfile((p as Profile) ?? null);
+    setRolesLoaded(true);
   };
 
   useEffect(() => {
@@ -54,6 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setRoles([]);
         setProfile(null);
+        setRolesLoaded(false);
       }
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -98,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user, session, profile, roles,
         userStatus: profile?.status ?? null,
-        loading, signIn, signUp, signOut, hasRole, refresh,
+        loading, signIn, signUp, signOut, hasRole, refresh, rolesLoaded,
       }}
     >
       {children}
