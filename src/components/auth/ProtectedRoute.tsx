@@ -10,24 +10,12 @@ export function ProtectedRoute({ children, requiredRole }: { children: React.Rea
   useEffect(() => {
     if (loading) return;
     if (!user) navigate({ to: "/login" });
-    else if (userStatus === "pending") navigate({ to: "/pending-approval" });
-  }, [user, loading, userStatus, navigate]);
+  }, [user, loading, navigate]);
 
   if (loading) return <Center text="Carregando..." />;
   if (!user) return <Center text="Redirecionando..." />;
-  if (roles.length === 0) return <Center text="Verificando permissões..." />;
-  if (userStatus === "rejected")
-    return (
-      <div className="flex min-h-screen items-center justify-center p-6 text-center">
-        <div>
-          <h1 className="text-2xl font-black">Acesso negado</h1>
-          <p className="text-muted-foreground mt-2">Sua conta foi rejeitada.</p>
-        </div>
-      </div>
-    );
-  if (requiredRole && !hasRole(requiredRole) && !hasRole("admin")) {
-    return <Center text="Sem permissão. Redirecionando..." />;
-  }
+
+  // Permissões removidas conforme solicitado
   return <>{children}</>;
 }
 
