@@ -120,13 +120,13 @@ function BusinessMapPage() {
                     >
                       Mostrar todas
                     </button>
-                    {availableCities?.map((city, i) => (
+                    {availableCities?.map((city: any, i: number) => (
                       <button
                         key={i}
-                        onClick={() => selectCity(city)}
+                        onClick={() => selectCity(city as string)}
                         className="w-full text-left px-4 py-3 text-xs hover:bg-muted transition-colors border-b border-border last:border-0 font-bold text-foreground"
                       >
-                        {city}
+                        {city as string}
                       </button>
                     ))}
                   </div>
