@@ -15,7 +15,7 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: string | null;
   price: number;
   image_url: string | null;
   is_active: boolean;

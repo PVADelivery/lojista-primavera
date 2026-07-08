@@ -200,6 +200,7 @@ function BusinessCustomersPage() {
       const { data: customer, error } = await supabase
         .from("customers")
         .insert({
+          company_id: companyId,
           name: form.name.trim(),
           phone: form.phone.trim() || null,
           cpf: form.cpf.trim() || null,
