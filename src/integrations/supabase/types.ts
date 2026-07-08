@@ -208,47 +208,6 @@ export type Database = {
           },
         ]
       }
-      company_cash_flow: {
-        Row: {
-          id: string
-          company_id: string
-          description: string
-          category: string
-          amount: number
-          type: string
-          date: string
-          created_at: string
-        }
-        Insert: {
-          id?: string
-          company_id: string
-          description: string
-          category: string
-          amount: number
-          type: string
-          date: string
-          created_at?: string
-        }
-        Update: {
-          id?: string
-          company_id?: string
-          description?: string
-          category?: string
-          amount?: number
-          type?: string
-          date?: string
-          created_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "company_cash_flow_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies"
-            referencedColumns: ["id"]
-          }
-        ]
-      }
       conversations: {
         Row: {
           company_id: string | null

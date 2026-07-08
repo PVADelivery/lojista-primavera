@@ -19,6 +19,7 @@ import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as BusinessProfileRouteImport } from './routes/business.profile'
 import { Route as BusinessProductsRouteImport } from './routes/business.products'
 import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
+import { Route as BusinessMapRouteImport } from './routes/business.map'
 import { Route as BusinessHistoryRouteImport } from './routes/business.history'
 import { Route as BusinessFinanceRouteImport } from './routes/business.finance'
 import { Route as BusinessCustomersRouteImport } from './routes/business.customers'
@@ -74,6 +75,11 @@ const BusinessOrdersRoute = BusinessOrdersRouteImport.update({
   path: '/orders',
   getParentRoute: () => BusinessRoute,
 } as any)
+const BusinessMapRoute = BusinessMapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => BusinessRoute,
+} as any)
 const BusinessHistoryRoute = BusinessHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -104,6 +110,7 @@ export interface FileRoutesByFullPath {
   '/business/customers': typeof BusinessCustomersRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/business/customers': typeof BusinessCustomersRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/business/customers': typeof BusinessCustomersRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/business/customers'
     | '/business/finance'
     | '/business/history'
+    | '/business/map'
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/business/customers'
     | '/business/finance'
     | '/business/history'
+    | '/business/map'
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/business/customers'
     | '/business/finance'
     | '/business/history'
+    | '/business/map'
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
@@ -273,6 +285,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessOrdersRouteImport
       parentRoute: typeof BusinessRoute
     }
+    '/business/map': {
+      id: '/business/map'
+      path: '/map'
+      fullPath: '/business/map'
+      preLoaderRoute: typeof BusinessMapRouteImport
+      parentRoute: typeof BusinessRoute
+    }
     '/business/history': {
       id: '/business/history'
       path: '/history'
@@ -309,6 +328,7 @@ interface BusinessRouteChildren {
   BusinessCustomersRoute: typeof BusinessCustomersRoute
   BusinessFinanceRoute: typeof BusinessFinanceRoute
   BusinessHistoryRoute: typeof BusinessHistoryRoute
+  BusinessMapRoute: typeof BusinessMapRoute
   BusinessOrdersRoute: typeof BusinessOrdersRoute
   BusinessProductsRoute: typeof BusinessProductsRoute
   BusinessProfileRoute: typeof BusinessProfileRoute
@@ -320,6 +340,7 @@ const BusinessRouteChildren: BusinessRouteChildren = {
   BusinessCustomersRoute: BusinessCustomersRoute,
   BusinessFinanceRoute: BusinessFinanceRoute,
   BusinessHistoryRoute: BusinessHistoryRoute,
+  BusinessMapRoute: BusinessMapRoute,
   BusinessOrdersRoute: BusinessOrdersRoute,
   BusinessProductsRoute: BusinessProductsRoute,
   BusinessProfileRoute: BusinessProfileRoute,
