@@ -38,14 +38,14 @@ export const supabase = new Proxy({} as ReturnType<typeof createSupabaseClient>,
   },
 });
 
-// Global auth state change handling – logout on refresh errors
-supabase.auth.onAuthStateChange((event, session) => {
-  if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-    supabase.auth.signOut().then(() => {
-      if (typeof window !== 'undefined') {
+// Global auth state change handling – browser only (localStorage unavailable during SSR)
+if (typeof window !== 'undefined') {
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+      supabase.auth.signOut().then(() => {
         window.location.href = '/login';
-      }
-    });
-  }
-});
+      });
+    }
+  });
+}
 
