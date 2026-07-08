@@ -137,8 +137,10 @@ export type Database = {
           commission_percentage: number
           cover_url: string | null
           created_at: string
+          delivery_fee: number
           description: string | null
           full_name: string | null
+          gallery: Json
           id: string
           is_active: boolean
           is_open: boolean
@@ -150,6 +152,7 @@ export type Database = {
           number: string | null
           phone: string | null
           region_id: string | null
+          show_in_marketplace: boolean
           street: string | null
           updated_at: string
           user_id: string
@@ -162,8 +165,10 @@ export type Database = {
           commission_percentage?: number
           cover_url?: string | null
           created_at?: string
+          delivery_fee?: number
           description?: string | null
           full_name?: string | null
+          gallery?: Json
           id?: string
           is_active?: boolean
           is_open?: boolean
@@ -175,6 +180,7 @@ export type Database = {
           number?: string | null
           phone?: string | null
           region_id?: string | null
+          show_in_marketplace?: boolean
           street?: string | null
           updated_at?: string
           user_id: string
@@ -187,8 +193,10 @@ export type Database = {
           commission_percentage?: number
           cover_url?: string | null
           created_at?: string
+          delivery_fee?: number
           description?: string | null
           full_name?: string | null
+          gallery?: Json
           id?: string
           is_active?: boolean
           is_open?: boolean
@@ -200,6 +208,7 @@ export type Database = {
           number?: string | null
           phone?: string | null
           region_id?: string | null
+          show_in_marketplace?: boolean
           street?: string | null
           updated_at?: string
           user_id?: string
