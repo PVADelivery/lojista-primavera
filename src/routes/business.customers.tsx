@@ -128,22 +128,21 @@ function BusinessCustomersPage() {
 
     try {
       // A tabela customers NÃO possui company_id. A relação correta do lojista é via orders/deliveries.company_id.
-      const [{ data: orderData, error: orderError }, { data: deliveryData, error: deliveryError }] = await Promise.all([
-        supabase
-          .from("orders")
-          .select(`
-            id,
-            customer_id,
-            created_at,
-            delivery_address,
-            customers (id, name, phone, cpf)
-          `)
-          .eq("company_id", companyId),
-        supabase
-          .from("deliveries")
-          .select("id, order_id, customer_name, customer_phone, customer_cpf, address, created_at")
-          .eq("company_id", companyId)
-      ]);
+      const ordersPromise = supabase
+        .from("orders")
+        .select(`
+          id,
+          customer_id,
+          created_at,
+          delivery_address,
+          customers (id, name, phone, cpf)
+        `)
+        .eq("company_id", companyId) as any;
+      const deliveriesPromise = supabase
+        .from("deliveries")
+        .select("id, order_id, customer_name, customer_phone, customer_cpf, address, created_at")
+        .eq("company_id", companyId) as any;
+      const [{ data: orderData, error: orderError }, { data: deliveryData, error: deliveryError }] = await Promise.all([ordersPromise, deliveriesPromise]);
 
       if (orderError) throw orderError;
       if (deliveryError) throw deliveryError;
