@@ -129,7 +129,7 @@ export function useDeliveries(params?: UseDeliveriesParams) {
 
       const normalizedData = (data ?? []).map((delivery: any) => {
         const rawDriver = delivery.delivery_drivers;
-        let normalizedDriver = null;
+        let normalizedDriver: any = null;
         if (rawDriver) {
           normalizedDriver = {
             id: rawDriver.id,

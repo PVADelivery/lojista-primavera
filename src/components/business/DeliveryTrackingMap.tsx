@@ -24,7 +24,7 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
     const initMap = async () => {
       try {
         setLoading(true);
-        let destCoords = null;
+        let destCoords: { lat: number; lng: number } | null = null;
         if (destinationAddress) {
           destCoords = await geocodeAddress(destinationAddress);
         }

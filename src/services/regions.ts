@@ -2,7 +2,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Tables, TablesInsert, TablesUpdate } from "@/integrations/supabase/types";
 
-export type RegionRow = Tables<"regions">;
+export type RegionRow = Tables<"regions"> & { polygon?: any; active?: boolean };
 export type CreateRegionInput = TablesInsert<"regions"> & { city?: string };
 export type UpdateRegionInput = TablesUpdate<"regions"> & { city?: string };
 
