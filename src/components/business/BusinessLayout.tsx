@@ -127,8 +127,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
 
           {/* Logo & Brand */}
           <Link to="/business" className={`h-20 flex items-center gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors ${isSidebarExpanded ? "px-6" : "px-0 justify-center"}`}>
-            <div className="h-10 w-10 min-w-10 rounded-xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center overflow-hidden shadow-lg shadow-primary/20 p-1">
-              <img src={logoIcon} alt="Primavera Delivery" className="h-full w-full object-contain filter brightness-0 invert" />
+            <div className="h-12 w-12 min-w-12 flex items-center justify-center">
+              <img src={logoIcon} alt="Primavera Delivery" className="h-full w-full object-contain" />
             </div>
             {isSidebarExpanded && (
               <div className="flex flex-col whitespace-nowrap overflow-hidden">
@@ -203,8 +203,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <header className="h-16 flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0">
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
-              <div className="h-9 w-9 rounded-xl bg-black flex items-center justify-center overflow-hidden">
-                <img src={logoIcon} alt="Primavera Delivery" className="h-8 w-8 object-contain" />
+              <div className="h-10 w-10 flex items-center justify-center">
+                <img src={logoIcon} alt="Primavera Delivery" className="h-full w-full object-contain" />
               </div>
               <span className="font-black text-sm">Primavera Delivery</span>
             </div>
