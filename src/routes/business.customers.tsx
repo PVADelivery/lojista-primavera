@@ -102,15 +102,15 @@ function BusinessCustomersPage() {
       const stableKey = source.customer_id || source.id || phone || name.toLowerCase();
       const id = String(stableKey);
       const existing = customerMap.get(id);
-      const record = existing || {
+      const record: CustomerRecord = existing || {
         id,
         name: name || "Cliente",
         phone,
         cpf,
         total_orders: 0,
         last_order_at: undefined,
-        addresses: [],
-        phones: phone ? [phone] : []
+        addresses: [] as string[],
+        phones: phone ? [phone] : ([] as string[])
       };
 
       record.total_orders += 1;
