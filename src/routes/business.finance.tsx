@@ -89,13 +89,14 @@ function BusinessFinancePage() {
       
       // Fallback para administradores
       if (!data) {
-        const { data: profile } = await supabase
-          .from("profiles")
+        const { data: rolesData } = await supabase
+          .from("user_roles")
           .select("role")
           .eq("user_id", user.id)
+          .eq("role", "admin")
           .maybeSingle();
 
-        if (profile?.role === "admin") {
+        if (rolesData) {
           const { data: fallbackCompany } = await supabase
             .from("companies")
             .select("id, commission_percentage")
@@ -109,6 +110,8 @@ function BusinessFinancePage() {
       if (data) {
         setCompanyId(data.id);
         setCommissionPercentage(data.commission_percentage !== null && data.commission_percentage !== undefined ? Number(data.commission_percentage) : 10.00);
+      } else {
+        setLoading(false);
       }
     })();
   }, [user]);
