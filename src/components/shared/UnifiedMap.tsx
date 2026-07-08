@@ -142,12 +142,12 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       regions.forEach((region) => {
         if (!region.polygon) return;
         
-        let coordinates = [];
+        let coordinates: any[] = [];
         try {
             if (typeof region.polygon === 'string') {
                 coordinates = JSON.parse(region.polygon);
             } else {
-                coordinates = region.polygon;
+                coordinates = region.polygon as any;
             }
         } catch(e) {
             return;

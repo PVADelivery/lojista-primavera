@@ -102,15 +102,15 @@ function BusinessCustomersPage() {
       const stableKey = source.customer_id || source.id || phone || name.toLowerCase();
       const id = String(stableKey);
       const existing = customerMap.get(id);
-      const record = existing || {
+      const record: CustomerRecord = existing || {
         id,
         name: name || "Cliente",
         phone,
         cpf,
         total_orders: 0,
         last_order_at: undefined,
-        addresses: [],
-        phones: phone ? [phone] : []
+        addresses: [] as string[],
+        phones: phone ? [phone] : ([] as string[])
       };
 
       record.total_orders += 1;
@@ -128,22 +128,21 @@ function BusinessCustomersPage() {
 
     try {
       // A tabela customers NÃO possui company_id. A relação correta do lojista é via orders/deliveries.company_id.
-      const [{ data: orderData, error: orderError }, { data: deliveryData, error: deliveryError }] = await Promise.all([
-        supabase
-          .from("orders")
-          .select(`
-            id,
-            customer_id,
-            created_at,
-            delivery_address,
-            customers (id, name, phone, cpf)
-          `)
-          .eq("company_id", companyId),
-        supabase
-          .from("deliveries")
-          .select("id, order_id, customer_name, customer_phone, customer_cpf, address, created_at")
-          .eq("company_id", companyId)
-      ]);
+      const ordersPromise = supabase
+        .from("orders")
+        .select(`
+          id,
+          customer_id,
+          created_at,
+          delivery_address,
+          customers (id, name, phone, cpf)
+        `)
+        .eq("company_id", companyId) as any;
+      const deliveriesPromise = supabase
+        .from("deliveries")
+        .select("id, order_id, customer_name, customer_phone, customer_cpf, address, created_at")
+        .eq("company_id", companyId) as any;
+      const [{ data: orderData, error: orderError }, { data: deliveryData, error: deliveryError }] = await Promise.all([ordersPromise, deliveriesPromise]);
 
       if (orderError) throw orderError;
       if (deliveryError) throw deliveryError;
@@ -200,6 +199,7 @@ function BusinessCustomersPage() {
       const { data: customer, error } = await supabase
         .from("customers")
         .insert({
+          company_id: companyId,
           name: form.name.trim(),
           phone: form.phone.trim() || null,
           cpf: form.cpf.trim() || null,

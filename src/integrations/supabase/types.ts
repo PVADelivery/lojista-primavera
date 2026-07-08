@@ -26,6 +26,7 @@ export type Database = {
           longitude: number | null
           neighborhood: string | null
           number: string | null
+          reference: string | null
           state: string | null
           street: string | null
           updated_at: string
@@ -43,6 +44,7 @@ export type Database = {
           longitude?: number | null
           neighborhood?: string | null
           number?: string | null
+          reference?: string | null
           state?: string | null
           street?: string | null
           updated_at?: string
@@ -60,6 +62,7 @@ export type Database = {
           longitude?: number | null
           neighborhood?: string | null
           number?: string | null
+          reference?: string | null
           state?: string | null
           street?: string | null
           updated_at?: string
@@ -131,10 +134,13 @@ export type Database = {
           business_hours: string | null
           category: string | null
           city_id: string | null
+          commission_percentage: number
           cover_url: string | null
           created_at: string
+          delivery_fee: number
           description: string | null
           full_name: string | null
+          gallery: Json
           id: string
           is_active: boolean
           is_open: boolean
@@ -146,6 +152,7 @@ export type Database = {
           number: string | null
           phone: string | null
           region_id: string | null
+          show_in_marketplace: boolean
           street: string | null
           updated_at: string
           user_id: string
@@ -155,10 +162,13 @@ export type Database = {
           business_hours?: string | null
           category?: string | null
           city_id?: string | null
+          commission_percentage?: number
           cover_url?: string | null
           created_at?: string
+          delivery_fee?: number
           description?: string | null
           full_name?: string | null
+          gallery?: Json
           id?: string
           is_active?: boolean
           is_open?: boolean
@@ -170,6 +180,7 @@ export type Database = {
           number?: string | null
           phone?: string | null
           region_id?: string | null
+          show_in_marketplace?: boolean
           street?: string | null
           updated_at?: string
           user_id: string
@@ -179,10 +190,13 @@ export type Database = {
           business_hours?: string | null
           category?: string | null
           city_id?: string | null
+          commission_percentage?: number
           cover_url?: string | null
           created_at?: string
+          delivery_fee?: number
           description?: string | null
           full_name?: string | null
+          gallery?: Json
           id?: string
           is_active?: boolean
           is_open?: boolean
@@ -194,6 +208,7 @@ export type Database = {
           number?: string | null
           phone?: string | null
           region_id?: string | null
+          show_in_marketplace?: boolean
           street?: string | null
           updated_at?: string
           user_id?: string
@@ -204,6 +219,47 @@ export type Database = {
             columns: ["region_id"]
             isOneToOne: false
             referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      company_cash_flow: {
+        Row: {
+          amount: number
+          category: string | null
+          company_id: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          type: string
+        }
+        Insert: {
+          amount?: number
+          category?: string | null
+          company_id: string
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          category?: string | null
+          company_id?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_cash_flow_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -451,6 +507,8 @@ export type Database = {
       delivery_drivers: {
         Row: {
           created_at: string
+          current_latitude: number | null
+          current_longitude: number | null
           full_name: string
           id: string
           is_online: boolean
@@ -463,6 +521,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          current_latitude?: number | null
+          current_longitude?: number | null
           full_name: string
           id?: string
           is_online?: boolean
@@ -475,6 +535,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          current_latitude?: number | null
+          current_longitude?: number | null
           full_name?: string
           id?: string
           is_online?: boolean
@@ -759,6 +821,7 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          sort_order: number
         }
         Insert: {
           category?: string | null
@@ -770,6 +833,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          sort_order?: number
         }
         Update: {
           category?: string | null
@@ -781,6 +845,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          sort_order?: number
         }
         Relationships: [
           {
@@ -830,27 +895,33 @@ export type Database = {
       }
       regions: {
         Row: {
+          active: boolean
           city: string | null
           color: string | null
           created_at: string
           id: string
           name: string
+          polygon: Json | null
           price: number
         }
         Insert: {
+          active?: boolean
           city?: string | null
           color?: string | null
           created_at?: string
           id?: string
           name: string
+          polygon?: Json | null
           price?: number
         }
         Update: {
+          active?: boolean
           city?: string | null
           color?: string | null
           created_at?: string
           id?: string
           name?: string
+          polygon?: Json | null
           price?: number
         }
         Relationships: []

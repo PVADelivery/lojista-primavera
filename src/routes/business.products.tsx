@@ -15,9 +15,9 @@ interface Product {
   id: string;
   name: string;
   description: string | null;
-  category: string;
+  category: string | null;
   price: number;
-  image_url: string | null;
+  image_url: any;
   is_active: boolean;
   company_id: string;
   created_at: string;
@@ -194,7 +194,7 @@ function BusinessProductsPage() {
 
   // Products without matching category go to "Outros"
   const knownValues = new Set(CATEGORY_OPTIONS.map(c => c.value));
-  const uncategorized = products.filter(p => !knownValues.has(p.category));
+  const uncategorized = products.filter(p => !knownValues.has(p.category ?? ""));
   if (uncategorized.length > 0) {
     const othersGroup = grouped.find(g => g.cat.value === "Outros");
     if (othersGroup) {
@@ -273,8 +273,8 @@ function BusinessProductsPage() {
                     onEdit={() => setEditingProduct(product)}
                     onDelete={() => deleteProduct(product.id)}
                     onToggle={() => toggleActive(product)}
-                    onDragStart={() => handleDragStart(product.id, product.category)}
-                    onDrop={() => handleDrop(product.id, product.category)}
+                    onDragStart={() => handleDragStart(product.id, product.category ?? "")}
+                    onDrop={() => handleDrop(product.id, product.category ?? "")}
                   />
                 ))}
               </div>
@@ -469,7 +469,7 @@ function ProductForm({
       };
 
       if (product) {
-        const { error } = await supabase.from("products").update(payload).eq("id", product.id);
+        const { error } = await supabase.from("products").update(payload as any).eq("id", product.id);
         if (error) throw error;
         toast.success("Produto atualizado!");
       } else {
@@ -477,7 +477,7 @@ function ProductForm({
         payload.sort_order = categoryCount;
         const { error } = await supabase
           .from("products")
-          .insert([{ ...payload, company_id: companyId, is_active: true }]);
+          .insert([{ ...payload, company_id: companyId, is_active: true } as any]);
         if (error) throw error;
         toast.success("Produto publicado!");
       }
