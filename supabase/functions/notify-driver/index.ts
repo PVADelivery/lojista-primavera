@@ -2,20 +2,20 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import admin from "npm:firebase-admin@11.11.1";
 
-const serviceAccount = {
-  type: "service_account",
-  project_id: "e-pra-ja-a410d",
-  private_key_id: "d8038724009d7230ce8cddb3840d9d856ca987e3",
-  private_key: "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDEM97wrIbbPEij\n8b51daQwbYH2NTEcAFRxPlPKZo/jguHmXo2R9kB88vb+vcgQW/EAJqJF3LeoT1dv\n7Utm03U2s927sr0ZMgRaqVvDmPx62q/b7XkYxfjwKZ05NIyRuyYneUtkfGKvVOea\nDOvRJ48I8QY9fNo540HLHaoeJw962NcLqlOP/EXlkN8aJc6bGb7BPu6BkPdwv/NS\nZIk2lulHbKBaryOyUKFY8YAxqN30Vi4J7aO8a7Vudtr72LZAM+wlAniSGyyJ04Mk\nWXt3SQCJ5CVxHkeYkCuKpCcs5iCEXAtRo1g4xEDA+Api8fy8AqCUdEd4G42VwZxj\n06aCkci9AgMBAAECggEAASu8vWAuAXYpccOuvf+nrSG8c1UQ4dD9vDQH0x7ctT6g\nX4gvTJIFxn803/D22Rrn7ToQ16aNx+1leXfyVfXAzUS4d+HB5PDVzel2cExUzWLi\nUwRIG5/hrZ2aVwS4W1zyBg7B3WvKsylAmMKCscA3HLrhlPxCLqccY3NLuclKjb0Q\nSN67bgbN+3l/yg2Ru9fx7oWlUppzys1wxY1AdaXaMk2eyEgAZ7YhbIGMwI77LimD\ntxH1C76ez+oq/drrK54eSG+cudLxFZ8JEMsdZflGW8FqkU0OuiUHbmcFX2Gqw1y7\n+yy751Xuhnl9hO+q1/sMptW9paR2MOePauzrt1Z+gQKBgQDkLE071kNtSiVO/q7X\nK3aREWjXbBYkCwdyQmxQDqmQAmg8VNWsIbKzKyx3NWovUEzVn+i9mJ1zYR8xMxOR\nUSx3rnTUL3JKGT+5/I3pdKR6cPx2geC+JbflRRxv5Nao5TC5l7bdbjtNOaTj0/sy\nlmvAAt/MnO3UIebGq8Gdi7WtYQKBgQDcIW7pqHzGiF8r6HQ1EdaxosWj9yyEVss0\nU5/hOnzFS/6Zc1XqlVjUy3n23e9ekIFuOXvMnqW3Hp+qRJL5kWRoKYHQ9CFC0r85\nQvtqZcJiswhjMHG6eLVkaURJVJiVVr9G8EipIGw9ul8Hy3+1RmtK7zUYe1pYJi+X\n9v/hFZSc3QKBgQCxFYzvhrAX7vabo1+wkQPZPMjAgBuC56hkzhZf37FLmgKp6DFZ\nAWI+WaCN+D+r7sdi+FNaakqwlEzwEzL5kiVP0W7MivJJfeUOhGrjJ+rLOEtH8i6p\nhH5/iq6yTMkolY/GSm/a1MVjfvxw8UFAlquTfueQVq7h91mzEPQYQKjEoQKBgAEO\n3BSdbbQalbKFVIGoy0phSOfn2Tvtmt5uhHc1q8HbAqdEKaaN/zZOoBBysqLWuPiJ\nqDGslYlSyVutJrOyYjQp9ujFM5+5mZex3bl+Mbf9uk2XvwQxblXEN8LOeElHeHXj\n08WUVVDao3hLHxsE8qESk0PB3AZOcK4fTs2LKAK1AoGBANTLECrr29ud64EZlEXh\nYF7zc8A0dl+v4lUFiJVxfdLL5USkh6RBmlp2Wtq+whi1SEHT1Eo6/Pk1I4mTVvED\nSSs9ZGIBzdP7R/3qftyrRu6Z//LI5RUZg7fQNAyz05tpGDFvL9Xfg13vWiibUgat\nDV0Y5xzSFP9S3ijgdNKLjM8Z\n-----END PRIVATE KEY-----\n",
-  client_email: "firebase-adminsdk-fbsvc@e-pra-ja-a410d.iam.gserviceaccount.com"
-};
+// Firebase service account JSON must be provided via env: FIREBASE_SERVICE_ACCOUNT
+const firebaseSaJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+if (firebaseSaJson) {
+  try {
+    const serviceAccount = JSON.parse(firebaseSaJson);
+    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  } catch (e) {
+    // Already initialized or invalid JSON
+  }
+}
 
-try {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount)
-  });
-} catch (e) {
-  // Already initialized
+function sanitize(input: unknown, max = 120): string {
+  const s = String(input ?? "").replace(/[\r\n\t]+/g, " ").trim();
+  return s.length > max ? s.slice(0, max) + "…" : s;
 }
 
 serve(async (req) => {
@@ -24,6 +24,32 @@ serve(async (req) => {
   }
 
   try {
+    // Require a webhook shared secret so only the Supabase DB webhook can invoke this
+    const expectedSecret = Deno.env.get("NOTIFY_DRIVER_WEBHOOK_SECRET");
+    if (!expectedSecret) {
+      return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500 });
+    }
+    const providedSecret = req.headers.get("x-webhook-secret") ?? "";
+    if (providedSecret.length !== expectedSecret.length ||
+        !crypto.subtle) {
+      // fall through to constant-time compare below
+    }
+    // Constant-time compare
+    const a = new TextEncoder().encode(providedSecret);
+    const b = new TextEncoder().encode(expectedSecret);
+    let ok = a.length === b.length;
+    let diff = 0;
+    for (let i = 0; i < Math.max(a.length, b.length); i++) {
+      diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
+    }
+    if (!ok || diff !== 0) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+    }
+
+    if (!firebaseSaJson) {
+      return new Response(JSON.stringify({ error: 'FIREBASE_SERVICE_ACCOUNT not configured' }), { status: 500 });
+    }
+
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
     const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
@@ -36,10 +62,7 @@ serve(async (req) => {
     });
 
     const payload = await req.json();
-    console.log("Webhook payload received:", payload);
-
-    // Only process INSERT or UPDATE when status becomes pending/broadcasted
-    const record = payload.record;
+    const record = payload?.record;
     if (!record || !record.id) {
       return new Response(JSON.stringify({ error: 'No record found' }), { status: 400 });
     }
@@ -48,31 +71,19 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'Status is not pending, ignoring' }), { status: 200 });
     }
 
-    // Find ALL drivers with fcm_token (including offline, as requested by user)
-    let query = adminClient
+    const { data: drivers, error } = await adminClient
       .from('delivery_drivers')
       .select('fcm_token')
       .not('fcm_token', 'is', null);
-
-    if (record.region_id) {
-      // Optional: Filter by region if needed. For now we just broadcast to all online to be safe
-      // query = query.eq('region_id', record.region_id);
-    }
-
-    const { data: drivers, error } = await query;
     if (error) throw error;
 
-    if (!drivers || drivers.length === 0) {
-      return new Response(JSON.stringify({ message: 'No online drivers with FCM token found' }), { status: 200 });
-    }
-
-    const tokens = drivers.map(d => d.fcm_token).filter(t => t && t.length > 10);
+    const tokens = (drivers ?? []).map((d: any) => d.fcm_token).filter((t: string) => t && t.length > 10);
     if (tokens.length === 0) {
       return new Response(JSON.stringify({ message: 'No valid tokens' }), { status: 200 });
     }
 
-    const address = record.pickup_address || record.delivery_address || 'Novo local de coleta';
-    
+    const address = sanitize(record.pickup_address || record.delivery_address || 'Novo local de coleta');
+
     const message = {
       notification: {
         title: 'ÉpraJá - Nova corrida!',
@@ -80,7 +91,7 @@ serve(async (req) => {
       },
       data: {
         type: 'delivery',
-        deliveryId: record.id
+        deliveryId: String(record.id)
       },
       android: {
         priority: 'high' as const,
@@ -93,18 +104,16 @@ serve(async (req) => {
           visibility: 'public' as const
         }
       },
-      tokens: tokens
+      tokens
     };
 
-    console.log(`Sending push to ${tokens.length} drivers`);
     const response = await admin.messaging().sendMulticast(message);
-    console.log("FCM Response:", response);
 
     return new Response(JSON.stringify({ success: true, response }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    console.error("Error sending push:", err);
-    return new Response(JSON.stringify({ error: err.message }), { status: 500 });
+    console.error("Error sending push:", err?.message);
+    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
   }
 });
