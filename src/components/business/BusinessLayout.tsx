@@ -228,24 +228,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               </button>
             </div>
 
-            {/* Tabs */}
-            <nav className="hidden md:flex items-center gap-1 ml-2">
-              {TOP_TABS.map((t) => {
-                const active = isActive(t.to, t.exact);
-                return (
-                  <Link
-                    key={t.to}
-                    to={t.to}
-                    className={`relative px-4 h-16 flex items-center text-sm font-bold transition ${
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.label}
-                    {active && <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />}
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* Top Navigation Removed as requested */}
 
             <div className="flex-1" />
 
