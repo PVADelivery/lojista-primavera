@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, PlusCircle, MapPin, Banknote, Car, Motorbike, Bike, PackageOpen, Info, Phone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 interface NewDeliveryDrawerProps {
   companyId: string | undefined;
@@ -28,9 +29,30 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
     order_value: "",
     change_for: "",
     vehicle_type: "moto",
+    region_id: "none",
     value: "", // Delivery fee (frete)
     notes: ""
   });
+
+  const { data: regions } = useQuery({
+    queryKey: ["regions", companyId],
+    queryFn: async () => {
+      if (!companyId) return [];
+      const { data } = await supabase.from("regions").select("*").eq("company_id", companyId);
+      return data || [];
+    },
+    enabled: !!companyId && open
+  });
+
+  const handleRegionChange = (val: string) => {
+    const region = regions?.find((r: any) => r.id === val);
+    setF({
+      ...f,
+      region_id: val,
+      value: region ? String(region.fee) : f.value,
+      customer_neighborhood: region ? region.name : f.customer_neighborhood
+    });
+  };
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,9 +61,13 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
     // Concat address if needed or just send structured
     const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
     
+    // Generate short ID
+    const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
+    
     setBusy(true);
     const { error } = await supabase.from("deliveries").insert({
       company_id: companyId,
+      short_id: shortId,
       customer_name: f.customer_name,
       customer_phone: f.customer_phone,
       address: fullAddress,
@@ -52,6 +78,7 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
       order_value: Number(f.order_value || 0),
       change_for: Number(f.change_for || 0),
       vehicle_type: f.vehicle_type,
+      region_id: f.region_id === "none" ? null : f.region_id,
       value: Number(f.value || 0),
       notes: f.notes,
       status: "pending",
@@ -135,8 +162,21 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
               </div>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label>Bairro</Label>
-                  <Input value={f.customer_neighborhood} onChange={(e) => setF({ ...f, customer_neighborhood: e.target.value })} required className="rounded-xl h-11 bg-background" placeholder="Ex: Centro" />
+                  <Label>Região / Bairro</Label>
+                  <Select value={f.region_id} onValueChange={handleRegionChange}>
+                    <SelectTrigger className="rounded-xl h-11 bg-background">
+                      <SelectValue placeholder="Selecione ou digite" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl">
+                      <SelectItem value="none">Outro Bairro (Digitar)</SelectItem>
+                      {regions?.map((r: any) => (
+                        <SelectItem key={r.id} value={r.id}>{r.name} - R$ {Number(r.fee).toFixed(2)}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {f.region_id === "none" && (
+                    <Input value={f.customer_neighborhood} onChange={(e) => setF({ ...f, customer_neighborhood: e.target.value })} required className="rounded-xl h-11 mt-2 bg-background" placeholder="Ex: Centro" />
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label>Complemento (Opcional)</Label>

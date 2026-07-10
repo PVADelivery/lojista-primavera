@@ -231,7 +231,10 @@ function DeliveryCard({ d, marketplace, onFinish }: any) {
         <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
       </div>
 
-      <p className="mt-3 font-black text-lg leading-tight line-clamp-1">{d.customer_name ?? "Cliente"}</p>
+      <div className="flex items-start justify-between mt-3 gap-2">
+        <p className="font-black text-lg leading-tight line-clamp-1">{d.customer_name ?? "Cliente"}</p>
+        {d.short_id && <span className="bg-secondary text-secondary-foreground font-mono text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0">{d.short_id}</span>}
+      </div>
 
       <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
         <p className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 shrink-0" /><span className="line-clamp-2">{d.address}</span></p>
