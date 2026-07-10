@@ -556,6 +556,7 @@ export type Database = {
           status: Database["public"]["Enums"]["delivery_status"]
           updated_at: string
           value: number
+          vehicle_type: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -586,6 +587,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
           value?: number
+          vehicle_type?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -616,6 +618,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
           value?: number
+          vehicle_type?: string | null
         }
         Relationships: [
           {
@@ -653,6 +656,7 @@ export type Database = {
           license_plate: string | null
           longitude: number | null
           rating: number
+          service_types: string[] | null
           status: string | null
           updated_at: string
           user_id: string
@@ -669,6 +673,7 @@ export type Database = {
           license_plate?: string | null
           longitude?: number | null
           rating?: number
+          service_types?: string[] | null
           status?: string | null
           updated_at?: string
           user_id: string
@@ -685,6 +690,7 @@ export type Database = {
           license_plate?: string | null
           longitude?: number | null
           rating?: number
+          service_types?: string[] | null
           status?: string | null
           updated_at?: string
           user_id?: string
@@ -1596,6 +1602,62 @@ export type Database = {
           },
           {
             foreignKeyName: "reviews_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "delivery_drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ride_requests: {
+        Row: {
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          driver_id: string | null
+          dropoff_address: string
+          id: string
+          notes: string | null
+          pickup_address: string
+          price: number | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          vehicle_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          dropoff_address: string
+          id?: string
+          notes?: string | null
+          pickup_address: string
+          price?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type: string
+        }
+        Update: {
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          driver_id?: string | null
+          dropoff_address?: string
+          id?: string
+          notes?: string | null
+          pickup_address?: string
+          price?: number | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string | null
+          vehicle_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ride_requests_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "delivery_drivers"
