@@ -37,10 +37,6 @@ const TOP_TABS = [
   { to: "/business", label: "Painel", exact: true },
   { to: "/business/orders", label: "Pedidos" },
   { to: "/business/products", label: "Cardápio" },
-  { to: "/business/coupons", label: "Cupons" },
-  { to: "/business/customers", label: "Clientes" },
-  { to: "/business/finance", label: "Financeiro" },
-  { to: "/business/history", label: "Histórico" },
   { to: "/business/map", label: "Regiões" },
 ];
 
@@ -233,14 +229,14 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             </div>
 
             {/* Tabs */}
-            <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[65%] scrollbar-none whitespace-nowrap">
+            <nav className="hidden md:flex items-center gap-1 ml-2">
               {TOP_TABS.map((t) => {
                 const active = isActive(t.to, t.exact);
                 return (
                   <Link
                     key={t.to}
                     to={t.to}
-                    className={`relative px-4 h-16 flex items-center text-sm font-bold transition shrink-0 ${
+                    className={`relative px-4 h-16 flex items-center text-sm font-bold transition ${
                       active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
