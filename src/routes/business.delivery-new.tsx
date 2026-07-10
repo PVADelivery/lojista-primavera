@@ -80,7 +80,7 @@ function NewDeliveryPage() {
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
     
     setBusy(true);
-    const { error } = await supabase.from("deliveries").insert({
+    const deliveryWrite = await supabase.from("deliveries").insert([{
       company_id: company.id,
       short_id: shortId,
       customer_name: f.customer_name,
@@ -97,11 +97,16 @@ function NewDeliveryPage() {
       value: Number(f.value || 0),
       notes: f.notes,
       status: "pending",
-    });
+    }]).select("*").single();
     setBusy(false);
     
-    if (error) {
-      toast.error(error.message);
+    if (deliveryWrite.error) {
+      const err = deliveryWrite.error;
+      if (err.code === "42501" || /row-level security/i.test(err.message)) {
+        toast.error("Você não tem permissão para criar entregas para esta empresa. Verifique se você é o dono dela.", { duration: 8000 });
+      } else {
+        toast.error(err.message, { duration: 8000 });
+      }
     } else {
       toast.success("Corrida solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
