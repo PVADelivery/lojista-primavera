@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2, PlusCircle, MapPin, Banknote, Car, Motorbike, Bike, PackageOpen, Info, Phone } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { Switch } from "@/components/ui/switch";
 
 interface NewDeliveryDrawerProps {
   companyId: string | undefined;
@@ -26,6 +27,7 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
     customer_neighborhood: "",
     customer_address_complement: "",
     payment_method: "dinheiro",
+    is_paid: false,
     order_value: "",
     change_for: "",
     vehicle_type: "moto",
@@ -74,9 +76,9 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
       customer_address_number: f.customer_address_number,
       customer_neighborhood: f.customer_neighborhood,
       customer_address_complement: f.customer_address_complement,
-      payment_method: f.payment_method,
-      order_value: Number(f.order_value || 0),
-      change_for: Number(f.change_for || 0),
+      payment_method: f.is_paid ? "pago" : f.payment_method,
+      order_value: f.is_paid ? 0 : Number(f.order_value || 0),
+      change_for: f.is_paid ? 0 : Number(f.change_for || 0),
       vehicle_type: f.vehicle_type,
       region_id: f.region_id === "none" ? null : f.region_id,
       value: Number(f.value || 0),
@@ -91,30 +93,29 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
       toast.success("Corrida solicitada com sucesso!");
       setOpen(false);
       onDone();
-      // Reset
       setF({
         customer_name: "", customer_phone: "", address: "", customer_address_number: "",
         customer_neighborhood: "", customer_address_complement: "", payment_method: "dinheiro",
-        order_value: "", change_for: "", vehicle_type: "moto", value: "", notes: ""
+        is_paid: false, order_value: "", change_for: "", vehicle_type: "moto", region_id: "none", value: "", notes: ""
       });
     }
   };
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
         <Button size="lg" className="rounded-xl h-12 px-7 font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
           <PlusCircle className="h-5 w-5" />
           Nova Solicitação
         </Button>
-      </SheetTrigger>
+      </DialogTrigger>
       
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto bg-card border-l border-border/40 p-0 sm:rounded-l-[2rem]">
-        <div className="sticky top-0 z-10 bg-card/80 backdrop-blur-xl border-b border-border/40 px-6 py-5">
-          <SheetHeader>
+      <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border/40 p-0 sm:rounded-[2rem]">
+        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-xl border-b border-border/40 px-6 py-5 flex items-center justify-between">
+          <DialogHeader className="text-left">
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema de Despacho</p>
-            <SheetTitle className="text-2xl font-black tracking-tight">Nova Solicitação de Entrega</SheetTitle>
-          </SheetHeader>
+            <DialogTitle className="text-2xl font-black tracking-tight">Nova Solicitação de Entrega</DialogTitle>
+          </DialogHeader>
         </div>
         
         <form onSubmit={submit} className="p-6 space-y-8">
@@ -232,43 +233,53 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
               Acerto com Cliente (Cobrança)
             </h3>
             <div className="space-y-4 p-5 rounded-[1.5rem] bg-emerald-500/5 border border-emerald-500/20">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-emerald-700 dark:text-emerald-400">Forma de Pagamento</Label>
-                  <Select value={f.payment_method} onValueChange={(v) => setF({ ...f, payment_method: v })}>
-                    <SelectTrigger className="rounded-xl h-11 bg-background border-emerald-500/30">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                      <SelectItem value="cartao">Cartão (Maquininha)</SelectItem>
-                      <SelectItem value="pix">PIX (Chave do Entregador)</SelectItem>
-                      <SelectItem value="pago">Já pago online (Não cobrar)</SelectItem>
-                    </SelectContent>
-                  </Select>
+              
+              <div className="flex items-center justify-between p-4 bg-background rounded-xl border border-emerald-500/20">
+                <div className="space-y-0.5">
+                  <Label className="text-base text-emerald-800 dark:text-emerald-400">Pedido já foi pago?</Label>
+                  <p className="text-xs text-muted-foreground">O entregador não precisará cobrar nada do cliente.</p>
                 </div>
-                {f.payment_method !== "pago" && (
-                  <div className="space-y-1.5">
-                    <Label className="text-emerald-700 dark:text-emerald-400">Valor a Cobrar do Cliente (R$)</Label>
-                    <div className="relative">
-                      <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
-                      <Input type="number" step="0.01" value={f.order_value} onChange={(e) => setF({ ...f, order_value: e.target.value })} required className="rounded-xl h-11 pl-9 bg-background border-emerald-500/30 font-bold" placeholder="0.00" />
+                <Switch checked={f.is_paid} onCheckedChange={(c) => setF({ ...f, is_paid: c })} />
+              </div>
+
+              {!f.is_paid && (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-emerald-700 dark:text-emerald-400">Forma de Pagamento</Label>
+                      <Select value={f.payment_method} onValueChange={(v) => setF({ ...f, payment_method: v })}>
+                        <SelectTrigger className="rounded-xl h-11 bg-background border-emerald-500/30">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent className="rounded-2xl">
+                          <SelectItem value="dinheiro">Dinheiro</SelectItem>
+                          <SelectItem value="cartao">Cartão (Maquininha)</SelectItem>
+                          <SelectItem value="pix">PIX (Chave do Entregador)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-emerald-700 dark:text-emerald-400">Valor a Cobrar do Cliente (R$)</Label>
+                      <div className="relative">
+                        <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                        <Input type="number" step="0.01" value={f.order_value} onChange={(e) => setF({ ...f, order_value: e.target.value })} required className="rounded-xl h-11 pl-9 bg-background border-emerald-500/30 font-bold" placeholder="0.00" />
+                      </div>
                     </div>
                   </div>
-                )}
-              </div>
-              
-              {f.payment_method === "dinheiro" && (
-                <div className="space-y-1.5 pt-2">
-                  <Label className="text-emerald-700 dark:text-emerald-400">Troco para (R$) - Deixe 0 se não precisar</Label>
-                  <Input type="number" step="0.01" value={f.change_for} onChange={(e) => setF({ ...f, change_for: e.target.value })} className="rounded-xl h-11 bg-background border-emerald-500/30" placeholder="0.00" />
-                </div>
+                  
+                  {f.payment_method === "dinheiro" && (
+                    <div className="space-y-1.5 pt-2">
+                      <Label className="text-emerald-700 dark:text-emerald-400">Troco para (R$) - Deixe 0 se não precisar</Label>
+                      <Input type="number" step="0.01" value={f.change_for} onChange={(e) => setF({ ...f, change_for: e.target.value })} className="rounded-xl h-11 bg-background border-emerald-500/30" placeholder="0.00" />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </section>
 
           {/* Submit */}
-          <div className="pt-4 pb-12">
+          <div className="pt-4 pb-4">
             <Button type="submit" disabled={busy} className="w-full rounded-2xl h-14 text-base font-black shadow-glow">
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Criar Solicitação de Entrega"}
             </Button>
@@ -277,7 +288,7 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
             </p>
           </div>
         </form>
-      </SheetContent>
-    </Sheet>
+      </DialogContent>
+    </Dialog>
   );
 }
