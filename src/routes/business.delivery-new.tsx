@@ -54,9 +54,21 @@ function NewDeliveryPage() {
     setF({
       ...f,
       region_id: val,
-      value: region ? String(region.fee) : f.value,
+      value: region ? Number(region.fee).toFixed(2) : f.value,
       customer_neighborhood: region ? region.name : f.customer_neighborhood
     });
+  };
+
+  const handleMoneyChange = (field: "value" | "order_value" | "change_for", val: string) => {
+    // Apenas números
+    const numeric = val.replace(/\D/g, "");
+    if (!numeric) {
+      setF({ ...f, [field]: "" });
+      return;
+    }
+    // Divide por 100 para ter os centavos corretos
+    const formatted = (Number(numeric) / 100).toFixed(2);
+    setF({ ...f, [field]: formatted });
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -201,7 +213,15 @@ function NewDeliveryPage() {
               </div>
               <div className="space-y-1.5">
                 <Label>Taxa do Entregador (Frete R$)</Label>
-                <Input type="number" step="0.01" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value })} required className="rounded-xl h-11 bg-secondary/30 font-black text-primary" placeholder="0.00" />
+                <Input 
+                  type="text" 
+                  inputMode="numeric"
+                  value={f.value} 
+                  onChange={(e) => handleMoneyChange("value", e.target.value)} 
+                  required 
+                  className="rounded-xl h-11 bg-secondary/30 font-black text-primary" 
+                  placeholder="0.00" 
+                />
               </div>
             </div>
             <div className="space-y-1.5">
@@ -254,7 +274,15 @@ function NewDeliveryPage() {
                       <Label className="text-emerald-700 dark:text-emerald-400">Valor a Cobrar do Cliente (R$)</Label>
                       <div className="relative">
                         <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
-                        <Input type="number" step="0.01" value={f.order_value} onChange={(e) => setF({ ...f, order_value: e.target.value })} required className="rounded-xl h-11 pl-9 bg-background border-emerald-500/30 font-bold" placeholder="0.00" />
+                        <Input 
+                          type="text"
+                          inputMode="numeric"
+                          value={f.order_value} 
+                          onChange={(e) => handleMoneyChange("order_value", e.target.value)} 
+                          required 
+                          className="rounded-xl h-11 pl-9 bg-background border-emerald-500/30 font-bold" 
+                          placeholder="0.00" 
+                        />
                       </div>
                     </div>
                   </div>
@@ -262,7 +290,14 @@ function NewDeliveryPage() {
                   {f.payment_method === "dinheiro" && (
                     <div className="space-y-1.5 pt-2">
                       <Label className="text-emerald-700 dark:text-emerald-400">Troco para (R$) - Deixe 0 se não precisar</Label>
-                      <Input type="number" step="0.01" value={f.change_for} onChange={(e) => setF({ ...f, change_for: e.target.value })} className="rounded-xl h-11 bg-background border-emerald-500/30" placeholder="0.00" />
+                      <Input 
+                        type="text"
+                        inputMode="numeric"
+                        value={f.change_for} 
+                        onChange={(e) => handleMoneyChange("change_for", e.target.value)} 
+                        className="rounded-xl h-11 bg-background border-emerald-500/30" 
+                        placeholder="0.00" 
+                      />
                     </div>
                   )}
                 </>
