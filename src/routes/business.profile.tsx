@@ -255,22 +255,41 @@ function BusinessProfilePage() {
     if (!companyId) return;
     const newActive = !isOpen;
     setIsOpen(newActive);
-    setShowInMarketplace(newActive);
     try {
       const { error } = await supabase
         .from("companies")
-        .update({ is_open: newActive, show_in_marketplace: newActive })
+        .update({ is_open: newActive })
         .eq("id", companyId);
       if (error) throw error;
       toast.success(
         newActive
-          ? "Loja ativa! Visível no marketplace e aceitando pedidos."
-          : "Loja pausada. Oculta no marketplace e sem receber pedidos."
+          ? "Loja aberta para receber pedidos!"
+          : "Loja fechada temporariamente."
       );
     } catch {
       setIsOpen(!newActive);
-      setShowInMarketplace(!newActive);
       toast.error("Erro ao atualizar status da loja");
+    }
+  };
+
+  const toggleMarketplace = async () => {
+    if (!companyId) return;
+    const newActive = !showInMarketplace;
+    setShowInMarketplace(newActive);
+    try {
+      const { error } = await supabase
+        .from("companies")
+        .update({ show_in_marketplace: newActive })
+        .eq("id", companyId);
+      if (error) throw error;
+      toast.success(
+        newActive
+          ? "Sua loja agora está visível no Marketplace!"
+          : "Sua loja foi ocultada do Marketplace."
+      );
+    } catch {
+      setShowInMarketplace(!newActive);
+      toast.error("Erro ao atualizar visibilidade");
     }
   };
 
@@ -468,42 +487,77 @@ function BusinessProfilePage() {
                         </div>
                         
                         <div className="pt-4 border-t border-border/40 mt-6 space-y-3">
-                             <button
-                                type="button"
-                                onClick={toggleStoreActive}
-                                className={cn(
-                                  "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
-                                  isOpen
-                                    ? "bg-emerald-50 border-emerald-400 shadow-md shadow-emerald-100"
-                                    : "bg-muted/40 border-border/60 hover:border-border"
-                                )}
-                             >
-                                <div className="text-left">
-                                   <p className={cn(
-                                     "text-[11px] font-black uppercase tracking-widest",
-                                     isOpen ? "text-emerald-700" : "text-muted-foreground"
-                                   )}>
-                                     {isOpen ? "✅ Loja Ativa" : "⏸️ Loja Pausada"}
-                                   </p>
-                                   <p className={cn(
-                                     "text-[10px] font-medium mt-0.5",
-                                     isOpen ? "text-emerald-600" : "text-muted-foreground"
-                                   )}>
-                                     {isOpen
-                                       ? "Visível no marketplace · Aceitando pedidos"
-                                       : "Oculta no marketplace · Sem receber pedidos"}
-                                   </p>
-                                </div>
-                                <div className={cn(
-                                  "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
-                                  isOpen ? "bg-emerald-500" : "bg-muted-foreground/30"
-                                )}>
-                                   <span className={cn(
-                                     "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
-                                     isOpen ? "translate-x-6" : "translate-x-1"
-                                   )} />
-                                </div>
-                             </button>
+                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                               <button
+                                  type="button"
+                                  onClick={toggleStoreActive}
+                                  className={cn(
+                                    "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
+                                    isOpen
+                                      ? "bg-emerald-50 border-emerald-400 shadow-md shadow-emerald-100"
+                                      : "bg-muted/40 border-border/60 hover:border-border"
+                                  )}
+                               >
+                                  <div className="text-left">
+                                     <p className={cn(
+                                       "text-[11px] font-black uppercase tracking-widest",
+                                       isOpen ? "text-emerald-700" : "text-muted-foreground"
+                                     )}>
+                                       {isOpen ? "✅ Loja Ativa" : "⏸️ Loja Pausada"}
+                                     </p>
+                                     <p className={cn(
+                                       "text-[10px] font-medium mt-0.5",
+                                       isOpen ? "text-emerald-600" : "text-muted-foreground"
+                                     )}>
+                                       {isOpen ? "Recebendo pedidos" : "Sem receber pedidos"}
+                                     </p>
+                                  </div>
+                                  <div className={cn(
+                                    "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
+                                    isOpen ? "bg-emerald-500" : "bg-muted-foreground/30"
+                                  )}>
+                                     <span className={cn(
+                                       "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                                       isOpen ? "translate-x-6" : "translate-x-1"
+                                     )} />
+                                  </div>
+                               </button>
+
+                               <button
+                                  type="button"
+                                  onClick={toggleMarketplace}
+                                  className={cn(
+                                    "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
+                                    showInMarketplace
+                                      ? "bg-primary/10 border-primary shadow-md shadow-primary/20"
+                                      : "bg-muted/40 border-border/60 hover:border-border"
+                                  )}
+                               >
+                                  <div className="text-left">
+                                     <p className={cn(
+                                       "text-[11px] font-black uppercase tracking-widest",
+                                       showInMarketplace ? "text-primary" : "text-muted-foreground"
+                                     )}>
+                                       {showInMarketplace ? "🌟 No Marketplace" : "🙈 Oculta no App"}
+                                     </p>
+                                     <p className={cn(
+                                       "text-[10px] font-medium mt-0.5",
+                                       showInMarketplace ? "text-primary/80" : "text-muted-foreground"
+                                     )}>
+                                       {showInMarketplace ? "Visível para clientes" : "Apenas link direto"}
+                                     </p>
+                                  </div>
+                                  <div className={cn(
+                                    "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
+                                    showInMarketplace ? "bg-primary" : "bg-muted-foreground/30"
+                                  )}>
+                                     <span className={cn(
+                                       "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                                       showInMarketplace ? "translate-x-6" : "translate-x-1"
+                                     )} />
+                                  </div>
+                               </button>
+                             </div>
 
                            <div className="space-y-3">
                               <div className="flex items-center justify-between">
@@ -680,7 +734,7 @@ function BusinessProfilePage() {
                        </div>
                        <div className="h-14 bg-muted/40 rounded-xl p-2">
                           <p className="text-[7px] text-muted-foreground line-clamp-4 italic leading-relaxed">
-                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do Pronto Agora."}
+                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do Primavera Delivery."}
                           </p>
                        </div>
                        <div className="space-y-2">
