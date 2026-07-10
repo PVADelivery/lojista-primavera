@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
@@ -20,6 +20,7 @@ function NewDeliveryPage() {
   const { user } = useAuth();
   const { data: company } = useMyCompany();
   const navigate = useNavigate();
+  const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   
   const [f, setF] = useState({
@@ -103,6 +104,7 @@ function NewDeliveryPage() {
       toast.error(error.message);
     } else {
       toast.success("Corrida solicitada com sucesso!");
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
       navigate({ to: "/business" });
     }
   };
