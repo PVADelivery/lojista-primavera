@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
 import { useAuth } from "@/contexts/AuthContext";
 import { brl } from "@/lib/format";
-import { NewDeliveryDrawer } from "@/components/business/NewDeliveryDrawer";
 import {
   Clock, Truck, Wallet, Plus, MapPin, Phone, CheckCircle2,
   ShoppingBag, ArrowUpRight, Sparkles, Activity, TrendingUp,
@@ -86,7 +85,13 @@ function BusinessHomePage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <NewDeliveryDrawer companyId={company?.id} onDone={() => qc.invalidateQueries({ queryKey: ["deliveries"] })} />
+              <Link
+                to="/business/delivery-new"
+                className="inline-flex items-center justify-center whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-2xl h-13 px-7 bg-primary text-primary-foreground hover:bg-primary/90 font-black shadow-glow group"
+              >
+                <Plus className="h-5 w-5 mr-2 transition-transform group-hover:rotate-90" />
+                Nova Solicitação
+              </Link>
               <Button
                 variant="ghost"
                 size="lg"
@@ -134,7 +139,12 @@ function BusinessHomePage() {
       <Section title="Manuais" kicker="Entregas criadas direto por você" count={manual.length}>
         {manual.length === 0 ? (
           <EmptyState icon={Sparkles} text="Crie sua primeira entrega manual em segundos." action={
-            <NewDeliveryDrawer companyId={company?.id} onDone={() => qc.invalidateQueries({ queryKey: ["deliveries"] })} />
+            <Link
+              to="/business/delivery-new"
+              className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 mt-4 rounded-xl font-bold"
+            >
+              <Plus className="h-4 w-4 mr-2" />Nova entrega
+            </Link>
           } />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">

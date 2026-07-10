@@ -1,22 +1,25 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMyCompany } from "@/services/companies";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { Loader2, PlusCircle, MapPin, Banknote, Car, Motorbike, Bike, PackageOpen, Info, Phone } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone } from "lucide-react";
 
-interface NewDeliveryDrawerProps {
-  companyId: string | undefined;
-  onDone: () => void;
-}
+export const Route = createFileRoute("/business/delivery-new")({
+  component: NewDeliveryPage,
+});
 
-export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps) {
-  const [open, setOpen] = useState(false);
+function NewDeliveryPage() {
+  const { user } = useAuth();
+  const { data: company } = useMyCompany();
+  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   
   const [f, setF] = useState({
@@ -37,13 +40,13 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
   });
 
   const { data: regions } = useQuery({
-    queryKey: ["regions", companyId],
+    queryKey: ["regions", company?.id],
     queryFn: async () => {
-      if (!companyId) return [];
-      const { data } = await supabase.from("regions").select("*").eq("company_id", companyId);
+      if (!company?.id) return [];
+      const { data } = await supabase.from("regions").select("*").eq("company_id", company.id);
       return data || [];
     },
-    enabled: !!companyId && open
+    enabled: !!company?.id
   });
 
   const handleRegionChange = (val: string) => {
@@ -58,17 +61,14 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!companyId) return;
+    if (!company?.id) return;
     
-    // Concat address if needed or just send structured
     const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
-    
-    // Generate short ID
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
     
     setBusy(true);
     const { error } = await supabase.from("deliveries").insert({
-      company_id: companyId,
+      company_id: company.id,
       short_id: shortId,
       customer_name: f.customer_name,
       customer_phone: f.customer_phone,
@@ -91,34 +91,26 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
       toast.error(error.message);
     } else {
       toast.success("Corrida solicitada com sucesso!");
-      setOpen(false);
-      onDone();
-      setF({
-        customer_name: "", customer_phone: "", address: "", customer_address_number: "",
-        customer_neighborhood: "", customer_address_complement: "", payment_method: "dinheiro",
-        is_paid: false, order_value: "", change_for: "", vehicle_type: "moto", region_id: "none", value: "", notes: ""
-      });
+      navigate({ to: "/business" });
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button size="lg" className="rounded-xl h-12 px-7 font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground gap-2">
-          <PlusCircle className="h-5 w-5" />
-          Nova Solicitação
-        </Button>
-      </DialogTrigger>
-      
-      <DialogContent className="w-full sm:max-w-3xl max-h-[90vh] overflow-y-auto bg-card border-border/40 p-0 sm:rounded-[2rem]">
-        <div className="sticky top-0 z-10 bg-card/95 backdrop-blur-xl border-b border-border/40 px-6 py-5 flex items-center justify-between">
-          <DialogHeader className="text-left">
+    <div className="min-h-screen bg-background pb-20">
+      <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border/40">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => navigate({ to: "/business" })} className="rounded-xl h-10 w-10">
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
+          <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema de Despacho</p>
-            <DialogTitle className="text-2xl font-black tracking-tight">Nova Solicitação de Entrega</DialogTitle>
-          </DialogHeader>
+            <h1 className="text-xl font-black tracking-tight">Nova Solicitação de Entrega</h1>
+          </div>
         </div>
-        
-        <form onSubmit={submit} className="p-6 space-y-8">
+      </div>
+
+      <div className="max-w-3xl mx-auto px-4 mt-6">
+        <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
           
           {/* Seção: Cliente */}
           <section className="space-y-4">
@@ -279,8 +271,8 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
           </section>
 
           {/* Submit */}
-          <div className="pt-4 pb-4">
-            <Button type="submit" disabled={busy} className="w-full rounded-2xl h-14 text-base font-black shadow-glow">
+          <div className="pt-4">
+            <Button type="submit" disabled={busy} className="w-full rounded-2xl h-14 text-base font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground">
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Criar Solicitação de Entrega"}
             </Button>
             <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
@@ -288,7 +280,7 @@ export function NewDeliveryDrawer({ companyId, onDone }: NewDeliveryDrawerProps)
             </p>
           </div>
         </form>
-      </DialogContent>
-    </Dialog>
+      </div>
+    </div>
   );
 }
