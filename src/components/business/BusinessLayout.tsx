@@ -53,7 +53,7 @@ const MOBILE_NAV = [
 ];
 
 export function BusinessLayout({ children }: { children?: React.ReactNode }) {
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refresh } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -70,6 +70,19 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         const { data: c } = await supabase.from("companies")
           .insert({ user_id: user!.id, name: profile?.full_name ?? "Minha Loja" })
           .select("id,name,logo_url,is_open").single();
+          
+        if (c) {
+          await supabase.from("user_roles").insert({
+            user_id: user!.id,
+            role: "company",
+            company_id: c.id
+          });
+          
+          setTimeout(() => {
+            refresh();
+          }, 100);
+        }
+        
         return c as Company;
       }
       return data as Company;
