@@ -62,13 +62,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
     queryFn: async (): Promise<Company | null> => {
       const { data } = await supabase.from("companies").select("id,name,logo_url,is_open")
         .eq("user_id", user!.id).maybeSingle();
-      if (!data) {
-        const { data: c } = await supabase.from("companies")
-          .insert({ user_id: user!.id, name: profile?.full_name ?? "Minha Loja" })
-          .select("id,name,logo_url,is_open").single();
-        return c as Company;
-      }
-      return data as Company;
+      return data ? (data as Company) : null;
     },
   });
 
