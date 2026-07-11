@@ -29,7 +29,7 @@ function BusinessHomePage() {
     queryFn: async () => {
       const { data } = await supabase.from("deliveries").select("*")
         .eq("company_id", company!.id)
-        .in("status", ["pending", "broadcasted", "accepted", "collecting"])
+        .in("status", ["pending", "broadcasted", "accepted", "collecting", "in_route", "in_transit"])
         .order("created_at", { ascending: false });
       return data ?? [];
     },
