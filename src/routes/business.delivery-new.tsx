@@ -54,7 +54,7 @@ function NewDeliveryPage() {
     change_for: "",
     vehicle_type: "moto",
     region_id: "none",
-    value: "", // Delivery fee (frete)
+    value: "6.99", // Delivery fee (frete) padrão
     notes: "",
   });
 
@@ -95,16 +95,16 @@ function NewDeliveryPage() {
           if (data && data[0]) {
             setPickupCoords([parseFloat(data[0].lon), parseFloat(data[0].lat)]);
           } else {
-            // Default center
-            setPickupCoords([-56.0974, -15.5989]);
+            // Default center: Primavera do Leste
+            setPickupCoords([-54.3075, -15.5606]);
           }
         })
         .catch(() => {
-          setPickupCoords([-56.0974, -15.5989]);
+          setPickupCoords([-54.3075, -15.5606]);
         });
     } else {
-      // Default to Cuiabá/establishment regions center if no address
-      setPickupCoords([-56.0974, -15.5989]);
+      // Default to Primavera do Leste center if no address
+      setPickupCoords([-54.3075, -15.5606]);
     }
   }, [company?.address]);
 
@@ -151,7 +151,7 @@ function NewDeliveryPage() {
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const initialCenter = pickupCoords || [-56.0974, -15.5989];
+    const initialCenter = pickupCoords || [-54.3075, -15.5606];
 
     mapRef.current = new maplibregl.Map({
       container: mapContainerRef.current,
