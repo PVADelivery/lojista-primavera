@@ -54,7 +54,7 @@ function NewDeliveryPage() {
     change_for: "",
     vehicle_type: "moto",
     region_id: "none",
-    value: "6.99", // Delivery fee (frete) padrão
+    value: "4.99", // Delivery fee (frete) padrão moto
     notes: "",
   });
 
@@ -107,6 +107,16 @@ function NewDeliveryPage() {
       setPickupCoords([-54.3075, -15.5606]);
     }
   }, [company?.address]);
+
+  // Handle dynamic fee calculation based on distance
+  useEffect(() => {
+    if (f.region_id === "none" && routeDistance !== null) {
+      let fee = 4.99 + (routeDistance * 2.00); // Moto
+      if (f.vehicle_type === "carro") fee = 6.99 + (routeDistance * 3.00);
+      if (f.vehicle_type === "carro_aberto") fee = 9.99 + (routeDistance * 4.00);
+      setF(prev => ({ ...prev, value: fee.toFixed(2) }));
+    }
+  }, [routeDistance, f.vehicle_type, f.region_id]);
 
   // Customer search autocomplete query
   useEffect(() => {
