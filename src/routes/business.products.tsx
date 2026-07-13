@@ -7,8 +7,9 @@ import { useMyCompany } from "@/services/companies";
 import {
   Plus, Trash2, Edit3, Loader2, ImagePlus, Package,
   DollarSign, X, Check, Eye, EyeOff, ArrowLeft, Layers, ShoppingCart,
-  GripVertical,
+  GripVertical, ListPlus,
 } from "lucide-react";
+import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
 import { cn } from "@/lib/utils";
 
 interface Product {
@@ -61,6 +62,7 @@ function BusinessProductsPage() {
   const companyId = company?.id;
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [managingOptions, setManagingOptions] = useState<Product | null>(null);
 
   // Drag state
   const dragId = useRef<string | null>(null);
@@ -166,6 +168,24 @@ function BusinessProductsPage() {
   }, [products]);
 
   // ── Views ────────────────────────────────────────────────────────────────────
+  if (managingOptions) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+        <button
+          onClick={() => setManagingOptions(null)}
+          className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar ao Cardápio
+        </button>
+        <ProductOptionsManager
+          productId={managingOptions.id}
+          productName={managingOptions.name}
+          onClose={() => setManagingOptions(null)}
+        />
+      </div>
+    );
+  }
+
   if (showForm || editingProduct) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -275,6 +295,7 @@ function BusinessProductsPage() {
                     onToggle={() => toggleActive(product)}
                     onDragStart={() => handleDragStart(product.id, product.category ?? "")}
                     onDrop={() => handleDrop(product.id, product.category ?? "")}
+                    onManageOptions={() => setManagingOptions(product)}
                   />
                 ))}
               </div>
@@ -288,7 +309,7 @@ function BusinessProductsPage() {
 
 // ── Product Card ──────────────────────────────────────────────────────────────
 function ProductCard({
-  product, onEdit, onDelete, onToggle, onDragStart, onDrop,
+  product, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions,
 }: {
   product: Product;
   onEdit: () => void;
@@ -296,6 +317,7 @@ function ProductCard({
   onToggle: () => void;
   onDragStart: () => void;
   onDrop: () => void;
+  onManageOptions: () => void;
 }) {
   const [isDragging, setIsDragging] = useState(false);
   const [isOver, setIsOver] = useState(false);
@@ -380,12 +402,19 @@ function ProductCard({
         </div>
 
         {/* Actions Grid */}
-        <div className="grid grid-cols-4 gap-2 pt-2 border-t border-border">
+        <div className="grid grid-cols-5 gap-2 pt-2 border-t border-border">
           <button
             onClick={onEdit}
             className="col-span-2 py-3 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
           >
             <Edit3 className="h-3.5 w-3.5" /> Editar
+          </button>
+          <button
+            onClick={onManageOptions}
+            className="py-3 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 flex items-center justify-center transition-all"
+            title="Complementos / Adicionais"
+          >
+            <ListPlus className="h-4 w-4" />
           </button>
           <button
             onClick={onToggle}
