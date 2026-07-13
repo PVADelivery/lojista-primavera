@@ -94,6 +94,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: [centerCity.lng, centerCity.lat],
       zoom: 12,
+      attributionControl: false,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
