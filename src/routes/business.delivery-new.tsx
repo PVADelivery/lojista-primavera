@@ -97,28 +97,30 @@ function NewDeliveryPage() {
     enabled: !!company?.id,
   });
 
-  // Geocode company address on mount
+  // Fetch or set company location
   useEffect(() => {
-    if (company?.address) {
-      const q = `${company.address}`;
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data && data[0]) {
-            setPickupCoords([parseFloat(data[0].lon), parseFloat(data[0].lat)]);
-          } else {
-            // Default center: Primavera do Leste
+    if (company) {
+      if (company.latitude && company.longitude) {
+        setPickupCoords([company.longitude, company.latitude]);
+      } else if (company.address) {
+        const q = `${company.address}`;
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data && data[0]) {
+              setPickupCoords([parseFloat(data[0].lon), parseFloat(data[0].lat)]);
+            } else {
+              setPickupCoords([-54.3075, -15.5606]);
+            }
+          })
+          .catch(() => {
             setPickupCoords([-54.3075, -15.5606]);
-          }
-        })
-        .catch(() => {
-          setPickupCoords([-54.3075, -15.5606]);
-        });
-    } else {
-      // Default to Primavera do Leste center if no address
-      setPickupCoords([-54.3075, -15.5606]);
+          });
+      } else {
+        setPickupCoords([-54.3075, -15.5606]);
+      }
     }
-  }, [company?.address]);
+  }, [company]);
 
   // Handle dynamic fee calculation based on distance
   useEffect(() => {
@@ -177,7 +179,17 @@ function NewDeliveryPage() {
 
     mapRef.current = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+          },
+        },
+        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
+      },
       center: [initialCenter[0], initialCenter[1]],
       zoom: 12,
       attributionControl: false,
@@ -198,7 +210,17 @@ function NewDeliveryPage() {
 
     mapFull.current = new maplibregl.Map({
       container: mapContainerFull.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+          },
+        },
+        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
+      },
       center: [center[0], center[1]],
       zoom: 15,
       attributionControl: false,
@@ -846,7 +868,7 @@ function NewDeliveryPage() {
                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 flex items-center justify-center transition-all">
                     <span className="bg-background/90 backdrop-blur text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md">
                       <Maximize2 className="w-4 h-4 text-primary" />
-                      Arraste no Mapa (Igual App Cliente)
+                      Selecionar Local de Entrega
                     </span>
                   </div>
                 </div>

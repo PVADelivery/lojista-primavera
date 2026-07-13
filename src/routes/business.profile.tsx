@@ -7,8 +7,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
-  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign
+  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair
 } from "lucide-react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_WORKING_DAYS = [
@@ -89,6 +91,12 @@ function BusinessProfilePage() {
   const [showInMarketplace, setShowInMarketplace] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState(() => DEFAULT_WORKING_DAYS.map((day) => ({ ...day })));
+  
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const mapContainerRef = React.useRef<HTMLDivElement>(null);
+  const mapRef = React.useRef<maplibregl.Map | null>(null);
 
   // Edit states for overlays
   const [isEditingLogo, setIsEditingLogo] = useState(false);
@@ -148,12 +156,61 @@ function BusinessProfilePage() {
         setDeliveryFee(company.delivery_fee?.toString() || "0.00");
         setGallery(normalizeGallery(company.gallery));
         setWorkingDays(normalizeWorkingDays(company.business_hours));
+        if (company.latitude) setLatitude(company.latitude);
+        if (company.longitude) setLongitude(company.longitude);
       }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Map Initialization
+  useEffect(() => {
+    if (!isMapFullscreen || !mapContainerRef.current) return;
+    
+    if (mapRef.current) {
+       mapRef.current.remove();
+       mapRef.current = null;
+    }
+
+    const center = longitude && latitude ? [longitude, latitude] : [-54.3075, -15.5606];
+
+    mapRef.current = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+          },
+        },
+        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
+      },
+      center: [center[0], center[1]],
+      zoom: 16,
+      attributionControl: false,
+    });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isMapFullscreen]);
+
+  const handleSetLocation = () => {
+     if (mapRef.current) {
+        const center = mapRef.current.getCenter();
+        setLongitude(center.lng);
+        setLatitude(center.lat);
+        setIsMapFullscreen(false);
+        toast.success("Localização atualizada! Não esqueça de salvar o perfil.");
+     }
   };
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
@@ -305,12 +362,11 @@ function BusinessProfilePage() {
     setSaving(true);
 
     try {
-      const hoursJson = JSON.stringify(workingDays);
       const { error } = await supabase
         .from("companies")
         .update({
           name: storeName,
-          phone,
+          phone: phone.replace(/[^0-9]/g, ""),
           address,
           description,
           logo_url: logoUrl,
@@ -319,8 +375,10 @@ function BusinessProfilePage() {
           delivery_fee: parseFloat(deliveryFee.replace(',', '.')),
           is_open: isOpen,
           show_in_marketplace: showInMarketplace,
-          business_hours: hoursJson,
+          business_hours: JSON.stringify(workingDays),
           gallery: gallery,
+          latitude: latitude,
+          longitude: longitude
         })
         .eq("id", companyId);
 
@@ -651,6 +709,22 @@ function BusinessProfilePage() {
                                />
                             </div>
                          </div>
+                         
+                         <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Localização Exata no Mapa</label>
+                             <div 
+                               onClick={() => setIsMapFullscreen(true)}
+                               className="relative h-24 rounded-2xl overflow-hidden border-2 border-primary/20 bg-primary/5 cursor-pointer flex flex-col items-center justify-center group hover:bg-primary/10 transition-all"
+                             >
+                                 <MapPinIcon className="h-6 w-6 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                     {latitude && longitude ? "Alterar Ponto no Mapa" : "Marcar Ponto no Mapa"}
+                                 </span>
+                                 {latitude && longitude && (
+                                     <span className="text-[8px] text-muted-foreground mt-1">Localização Configurada</span>
+                                 )}
+                             </div>
+                         </div>
 
                          <div className="space-y-2">
                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Taxa de Entrega Padrão (R$)</label>
@@ -816,6 +890,47 @@ function BusinessProfilePage() {
            </div>
         </div>,
         document.body
+      )}
+
+      {/* MAP MODAL */}
+      {isMapFullscreen && createPortal(
+         <div className="fixed inset-0 z-[200] bg-background animate-in fade-in duration-300 flex flex-col">
+           {/* Header */}
+           <div className="h-20 border-b border-border bg-card px-6 flex items-center justify-between shadow-sm z-10 shrink-0">
+             <div className="flex items-center gap-4">
+               <button onClick={() => setIsMapFullscreen(false)} className="p-3 bg-muted rounded-full hover:bg-muted/80 transition-colors cursor-pointer">
+                 <X className="w-5 h-5 text-foreground" />
+               </button>
+               <div>
+                 <h2 className="text-lg font-black text-foreground">Localização da Loja</h2>
+                 <p className="text-xs text-muted-foreground font-bold">Arraste o mapa para marcar a loja</p>
+               </div>
+             </div>
+             <button 
+               onClick={handleSetLocation}
+               className="px-6 py-3 bg-primary text-primary-foreground rounded-full text-sm font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 cursor-pointer"
+             >
+               Confirmar Local
+             </button>
+           </div>
+           
+           {/* Map Area */}
+           <div className="flex-1 relative">
+             <div ref={mapContainerRef} className="w-full h-full" />
+             
+             {/* Center Crosshair */}
+             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+               <div className="relative flex flex-col items-center justify-center -mt-8">
+                 <div className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full mb-2 shadow-lg animate-bounce">
+                   Local Exato
+                 </div>
+                 <Crosshair className="w-8 h-8 text-primary drop-shadow-md" />
+                 <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shadow-lg" />
+               </div>
+             </div>
+           </div>
+         </div>,
+         document.body
       )}
 
       {/* ── BONASOFT Watermark ── */}
