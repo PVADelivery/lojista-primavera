@@ -10,9 +10,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation, Maximize2, MapPinned, X, Check } from "lucide-react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/business/delivery-new")({
   component: NewDeliveryPage,
@@ -74,6 +75,17 @@ function NewDeliveryPage() {
   const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
   const [routeDistance, setRouteDistance] = useState<number | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+
+  // Fullscreen map states
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const mapContainerFull = useRef<HTMLDivElement>(null);
+  const mapFull = useRef<maplibregl.Map | null>(null);
+  const [dropoffText, setDropoffText] = useState("");
+  const [dropoffNumber, setDropoffNumber] = useState("");
+  const [dropoffSuggestions, setDropoffSuggestions] = useState<any[]>([]);
+  const [searchingDropoff, setSearchingDropoff] = useState(false);
+  const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  const PVA_BOUNDS = "-54.40,-15.65,-54.20,-15.45";
 
   const { data: regions } = useQuery({
     queryKey: ["regions", company?.id],
@@ -157,7 +169,7 @@ function NewDeliveryPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [customerQuery, company?.id]);
 
-  // Load MapLibre GL
+  // Load MapLibre GL - Small Map (Disabled interaction, just shows the route/markers)
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
@@ -169,40 +181,169 @@ function NewDeliveryPage() {
       center: [initialCenter[0], initialCenter[1]],
       zoom: 12,
       attributionControl: false,
-    });
-
-    mapRef.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
-
-    mapRef.current.on("click", async (e) => {
-      const { lng, lat } = e.lngLat;
-      setDropoffCoords([lng, lat]);
-      
-      // Reverse Geocoding
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
-        const data = await res.json();
-        if (data && data.address) {
-          const street = data.address.road || data.address.pedestrian || "";
-          const number = data.address.house_number || "";
-          const neighborhood = data.address.suburb || data.address.neighbourhood || data.address.village || "";
-          
-          setF((prev) => ({
-            ...prev,
-            address: street,
-            customer_address_number: number,
-            customer_neighborhood: neighborhood,
-          }));
-        }
-      } catch (err) {
-        console.error("Reverse geocoding error:", err);
-      }
+      interactive: false, // Make small map static
     });
 
     return () => {
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, []);
+  }, [pickupCoords]);
+
+  // Load MapLibre GL - Fullscreen Modal
+  useEffect(() => {
+    if (!isMapFullscreen || !mapContainerFull.current || mapFull.current) return;
+
+    const center = dropoffCoords || pickupCoords || [-54.3075, -15.5606];
+
+    mapFull.current = new maplibregl.Map({
+      container: mapContainerFull.current,
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      center: [center[0], center[1]],
+      zoom: 15,
+      attributionControl: false,
+    });
+
+    mapFull.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
+
+    return () => {
+      mapFull.current?.remove();
+      mapFull.current = null;
+    };
+  }, [isMapFullscreen]);
+
+  // Algorithmic neighborhood geofencing
+  const getCorrectBairro = (lon: number, lat: number, streetName: string, addr?: any): string => {
+    if (addr) {
+      const osmBairro = addr.suburb || addr.neighbourhood || addr.city_district || addr.residential;
+      if (osmBairro && osmBairro.toLowerCase() !== "parque eldorado") {
+        return osmBairro;
+      }
+    }
+    const street = streetName.toLowerCase();
+    if (street.includes("ari krief") || street.includes("ari kriff")) return "Jardim Progresso";
+    if (street.includes("santo amaro")) {
+      if (lon < -54.307) return "Primavera I";
+      if (lon < -54.298) return "Jardim Riva";
+      return "Centro";
+    }
+    if (street.includes("david riva") || street.includes("avenida primavera") || street.includes("campo grande")) {
+      if (lon < -54.300) return "Jardim Riva";
+      return "Centro";
+    }
+    if (street.includes("piracicaba") || street.includes("paranatinga") || street.includes("cuiaba") || street.includes("cuiabá") || street.includes("porto alegre")) {
+      return "Centro";
+    }
+    if (street.includes("belo horizonte") || street.includes("curitiba") || street.includes("sao paulo") || street.includes("são paulo")) {
+      return "Centro";
+    }
+    if (street.includes("pion. poncio") || street.includes("poncho verde")) return "Poncho Verde";
+    if (street.includes("castelandia") || street.includes("castelândia")) return "Castelândia";
+    if (street.includes("são joão") || street.includes("sao joao")) return "Centro";
+    return "";
+  };
+
+  const formatSuggestionLabel = (item: any) => {
+    const lon = parseFloat(item.lon);
+    const lat = parseFloat(item.lat);
+    const addr = item.address || {};
+    const street = addr.road || addr.street || item.display_name.split(",")[0] || "";
+    const bairro = getCorrectBairro(lon, lat, street, addr);
+    const city = addr.city || addr.town || addr.municipality || "Primavera do Leste";
+    return {
+      main: bairro ? `${street}, ${bairro}` : street,
+      sub: `${city} - MT`
+    };
+  };
+
+  const fetchAddressFromCoords = async (lat: number, lng: number) => {
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`,
+        { headers: { "User-Agent": "Primavera-Delivery/1.0" } }
+      );
+      const data = await res.json();
+      if (data && data.address) {
+        const addr = data.address;
+        const street = addr.road || addr.street || data.display_name.split(",")[0] || "";
+        const bairro = getCorrectBairro(lng, lat, street, addr);
+        const addressShort = bairro ? `${street}, ${bairro}` : street;
+        
+        setDropoffText(addressShort);
+        const houseNo = addr.house_number || "";
+        if (houseNo) setDropoffNumber(houseNo);
+
+        setF((prev) => ({
+          ...prev,
+          address: street,
+          customer_address_number: houseNo || prev.customer_address_number,
+          customer_neighborhood: bairro || prev.customer_neighborhood,
+          region_id: "none"
+        }));
+      }
+    } catch (err) {
+      console.error("Reverse geocoding error:", err);
+    }
+  };
+
+  const searchAddress = (query: string) => {
+    if (searchTimeout.current) clearTimeout(searchTimeout.current);
+    if (!query.trim()) {
+      setDropoffSuggestions([]);
+      return;
+    }
+    setSearchingDropoff(true);
+    searchTimeout.current = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&q=${encodeURIComponent(
+          query
+        )}&viewbox=${PVA_BOUNDS}&bounded=1&limit=6`;
+        const res = await fetch(url, { headers: { "User-Agent": "Primavera-Delivery/1.0" } });
+        const data = await res.json();
+        setDropoffSuggestions(data);
+      } catch (err) {
+        console.error("Address search error:", err);
+      } finally {
+        setSearchingDropoff(false);
+      }
+    }, 400);
+  };
+
+  const selectSuggestion = (item: any) => {
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    const label = formatSuggestionLabel(item);
+    const streetBairro = label.main;
+
+    setDropoffCoords([lon, lat]);
+    setDropoffText(streetBairro);
+    setDropoffSuggestions([]);
+
+    const addr = item.address || {};
+    const street = addr.road || addr.street || item.display_name.split(",")[0] || "";
+    const bairro = getCorrectBairro(lon, lat, street, addr);
+    
+    setF((prev) => ({
+      ...prev,
+      address: street,
+      customer_neighborhood: bairro,
+      region_id: "none"
+    }));
+
+    if (mapFull.current) {
+      mapFull.current.flyTo({ center: [lon, lat], zoom: 16, duration: 1000 });
+    }
+  };
+
+  const handleSelectLocationAtCenter = () => {
+    const m = mapFull.current;
+    if (!m) return;
+    const center = m.getCenter();
+    const coords: [number, number] = [center.lng, center.lat];
+    setDropoffCoords(coords);
+    fetchAddressFromCoords(center.lat, center.lng);
+    setIsMapFullscreen(false);
+  };
 
   // Update map markers and route when coordinates change
   useEffect(() => {
@@ -682,21 +823,33 @@ function NewDeliveryPage() {
                   variant="outline"
                   onClick={handleGeocodeSearch}
                   disabled={isGeocoding}
-                  className="w-full rounded-xl flex items-center justify-center gap-2 h-11 border-dashed"
+                  className="w-full rounded-xl flex items-center justify-center gap-2 h-11 border-dashed mb-4"
                 >
                   {isGeocoding ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <Navigation className="h-4 w-4" />
                   )}
-                  Buscar Endereço no Mapa
+                  Buscar Endereço Digitado
                 </Button>
                 
-                <Label className="text-xs text-muted-foreground mt-1">
-                  Você também pode clicar diretamente no mapa abaixo para fixar o ponto de entrega exato.
+                <Label className="text-xs text-muted-foreground mt-1 mb-1 block">
+                  Ou você pode selecionar no mapa com precisão:
                 </Label>
                 
-                <div ref={mapContainerRef} className="h-64 w-full rounded-2xl overflow-hidden mt-2 border border-border shadow-inner" />
+                {/* Miniatura do Mapa que abre Modal */}
+                <div 
+                  onClick={() => setIsMapFullscreen(true)}
+                  className="relative h-44 rounded-2xl overflow-hidden border border-border shadow-sm cursor-pointer group hover:opacity-95 transition-all mt-2"
+                >
+                  <div ref={mapContainerRef} className="w-full h-full pointer-events-none" />
+                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 flex items-center justify-center transition-all">
+                    <span className="bg-background/90 backdrop-blur text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md">
+                      <Maximize2 className="w-4 h-4 text-primary" />
+                      Arraste no Mapa (Igual App Cliente)
+                    </span>
+                  </div>
+                </div>
                 
                 {routeDistance !== null && (
                   <p className="text-xs font-semibold text-primary mt-1">
@@ -849,6 +1002,103 @@ function NewDeliveryPage() {
           </div>
         </form>
       </div>
+
+      {/* ── MODAL MAPA TELA CHEIA (COM MIRA FIXA CENTRAL) ── */}
+      {isMapFullscreen && typeof document !== "undefined" && createPortal(
+        <div className="fixed inset-0 h-[100dvh] w-screen bg-background z-[9999] flex flex-col overflow-hidden animate-in fade-in duration-200">
+          <div className="p-4 border-b border-border flex items-center justify-between shrink-0 bg-card shadow-sm">
+            <div>
+              <h3 className="font-bold text-base">Arrastar Mapa sob a Mira</h3>
+              <p className="text-xs text-muted-foreground">Posicione a rua no centro da tela e clique para fixar o Destino</p>
+            </div>
+            <button
+              onClick={() => setIsMapFullscreen(false)}
+              className="w-9 h-9 rounded-full bg-secondary flex items-center justify-center text-muted-foreground"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Autocomplete de Pesquisa (Destino) */}
+          <div className="p-3 bg-card border-b border-border relative z-55 shrink-0">
+            <div className="relative">
+              <input
+                type="text"
+                value={dropoffText}
+                onChange={(e) => {
+                  setDropoffText(e.target.value);
+                  searchAddress(e.target.value);
+                }}
+                placeholder="Buscar bairro, rua, local..."
+                className="w-full pl-9 pr-4 h-11 rounded-xl border border-border bg-background text-sm shadow-sm"
+              />
+              <MapPinned className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
+              
+              {dropoffSuggestions.length > 0 && (
+                <div className="absolute left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto z-50">
+                  {dropoffSuggestions.map((item, idx) => {
+                    const label = formatSuggestionLabel(item);
+                    return (
+                      <button
+                        key={idx}
+                        onClick={() => selectSuggestion(item)}
+                        className="w-full text-left px-3 py-3 hover:bg-muted border-b border-border/30 flex flex-col gap-0.5 text-foreground"
+                      >
+                        <div className="flex items-center gap-1.5 text-sm font-semibold">
+                          <MapPin className="w-4 h-4 text-emerald-500 shrink-0" />
+                          <span className="truncate">{label.main}</span>
+                        </div>
+                        <span className="pl-[22px] text-xs text-muted-foreground">{label.sub}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Div do Mapa com Alvo Central Fixo */}
+          <div className="flex-1 min-h-0 relative overflow-hidden">
+            <div ref={mapContainerFull} className="w-full h-full" />
+            
+            {/* ── MIRA CENTRAL DE PRECISÃO ── */}
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-30 flex flex-col items-center">
+              <div className="px-3 py-1.5 rounded-xl shadow-lg text-[10px] font-black text-white whitespace-nowrap mb-1 animate-bounce bg-emerald-500">
+                Ponto de Destino
+              </div>
+              <div className="w-4 h-4 rounded-full border-2 border-white shadow-md bg-emerald-500" />
+              <div className="w-0.5 h-6 bg-slate-800 shadow shadow-black/30" />
+            </div>
+
+            <div className="absolute bottom-20 left-4 right-4 bg-black/80 backdrop-blur text-white p-3 rounded-2xl text-[11px] text-center pointer-events-none shadow-lg z-20">
+              <span className="font-semibold text-slate-300">Endereço no centro:</span>
+              <p className="font-bold truncate mt-0.5 text-sm">
+                {dropoffText || "Primavera do Leste"}
+              </p>
+            </div>
+
+            <div className="absolute bottom-4 left-4 right-4 z-20">
+              <Button
+                onClick={handleSelectLocationAtCenter}
+                className="w-full h-12 rounded-xl text-sm font-bold text-white shadow-lg bg-emerald-500 hover:bg-emerald-600"
+              >
+                Definir Destino Aqui
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-4 bg-card border-t border-border flex gap-3 shrink-0">
+            <Button
+              variant="outline"
+              onClick={() => setIsMapFullscreen(false)}
+              className="flex-1 h-12 rounded-xl text-xs font-bold"
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
