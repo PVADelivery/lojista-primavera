@@ -11,7 +11,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay } from "date-fns";
+import { format, subDays, startOfDay, endOfDay, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek, isWithinInterval, startOfMonth, endOfMonth, parseISO } from "date-fns";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { ptBR } from "date-fns/locale";
 import {
   AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid,
@@ -826,13 +827,10 @@ function BusinessFinancePage() {
                       <div className="grid grid-cols-2 gap-3">
                         <div>
                           <label className="text-[11px] font-bold text-muted-foreground uppercase">Valor</label>
-                          <input
+                          <CurrencyInput
                             required
-                            type="number"
-                            step="0.01"
                             value={cfForm.amount}
-                            onChange={(e) => setCfForm({ ...cfForm, amount: e.target.value })}
-                            placeholder="0.00"
+                            onChangeValue={(v) => setCfForm({ ...cfForm, amount: v })}
                             className="w-full mt-1 px-3 py-2 bg-muted rounded-xl text-sm border-none focus:ring-2 focus:ring-primary"
                           />
                         </div>
