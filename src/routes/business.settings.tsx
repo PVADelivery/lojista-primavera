@@ -536,7 +536,7 @@ function BusinessSettingsPage() {
                         </div>
                         
                         <div className="pt-4 border-t border-border/40 mt-6 space-y-3">
-                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                              <div className="flex flex-col gap-4">
                                <button
                                   type="button"
                                   onClick={toggleStoreActive}
@@ -547,7 +547,7 @@ function BusinessSettingsPage() {
                                       : "bg-muted/40 border-border/60 hover:border-border"
                                   )}
                                >
-                                  <div className="text-left">
+                                  <div className="text-left flex-1 pr-4">
                                      <p className={cn(
                                        "text-[11px] font-black uppercase tracking-widest",
                                        isOpen ? "text-emerald-700" : "text-muted-foreground"
@@ -582,7 +582,7 @@ function BusinessSettingsPage() {
                                       : "bg-muted/40 border-border/60 hover:border-border"
                                   )}
                                >
-                                  <div className="text-left">
+                                  <div className="text-left flex-1 pr-4">
                                      <p className={cn(
                                        "text-[11px] font-black uppercase tracking-widest",
                                        showInMarketplace ? "text-primary" : "text-muted-foreground"
@@ -639,25 +639,25 @@ function BusinessSettingsPage() {
                                       <span className={cn("text-xs font-bold w-10", wd.active ? "text-foreground" : "text-muted-foreground")}>{wd.day}</span>
                                     </div>
                                     
-                                    <div className={cn("flex items-center gap-3 transition-all", !wd.active && "opacity-20 pointer-events-none")}>
+                                    <div className={cn("flex items-center gap-1.5 sm:gap-3 transition-all", !wd.active && "opacity-20 pointer-events-none")}>
                                       <div className="relative">
-                                        <Clock3 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                                        <Clock3 className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
                                         <input 
                                           type="text" 
                                           value={wd.start} 
                                           onChange={(e) => updateWorkingDay(idx, 'start', e.target.value)}
-                                          className="w-20 pl-7 pr-2 py-1.5 text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                                          className="w-[4rem] sm:w-20 pl-5 sm:pl-7 pr-1 sm:pr-2 py-1.5 text-[10px] sm:text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
                                           placeholder="08:00"
                                         />
                                       </div>
-                                      <span className="text-[10px] font-black text-muted-foreground/30">➜</span>
+                                      <span className="text-[9px] sm:text-[10px] font-black text-muted-foreground/30">➜</span>
                                       <div className="relative">
-                                        <Clock3 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                                        <Clock3 className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
                                         <input 
                                           type="text" 
                                           value={wd.end} 
                                           onChange={(e) => updateWorkingDay(idx, 'end', e.target.value)}
-                                          className="w-20 pl-7 pr-2 py-1.5 text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                                          className="w-[4rem] sm:w-20 pl-5 sm:pl-7 pr-1 sm:pr-2 py-1.5 text-[10px] sm:text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
                                           placeholder="18:00"
                                         />
                                       </div>
