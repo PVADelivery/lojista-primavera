@@ -311,13 +311,8 @@ function BusinessProductsPage() {
 }
 
 // ── Product Card ──────────────────────────────────────────────────────────────
-function ProductCard({
-  product, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions,
-}: {
-  product: Product;
-  onEdit: () => void;
-  onDelete: () => void;
 function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onManageOptions }: any) {
+
   const mainImage = product.image_urls?.[0];
 
   return (
