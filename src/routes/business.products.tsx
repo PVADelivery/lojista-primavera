@@ -477,8 +477,7 @@ function ProductForm({
       setImageUrls([...imageUrls, data.publicUrl]);
       toast.success("Foto do produto enviada!");
     } catch (error: any) {
-      console.error("Erro no upload:", error);
-      toast.error("Falha ao enviar imagem.");
+      toast.error(`Falha ao enviar imagem: ${error.message || "Erro desconhecido"}`);
     } finally {
       setIsUploading(false);
     }
