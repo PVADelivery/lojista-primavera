@@ -216,7 +216,7 @@ function BusinessSettingsPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = event.target.files?.[0];
-    if (!file || !companyId) return;
+    if (!file || !companyId || !user?.id) return;
 
     // Validate size and type
     if (file.size > 5 * 1024 * 1024) {
@@ -228,7 +228,7 @@ function BusinessSettingsPage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${type}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${companyId}/${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -265,7 +265,7 @@ function BusinessSettingsPage() {
 
   const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0 || !companyId) return;
+    if (!files || files.length === 0 || !companyId || !user?.id) return;
 
     setIsUploading(true);
     try {
@@ -280,7 +280,7 @@ function BusinessSettingsPage() {
 
         const fileExt = file.name.split('.').pop();
         const fileName = `gallery-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${companyId}/gallery/${fileName}`;
+        const filePath = `${user.id}/gallery/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('store-assets')

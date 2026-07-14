@@ -449,7 +449,7 @@ function ProductForm({
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `product-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${companyId}/products/${fileName}`;
+      const filePath = `${userId}/products/${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from("store-assets").upload(filePath, file);
       if (uploadError) throw uploadError;
