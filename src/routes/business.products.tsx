@@ -317,115 +317,94 @@ function ProductCard({
   product: Product;
   onEdit: () => void;
   onDelete: () => void;
-  onToggle: () => void;
-  onDragStart: () => void;
-  onDrop: () => void;
-  onManageOptions: () => void;
-}) {
-  const [isDragging, setIsDragging] = useState(false);
-  const [isOver, setIsOver] = useState(false);
-  const images = parseImages(product.image_url);
-  const mainImage = images[0];
+function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onManageOptions }: any) {
+  const mainImage = product.image_urls?.[0];
 
   return (
     <div
-      draggable
-      onDragStart={(e) => {
-        e.dataTransfer.effectAllowed = "move";
-        setIsDragging(true);
-        onDragStart();
-      }}
-      onDragEnd={() => setIsDragging(false)}
-      onDragOver={(e) => {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = "move";
-        setIsOver(true);
-      }}
-      onDragLeave={() => setIsOver(false)}
-      onDrop={(e) => {
-        e.preventDefault();
-        setIsOver(false);
-        onDrop();
-      }}
       className={cn(
-        "bg-card border rounded-[2.5rem] overflow-hidden shadow-card transition-all duration-200 group",
-        !product.is_active && "opacity-60 grayscale-[0.4]",
-        isDragging ? "opacity-40 scale-95 cursor-grabbing shadow-none" : "cursor-grab hover:shadow-2xl hover:border-primary/20 hover:-translate-y-0.5",
-        isOver ? "border-primary ring-2 ring-primary/30 scale-[1.02]" : "border-border/50",
+        "bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col",
+        !product.is_active && "opacity-75 grayscale-[0.3]",
+        isDragging ? "opacity-40 scale-95 cursor-grabbing shadow-none" : "cursor-grab hover:-translate-y-1",
+        isOver ? "border-primary ring-2 ring-primary/30 scale-[1.02]" : "",
       )}
     >
       {/* Drag Handle — visible on hover */}
       <div className="absolute top-3 left-3 z-20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] font-black uppercase tracking-widest shadow-lg">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wide shadow-md">
           <GripVertical className="h-3 w-3" />
           Arrastar
         </span>
       </div>
 
       {/* Image Container */}
-      <div className="relative aspect-[4/3] bg-muted overflow-hidden">
+      <div className="relative aspect-[4/3] bg-muted overflow-hidden shrink-0">
         {mainImage ? (
-          <img src={mainImage} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+          <img src={mainImage} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
-            <ImagePlus className="h-12 w-12 text-muted-foreground/20" />
+          <div className="w-full h-full flex items-center justify-center bg-muted/50">
+            <ImagePlus className="h-10 w-10 text-muted-foreground/30" />
           </div>
         )}
 
-        <div className="absolute top-4 right-4 flex gap-2">
+        {/* Badges Top Right */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-1.5">
           {!product.is_active && (
-            <div className="bg-destructive text-white text-[8px] font-black px-2 py-1 rounded-full uppercase tracking-widest shadow-lg">
+            <div className="bg-destructive text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
               Pausado
             </div>
           )}
-          <div className="bg-black/60 backdrop-blur-md text-white text-[9px] font-black px-2 py-1 rounded-lg flex items-center gap-1 shadow-lg">
+          <div className="bg-black/75 backdrop-blur-sm text-white text-[10px] font-bold px-2.5 py-1 rounded-md flex items-center gap-1 shadow-sm">
             <ShoppingCart className="h-3 w-3" /> Marketplace
           </div>
         </div>
 
         {/* Floating Price */}
-        <div className="absolute bottom-4 left-4">
-          <div className="bg-background/90 backdrop-blur-md px-4 py-2 rounded-2xl border border-border/50 shadow-xl">
-            <p className="text-primary font-black text-lg tracking-tight">
+        <div className="absolute bottom-3 left-3">
+          <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-border/50 shadow-md">
+            <p className="text-primary font-black text-sm tracking-tight">
               R$ {product.price.toFixed(2).replace(".", ",")}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Info */}
-      <div className="p-6 space-y-4">
-        <div className="min-h-[56px]">
-          <h3 className="font-black text-foreground text-lg leading-tight truncate group-hover:text-primary transition-colors">
+      {/* Info & Actions Container */}
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex-1">
+          <h3 className="font-bold text-foreground text-base leading-snug line-clamp-1 group-hover:text-primary transition-colors">
             {product.name}
           </h3>
-          <p className="text-xs text-muted-foreground line-clamp-2 mt-1 font-medium leading-relaxed">
+          <p className="text-xs text-muted-foreground line-clamp-2 mt-1.5 font-medium leading-relaxed">
             {product.description || "Sem descrição disponível"}
           </p>
         </div>
 
-        {/* Actions Grid */}
-        <div className="grid grid-cols-5 gap-2 pt-2 border-t border-border">
+        {/* Actions Flex */}
+        <div className="flex items-center gap-2 pt-3 mt-3 border-t border-border/50">
           <button
             onClick={onEdit}
-            className="col-span-2 py-3 rounded-xl bg-primary text-primary-foreground text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
+            className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground text-[11px] font-bold tracking-wide hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-sm"
           >
             <Edit3 className="h-3.5 w-3.5" /> Editar
           </button>
+          
           <button
             onClick={onManageOptions}
-            className="py-3 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 flex items-center justify-center transition-all"
+            className="h-9 w-9 shrink-0 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-all"
             title="Complementos / Adicionais"
           >
             <ListPlus className="h-4 w-4" />
           </button>
+          
           <button
             onClick={onToggle}
-            className="py-3 rounded-xl bg-muted text-muted-foreground hover:bg-muted/80 flex items-center justify-center transition-all"
+            className="h-9 w-9 shrink-0 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700 flex items-center justify-center transition-all"
             title={product.is_active ? "Pausar Vendas" : "Ativar Vendas"}
           >
-            {product.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-success" />}
+            {product.is_active ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4 text-emerald-500" />}
           </button>
+          
           <button
             onClick={onDelete}
             className="py-3 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-all"
