@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
 import {
   Plus, Trash2, Edit3, Loader2, ImagePlus, Package,
@@ -56,6 +57,7 @@ function parseImages(imageUrl: string | null): string[] {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 function BusinessProductsPage() {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const { data: company, isLoading: companyLoading } = useMyCompany();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,8 +88,8 @@ function BusinessProductsPage() {
         .order("sort_order", { ascending: true })
         .order("created_at", { ascending: true });
       setProducts(prods || []);
-    } catch (err) {
-      console.error("Erro ao carregar produtos:", err);
+    } catch (err: any) {
+      toast.error(`Falha ao carregar produtos: ${err.message || "Erro desconhecido"}`);
     } finally {
       setLoading(false);
     }
@@ -191,6 +193,7 @@ function BusinessProductsPage() {
       <div className="max-w-4xl mx-auto">
         <ProductForm
           companyId={companyId!}
+          userId={user?.id}
           product={editingProduct}
           categoryCount={
             editingProduct
@@ -437,9 +440,10 @@ function ProductCard({
 
 // ── Product Form ──────────────────────────────────────────────────────────────
 function ProductForm({
-  companyId, product, categoryCount, onClose, onSaved,
+  companyId, userId, product, categoryCount, onClose, onSaved,
 }: {
   companyId: string;
+  userId?: string;
   product: Product | null;
   categoryCount: number;
   onClose: () => void;
@@ -453,22 +457,25 @@ function ProductForm({
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value.replace(/\D/g, "");
+    if (!val) { setPrice(""); return; }
+    const num = parseInt(val, 10) / 100;
+    setPrice(num.toFixed(2));
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || !companyId) return;
+    if (!file || !companyId || !userId) return;
 
     if (imageUrls.length >= 3) { toast.error("Máximo de 3 fotos"); return; }
     if (file.size > 5 * 1024 * 1024) { toast.error("Imagem muito grande! Limite de 5MB."); return; }
 
     setIsUploading(true);
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      const userId = userData.user?.id;
-      if (!userId) throw new Error("Usuário não autenticado");
-
       const fileExt = file.name.split(".").pop();
       const fileName = `product-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${companyId}/${fileName}`;
+      const filePath = `${userId}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from("store-assets").upload(filePath, file);
       if (uploadError) throw uploadError;
@@ -579,11 +586,11 @@ function ProductForm({
                   <DollarSign className="absolute left-6 top-1/2 -translate-y-1/2 h-5 w-5 text-primary" />
                   <input
                     type="text"
-                    value={price}
-                    onChange={e => setPrice(e.target.value.replace(/[^0-9.,]/g, ""))}
-                    placeholder="Ex: 25.90 ou 25,90"
-                    className="w-full pl-14 pr-6 py-4 rounded-2xl border border-border bg-background/50 font-black outline-none focus:border-primary transition-all text-lg"
                     required
+                    value={price ? price.replace(".", ",") : ""}
+                    onChange={handlePriceChange}
+                    className="w-full pl-14 pr-6 py-4 rounded-2xl border border-border bg-background/50 font-black outline-none focus:border-primary transition-all text-lg"
+                    placeholder="0,00"
                   />
                 </div>
               </div>
