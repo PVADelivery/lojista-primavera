@@ -16,6 +16,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BusinessIndexRouteImport } from './routes/business.index'
 import { Route as LoginBusinessRouteImport } from './routes/login.business'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
+import { Route as BusinessSettingsRouteImport } from './routes/business.settings'
 import { Route as BusinessProfileRouteImport } from './routes/business.profile'
 import { Route as BusinessProductsRouteImport } from './routes/business.products'
 import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
@@ -60,6 +61,11 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   id: '/invite/$token',
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const BusinessSettingsRoute = BusinessSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => BusinessRoute,
 } as any)
 const BusinessProfileRoute = BusinessProfileRouteImport.update({
   id: '/profile',
@@ -121,6 +127,7 @@ export interface FileRoutesByFullPath {
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business/': typeof BusinessIndexRoute
@@ -138,6 +145,7 @@ export interface FileRoutesByTo {
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business': typeof BusinessIndexRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
   '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business/': typeof BusinessIndexRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business/'
@@ -194,6 +204,7 @@ export interface FileRouteTypes {
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business'
@@ -212,6 +223,7 @@ export interface FileRouteTypes {
     | '/business/orders'
     | '/business/products'
     | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business/'
@@ -275,6 +287,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/invite/$token'
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/business/settings': {
+      id: '/business/settings'
+      path: '/settings'
+      fullPath: '/business/settings'
+      preLoaderRoute: typeof BusinessSettingsRouteImport
+      parentRoute: typeof BusinessRoute
     }
     '/business/profile': {
       id: '/business/profile'
@@ -352,6 +371,7 @@ interface BusinessRouteChildren {
   BusinessOrdersRoute: typeof BusinessOrdersRoute
   BusinessProductsRoute: typeof BusinessProductsRoute
   BusinessProfileRoute: typeof BusinessProfileRoute
+  BusinessSettingsRoute: typeof BusinessSettingsRoute
   BusinessIndexRoute: typeof BusinessIndexRoute
 }
 
@@ -365,6 +385,7 @@ const BusinessRouteChildren: BusinessRouteChildren = {
   BusinessOrdersRoute: BusinessOrdersRoute,
   BusinessProductsRoute: BusinessProductsRoute,
   BusinessProfileRoute: BusinessProfileRoute,
+  BusinessSettingsRoute: BusinessSettingsRoute,
   BusinessIndexRoute: BusinessIndexRoute,
 }
 

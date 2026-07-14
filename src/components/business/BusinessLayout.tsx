@@ -171,7 +171,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-1 overflow-hidden">
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
-                <Link to="/business/profile" className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
+                <Link to="/business/settings" className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
                   <Settings className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
                   {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Configurações</span>}
                 </Link>
@@ -305,7 +305,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                   <DropdownMenuItem onClick={() => nav({ to: "/business/profile" })}>
                     <UserIcon className="h-4 w-4 mr-2" /> Perfil
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" })}>
+                  <DropdownMenuItem onClick={() => nav({ to: "/business/settings" })}>
                     <Settings className="h-4 w-4 mr-2" /> Configurações
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

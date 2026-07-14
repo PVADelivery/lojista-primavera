@@ -26,9 +26,9 @@ function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lo
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) *
+    Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -103,7 +103,7 @@ function NewDeliveryPage() {
       if (company.latitude && company.longitude) {
         setPickupCoords([company.longitude, company.latitude]);
       } else if (company.address) {
-        const q = `${company.address}`;
+        const q = `${company.address}, Primavera do Leste, MT`;
         fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`)
           .then((res) => res.json())
           .then((data) => {
@@ -290,7 +290,7 @@ function NewDeliveryPage() {
         const street = addr.road || addr.street || data.display_name.split(",")[0] || "";
         const bairro = getCorrectBairro(lng, lat, street, addr);
         const addressShort = bairro ? `${street}, ${bairro}` : street;
-        
+
         setDropoffText(addressShort);
         const houseNo = addr.house_number || "";
         if (houseNo) setDropoffNumber(houseNo);
@@ -344,7 +344,7 @@ function NewDeliveryPage() {
     const addr = item.address || {};
     const street = addr.road || addr.street || item.display_name.split(",")[0] || "";
     const bairro = getCorrectBairro(lon, lat, street, addr);
-    
+
     setF((prev) => ({
       ...prev,
       address: street,
@@ -563,9 +563,8 @@ function NewDeliveryPage() {
     e.preventDefault();
     if (!company?.id) return;
 
-    const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${
-      f.customer_address_complement ? `(${f.customer_address_complement})` : ""
-    }`;
+    const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""
+      }`;
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     setBusy(true);
@@ -854,13 +853,13 @@ function NewDeliveryPage() {
                   )}
                   Buscar Endereço Digitado
                 </Button>
-                
+
                 <Label className="text-xs text-muted-foreground mt-1 mb-1 block">
                   Ou você pode selecionar no mapa com precisão:
                 </Label>
-                
+
                 {/* Miniatura do Mapa que abre Modal */}
-                <div 
+                <div
                   onClick={() => setIsMapFullscreen(true)}
                   className="relative h-44 rounded-2xl overflow-hidden border border-border shadow-sm cursor-pointer group hover:opacity-95 transition-all mt-2"
                 >
@@ -872,7 +871,7 @@ function NewDeliveryPage() {
                     </span>
                   </div>
                 </div>
-                
+
                 {routeDistance !== null && (
                   <p className="text-xs font-semibold text-primary mt-1">
                     Distância calculada: {routeDistance.toFixed(2)} KM
@@ -1055,7 +1054,7 @@ function NewDeliveryPage() {
                 className="w-full pl-9 pr-4 h-11 rounded-xl border border-border bg-background text-sm shadow-sm"
               />
               <MapPinned className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-emerald-500" />
-              
+
               {dropoffSuggestions.length > 0 && (
                 <div className="absolute left-0 right-0 mt-1 bg-card border border-border rounded-xl shadow-xl overflow-hidden max-h-48 overflow-y-auto z-50">
                   {dropoffSuggestions.map((item, idx) => {
@@ -1082,7 +1081,7 @@ function NewDeliveryPage() {
           {/* Div do Mapa com Alvo Central Fixo */}
           <div className="flex-1 min-h-0 relative overflow-hidden">
             <div ref={mapContainerFull} className="w-full h-full" />
-            
+
             {/* ── MIRA CENTRAL DE PRECISÃO ── */}
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full pointer-events-none z-30 flex flex-col items-center">
               <div className="px-3 py-1.5 rounded-xl shadow-lg text-[10px] font-black text-white whitespace-nowrap mb-1 animate-bounce bg-emerald-500">

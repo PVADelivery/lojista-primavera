@@ -23,6 +23,7 @@ interface AuthCtx {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   hasRole: (role: Role) => boolean;
   refresh: () => Promise<void>;
   rolesLoaded: boolean;
@@ -115,9 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
     window.location.href = "/login";
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+    const { error } = await supabase.rpc("delete_user_account");
+    if (error) throw error;
+    await signOut();
   };
 
   const refresh = async () => {
@@ -131,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user, session, profile, roles,
         userStatus: profile?.status ?? null,
-        loading, signIn, signUp, signOut, hasRole, refresh, rolesLoaded,
+        loading, signIn, signUp, signOut, deleteAccount, hasRole, refresh, rolesLoaded,
       }}
     >
       {children}

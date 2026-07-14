@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +7,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
-  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair
+  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair, AlertTriangle
 } from "lucide-react";
 import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
@@ -72,7 +72,7 @@ export const Route = createFileRoute("/business/profile")({
 });
 
 function BusinessProfilePage() {
-  const { user, profile } = useAuth();
+  const { user, profile, deleteAccount } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -95,8 +95,9 @@ function BusinessProfilePage() {
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  const mapContainerRef = React.useRef<HTMLDivElement>(null);
-  const mapRef = React.useRef<maplibregl.Map | null>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
 
   // Edit states for overlays
   const [isEditingLogo, setIsEditingLogo] = useState(false);
@@ -932,6 +933,40 @@ function BusinessProfilePage() {
          </div>,
          document.body
       )}
+
+      {/* Danger Zone */}
+      <div className="pt-6 mt-8 border-t border-border/50">
+        <div className="bg-destructive/5 rounded-3xl p-6 border border-destructive/20 space-y-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+          <div className="flex items-center gap-3 text-destructive relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <p className="text-lg font-black tracking-tight">Zona de Perigo</p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed relative z-10">
+            Ao excluir sua conta, todos os seus dados de estabelecimento, histórico de vendas e faturamento serão permanentemente removidos. Esta ação não pode ser desfeita.
+          </p>
+          
+          <div className="relative z-10 pt-2">
+            <button 
+              onClick={async () => {
+                if(confirm("Você tem certeza absoluta? Esta ação é irreversível. Todos os dados da sua empresa e acesso ao painel do lojista serão deletados imediatamente.")) {
+                  try {
+                    await deleteAccount();
+                    toast.success("Conta excluída. Sentiremos sua falta!");
+                  } catch (err) {
+                    toast.error("Não foi possível remover sua conta agora.");
+                  }
+                }
+              }}
+              className="w-full py-4 rounded-2xl bg-destructive text-destructive-foreground text-sm font-black uppercase tracking-widest hover:bg-destructive/90 transition-all flex items-center justify-center gap-2 shadow-xl shadow-destructive/20 cursor-pointer"
+            >
+              Excluir minha conta permanentemente
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ── BONASOFT Watermark ── */}
       <div className="mt-16 pb-8 flex justify-center opacity-40 select-none pointer-events-none">
