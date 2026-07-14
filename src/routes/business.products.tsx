@@ -313,7 +313,8 @@ function BusinessProductsPage() {
 
 // ── Product Card ──────────────────────────────────────────────────────────────
 function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions }: any) {
-  const mainImage = product.image_urls?.[0];
+  const parsedImages = parseImages(product.image_url);
+  const mainImage = parsedImages.length > 0 ? parsedImages[0] : null;
 
   return (
     <div
