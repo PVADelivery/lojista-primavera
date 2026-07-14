@@ -1990,6 +1990,7 @@ export type Database = {
           role: string
         }[]
       }
+      get_user_company_ids: { Args: { uid: string }; Returns: string[] }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean
