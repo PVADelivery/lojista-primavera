@@ -180,17 +180,7 @@ function BusinessSettingsPage() {
 
     mapRef.current = new maplibregl.Map({
       container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          "osm-tiles": {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-          },
-        },
-        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
-      },
+      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
       center: [center[0], center[1]],
       zoom: 16,
       attributionControl: false,
