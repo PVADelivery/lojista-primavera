@@ -162,14 +162,14 @@ function OrdersPage() {
         <div style="margin-top:8px">
           ${order.order_items?.map((i: any) => `
             <div style="margin-bottom:8px">
-              <strong>${i.quantity}x</strong> ${i.product_name || "Produto"} - R$ ${(i.price * i.quantity).toFixed(2)}
+              <strong>${i.quantity}x</strong> ${i.product_name || "Produto"} - ${brl(i.price * i.quantity)}
               ${i.notes ? `<br/><small style="color:#666">Obs: ${i.notes}</small>` : ""}
             </div>
           `).join('') || "Nenhum item encontrado."}
         </div>
         <hr/>
         <div class="label">Total do Pedido</div>
-        <div class="value" style="font-size:16px">R$ ${Number(order.total || 0).toFixed(2).replace('.', ',')}</div>
+        <div class="value" style="font-size:16px">${brl(Number(order.total || 0))}</div>
         <div class="label">Data/Hora</div>
         <div class="value">${format(new Date(order.created_at), "dd/MM/yyyy HH:mm")}</div>
         <hr/>

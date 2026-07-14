@@ -17,7 +17,6 @@ import { Route as BusinessIndexRouteImport } from './routes/business.index'
 import { Route as LoginBusinessRouteImport } from './routes/login.business'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
 import { Route as BusinessSettingsRouteImport } from './routes/business.settings'
-import { Route as BusinessProfileRouteImport } from './routes/business.profile'
 import { Route as BusinessProductsRouteImport } from './routes/business.products'
 import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
 import { Route as BusinessMapRouteImport } from './routes/business.map'
@@ -65,11 +64,6 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
 const BusinessSettingsRoute = BusinessSettingsRouteImport.update({
   id: '/settings',
   path: '/settings',
-  getParentRoute: () => BusinessRoute,
-} as any)
-const BusinessProfileRoute = BusinessProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
   getParentRoute: () => BusinessRoute,
 } as any)
 const BusinessProductsRoute = BusinessProductsRouteImport.update({
@@ -126,7 +120,6 @@ export interface FileRoutesByFullPath {
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
   '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
@@ -144,7 +137,6 @@ export interface FileRoutesByTo {
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
   '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
@@ -164,7 +156,6 @@ export interface FileRoutesById {
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
   '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
@@ -185,7 +176,6 @@ export interface FileRouteTypes {
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
     | '/business/settings'
     | '/invite/$token'
     | '/login/business'
@@ -203,7 +193,6 @@ export interface FileRouteTypes {
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
     | '/business/settings'
     | '/invite/$token'
     | '/login/business'
@@ -222,7 +211,6 @@ export interface FileRouteTypes {
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
     | '/business/settings'
     | '/invite/$token'
     | '/login/business'
@@ -295,13 +283,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessSettingsRouteImport
       parentRoute: typeof BusinessRoute
     }
-    '/business/profile': {
-      id: '/business/profile'
-      path: '/profile'
-      fullPath: '/business/profile'
-      preLoaderRoute: typeof BusinessProfileRouteImport
-      parentRoute: typeof BusinessRoute
-    }
     '/business/products': {
       id: '/business/products'
       path: '/products'
@@ -370,7 +351,6 @@ interface BusinessRouteChildren {
   BusinessMapRoute: typeof BusinessMapRoute
   BusinessOrdersRoute: typeof BusinessOrdersRoute
   BusinessProductsRoute: typeof BusinessProductsRoute
-  BusinessProfileRoute: typeof BusinessProfileRoute
   BusinessSettingsRoute: typeof BusinessSettingsRoute
   BusinessIndexRoute: typeof BusinessIndexRoute
 }
@@ -384,7 +364,6 @@ const BusinessRouteChildren: BusinessRouteChildren = {
   BusinessMapRoute: BusinessMapRoute,
   BusinessOrdersRoute: BusinessOrdersRoute,
   BusinessProductsRoute: BusinessProductsRoute,
-  BusinessProfileRoute: BusinessProfileRoute,
   BusinessSettingsRoute: BusinessSettingsRoute,
   BusinessIndexRoute: BusinessIndexRoute,
 }

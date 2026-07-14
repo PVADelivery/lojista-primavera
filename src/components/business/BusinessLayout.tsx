@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { initials } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon-v3.png";
+import { brl } from "@/lib/format";
 
 
 interface Company {
@@ -276,7 +277,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                           onClick={() => nav({ to: "/business/orders" })}
                         >
                           <p className="font-bold text-sm">Novo pedido — {o.customer_name ?? "Cliente"}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">R$ {Number(o.total).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{brl(Number(o.total))}</p>
                         </li>
                       ))}
                     </ul>

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
 import { cn } from "@/lib/utils";
+import { brl } from "@/lib/format";
 
 interface Product {
   id: string;
@@ -311,8 +312,7 @@ function BusinessProductsPage() {
 }
 
 // ── Product Card ──────────────────────────────────────────────────────────────
-function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onManageOptions }: any) {
-
+function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions }: any) {
   const mainImage = product.image_urls?.[0];
 
   return (
@@ -358,7 +358,7 @@ function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, 
         <div className="absolute bottom-3 left-3">
           <div className="bg-background/95 backdrop-blur-sm px-3 py-1.5 rounded-xl border border-border/50 shadow-md">
             <p className="text-primary font-black text-sm tracking-tight">
-              R$ {product.price.toFixed(2).replace(".", ",")}
+              {brl(product.price)}
             </p>
           </div>
         </div>
@@ -449,7 +449,7 @@ function ProductForm({
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `product-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${userId}/${fileName}`;
+      const filePath = `${companyId}/products/${fileName}`;
 
       const { error: uploadError } = await supabase.storage.from("store-assets").upload(filePath, file);
       if (uploadError) throw uploadError;
