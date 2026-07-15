@@ -3,22 +3,25 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
 import { brl } from "@/lib/format";
-import { Clock, ChefHat, PackageCheck, Truck, CheckCircle2, ShoppingBag, Volume2, VolumeX, Printer, XCircle, Timer, Phone, MapPin, User, LayoutGrid } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Clock, ChefHat, PackageCheck, Truck, CheckCircle2, ShoppingBag, Volume2, VolumeX, Printer, XCircle, Timer, Phone, MapPin, User, LayoutGrid, ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
 });
 
+type OrderStatus = "pending" | "preparing" | "ready" | "in_route" | "delivered" | "cancelled";
+
 const COLUMNS = [
   { status: "pending", label: "Novos", icon: Clock, color: "warning" },
-  { status: "preparing", label: "Na Cozinha", icon: ChefHat, color: "info" },
+  { status: "preparing", label: "Na Cozinha", icon: ChefHat, color: "blue-500" },
   { status: "ready", label: "Prontos", icon: PackageCheck, color: "success" },
-  { status: "in_route", label: "Em Rota", icon: Truck, color: "primary" },
+  { status: "in_route", label: "Em Rota", icon: Truck, color: "purple-500" },
   { status: "delivered", label: "Concluídos", icon: CheckCircle2, color: "success" },
 ];
 
@@ -29,6 +32,12 @@ const STATUS_LABELS: Record<string, string> = {
   in_route: "Em Rota",
   delivered: "Concluído",
   cancelled: "Cancelado",
+};
+
+const ALLOWED_MANUAL_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus>> = {
+  pending: "preparing",
+  preparing: "ready",
+  in_route: "delivered",
 };
 
 function OrdersPage() {
@@ -42,13 +51,128 @@ function OrdersPage() {
   const [deliveryFee, setDeliveryFee] = useState("0,00");
   const [busyDispatch, setBusyDispatch] = useState(false);
 
+  // Controle Transacional Rigoroso (Kanban Loop Bug Fix)
+  const processingOrderIdsRef = useRef<Set<string>>(new Set());
+  const [processingOrderIds, setProcessingOrderIds] = useState<Set<string>>(new Set());
+
+  const acquireLock = (id: string) => {
+    if (processingOrderIdsRef.current.has(id)) return false;
+    processingOrderIdsRef.current.add(id);
+    setProcessingOrderIds(new Set(processingOrderIdsRef.current));
+    return true;
+  };
+
+  const releaseLock = (id: string) => {
+    processingOrderIdsRef.current.delete(id);
+    setProcessingOrderIds(new Set(processingOrderIdsRef.current));
+  };
+
+  const { data: orders = [], refetch: fetchOrders } = useQuery({
+    queryKey: ["orders", company?.id],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      const { data } = await supabase.from("orders").select("*, order_items(*), customers(name, phone)")
+        .eq("company_id", company!.id)
+        .order("created_at", { ascending: false }).limit(200);
+      
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      return (data ?? []).filter(o => {
+        if (["delivered", "cancelled"].includes(o.status) && new Date(o.created_at) < today) return false;
+        return true;
+      });
+    },
+    refetchInterval: 10000,
+  });
+
+  const pendingCount = orders.filter((o: any) => o.status === "pending").length;
+
+  useEffect(() => {
+    if (!audio.current) {
+      audio.current = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
+    }
+    if (pendingCount > 0 && !muted) {
+      audio.current?.play().catch(() => {});
+    }
+  }, [pendingCount, muted]);
+
+  const advance = async (orderId: string, expectedStatus: string) => {
+    if (!acquireLock(orderId)) return false;
+
+    const allowedNextStatus = ALLOWED_MANUAL_TRANSITIONS[expectedStatus as OrderStatus];
+
+    if (!allowedNextStatus) {
+      toast.error(`Transição não permitida a partir de: ${STATUS_LABELS[expectedStatus]}`);
+      releaseLock(orderId);
+      return false;
+    }
+
+    try {
+      // Compare-and-Set para evitar Race Condition
+      const { data, error } = await supabase
+        .from("orders")
+        .update({ status: allowedNextStatus })
+        .eq("id", orderId)
+        .eq("status", expectedStatus)
+        .select("id, status")
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.warning("O status deste pedido foi atualizado em outra sessão. Sincronizando...");
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        return false;
+      }
+      
+      toast.success(`Pedido movido para ${STATUS_LABELS[allowedNextStatus]}`);
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      return true;
+    } catch (err) {
+      toast.error("Erro crítico ao avançar pedido.");
+      return false;
+    } finally {
+      releaseLock(orderId);
+    }
+  };
+
+  const cancelOrder = async (orderId: string) => {
+    if (!confirm("Tem certeza que deseja cancelar este pedido?")) return;
+    if (!acquireLock(orderId)) return;
+    await supabase.from("orders").update({ status: "cancelled" }).eq("id", orderId);
+    qc.invalidateQueries({ queryKey: ["orders"] });
+    toast.error("Pedido cancelado.");
+    releaseLock(orderId);
+  };
+
   const confirmDispatch = async () => {
     if (!selectedOrder || !company) return;
+    const orderId = selectedOrder.id;
+    if (!acquireLock(orderId)) return;
+
     const fee = parseFloat(deliveryFee.replace(/\./g, "").replace(",", "."));
-    if (isNaN(fee) || fee <= 0) return toast.error("Valor inválido");
+    if (isNaN(fee) || fee <= 0) {
+      toast.error("Valor inválido");
+      releaseLock(orderId);
+      return;
+    }
     
     setBusyDispatch(true);
-    // Cria entrega no painel do motoboy
+
+    // Re-validar se o pedido ainda está Pronto e sem entrega
+    const { data: checkData, error: checkError } = await supabase
+      .from("orders")
+      .select("status, delivery_id")
+      .eq("id", orderId)
+      .maybeSingle();
+
+    if (checkError || !checkData || checkData.status !== "ready" || checkData.delivery_id) {
+      toast.warning("Não é possível solicitar motoboy: pedido alterado em outra sessão.");
+      setBusyDispatch(false);
+      setIsDispatchModalOpen(false);
+      releaseLock(orderId);
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      return;
+    }
+
     const { data: d, error: e1 } = await supabase.from("deliveries").insert({
       company_id: company.id,
       order_id: selectedOrder.id,
@@ -62,73 +186,22 @@ function OrdersPage() {
     if (e1) {
       toast.error(e1.message);
       setBusyDispatch(false);
+      releaseLock(orderId);
       return;
     }
 
-    // Avança o pedido para Em Rota e associa a entrega
-    await supabase.from("orders").update({ status: "in_route", delivery_id: d.id }).eq("id", selectedOrder.id);
+    // Compare-and-Set na hora de associar a entrega e passar pra Em Rota
+    await supabase
+      .from("orders")
+      .update({ status: "in_route", delivery_id: d.id })
+      .eq("id", selectedOrder.id)
+      .eq("status", "ready");
     
     qc.invalidateQueries({ queryKey: ["orders"] });
     toast.success("Entregador solicitado!");
     setIsDispatchModalOpen(false);
     setBusyDispatch(false);
-  };
-
-  const { data: orders = [] } = useQuery({
-    queryKey: ["orders", company?.id],
-    enabled: !!company?.id,
-    queryFn: async () => {
-      const { data } = await supabase.from("orders").select("*, order_items(*), customers(name, phone)")
-        .eq("company_id", company!.id)
-        .order("created_at", { ascending: false }).limit(200);
-      
-      // Filter out old completed/cancelled orders to keep board clean
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      return (data ?? []).filter(o => {
-        if (["delivered", "cancelled"].includes(o.status) && new Date(o.created_at) < today) return false;
-        return true;
-      });
-    },
-    refetchInterval: 10000,
-  });
-
-  const pending = orders.filter((o: any) => o.status === "pending").length;
-
-  useEffect(() => {
-    if (!audio.current) {
-      audio.current = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
-    }
-    if (pending > 0 && !muted) {
-      audio.current?.play().catch(() => {});
-    }
-  }, [pending, muted]);
-
-  const advance = async (id: string, current: string) => {
-    const flow: any = { pending: "preparing", preparing: "ready", ready: "in_route", in_route: "delivered" };
-    const next = flow[current];
-    if (!next) return;
-    
-    // Otimistic update
-    qc.setQueryData(["orders", company?.id], (old: any) => {
-      if (!old) return old;
-      return old.map((o: any) => o.id === id ? { ...o, status: next } : o);
-    });
-
-    const { error } = await supabase.from("orders").update({ status: next }).eq("id", id);
-    if (error) {
-      toast.error("Erro ao mover pedido.");
-      qc.invalidateQueries({ queryKey: ["orders"] });
-    } else {
-      toast.success(`Pedido movido para ${STATUS_LABELS[next]}`);
-    }
-  };
-
-  const cancelOrder = async (id: string) => {
-    if (!confirm("Tem certeza que deseja cancelar este pedido?")) return;
-    await supabase.from("orders").update({ status: "cancelled" }).eq("id", id);
-    qc.invalidateQueries({ queryKey: ["orders"] });
-    toast.error("Pedido cancelado.");
+    releaseLock(orderId);
   };
 
   const handlePrint = (order: any) => {
@@ -191,10 +264,10 @@ function OrdersPage() {
           <h1 className="text-3xl font-black tracking-tight">Gestão de Pedidos</h1>
         </div>
         <div className="flex items-center gap-2">
-          {pending > 0 && (
+          {pendingCount > 0 && (
              <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-warning/20 text-warning font-black text-xs uppercase tracking-widest animate-pulse border border-warning/30">
                <Clock className="h-4 w-4" />
-               {pending} {pending === 1 ? 'Novo Pedido' : 'Novos Pedidos'}
+               {pendingCount} {pendingCount === 1 ? 'Novo Pedido' : 'Novos Pedidos'}
              </div>
           )}
           <div className="px-4 py-2 rounded-2xl bg-success/10 text-success">
@@ -214,7 +287,10 @@ function OrdersPage() {
             <div key={col.status} className="flex-none w-[320px] snap-start flex flex-col gap-3">
               <div className="flex items-center justify-between px-1">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-6 rounded-full bg-${col.color}`} />
+                  <div className={cn("w-2 h-6 rounded-full", "bg-" + col.color, 
+                    col.color === "warning" && "bg-warning", 
+                    col.color === "success" && "bg-success", 
+                    col.color === "primary" && "bg-primary")} />
                   <h3 className="font-black text-sm text-foreground uppercase tracking-wider">{col.label}</h3>
                 </div>
                 <span className="bg-muted px-2.5 py-1 rounded-xl text-xs font-black text-muted-foreground">{items.length}</span>
@@ -230,9 +306,13 @@ function OrdersPage() {
                 {items.map((order: any) => {
                   const age = Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000);
                   const isPending = order.status === "pending";
+                  const isProcessing = processingOrderIds.has(order.id);
 
                   return (
-                    <div key={order.id} className={`bg-card border border-border/60 rounded-[1.5rem] p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30 group relative overflow-hidden ${isPending ? "border-warning/40 bg-warning/[0.02]" : ""}`}>
+                    <div key={order.id} className={cn(
+                      "bg-card border border-border/60 rounded-[1.5rem] p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30 group relative overflow-hidden",
+                      isPending && "border-warning/40 bg-warning/[0.02]"
+                    )}>
                       {isPending && (
                         <div className="absolute top-0 right-0 px-3 py-1 bg-warning text-white text-[8px] font-black uppercase tracking-widest rounded-bl-xl">
                           Novo
@@ -293,8 +373,9 @@ function OrdersPage() {
                         <div className="flex gap-2 mt-1">
                           {isPending && (
                             <button 
+                              disabled={isProcessing}
                               onClick={() => cancelOrder(order.id)}
-                              className="w-10 h-10 rounded-xl bg-destructive/5 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all shrink-0"
+                              className="w-10 h-10 rounded-xl bg-destructive/5 text-destructive flex items-center justify-center hover:bg-destructive hover:text-white transition-all shrink-0 disabled:opacity-50"
                               title="Cancelar Pedido"
                             >
                               <XCircle className="h-5 w-5" />
@@ -310,6 +391,7 @@ function OrdersPage() {
                           
                           {order.status !== "delivered" && order.status !== "cancelled" && (
                             <button 
+                              disabled={isProcessing}
                               onClick={() => {
                                 if (order.status === "ready") {
                                   setSelectedOrder(order);
@@ -319,13 +401,17 @@ function OrdersPage() {
                                   advance(order.id, order.status);
                                 }
                               }}
-                              className={`flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-1.5
-                                ${isPending ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20' : 
-                                'bg-foreground text-background hover:bg-foreground/90'}`}
+                              className={cn("flex-1 h-10 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-1.5 disabled:opacity-50",
+                                isPending ? 'bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20' : 
+                                'bg-foreground text-background hover:bg-foreground/90')}
                             >
-                              {order.status === "pending" ? "Aceitar Pedido" : 
-                               order.status === "preparing" ? "Marcar Pronto" : 
-                               order.status === "ready" ? "Chamar Entregador" : "Concluir"}
+                              {isProcessing ? "Aguarde..." : (
+                                order.status === "pending" ? "Aceitar Pedido" : 
+                                order.status === "preparing" ? "Marcar Pronto" : 
+                                order.status === "ready" ? "Chamar Entregador" : "Concluir"
+                              )}
+                              {!isProcessing && order.status !== "ready" && <ArrowRight className="h-3 w-3" />}
+                              {!isProcessing && order.status === "ready" && <Truck className="h-3 w-3" />}
                             </button>
                           )}
                         </div>
@@ -398,4 +484,3 @@ function OrdersPage() {
     </div>
   );
 }
-
