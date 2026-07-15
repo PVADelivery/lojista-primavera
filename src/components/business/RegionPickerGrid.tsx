@@ -107,7 +107,7 @@ export const RegionPickerGrid = memo(({ companyId, onRegionSelect, disabled, ini
               className="w-3 h-3 rounded-full shrink-0"
               style={{ backgroundColor: color }}
             />
-            <span className="text-sm font-bold text-foreground leading-tight">
+            <span className="text-xs sm:text-sm font-bold text-foreground leading-tight break-words w-full">
               {region.name}
             </span>
             {hasFee ? (

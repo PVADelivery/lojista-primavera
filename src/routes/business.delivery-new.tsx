@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation, Maximize2, MapPinned, X, Check } from "lucide-react";
+import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation, Maximize2, MapPinned, X, Check, Home, Briefcase } from "lucide-react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { createPortal } from "react-dom";
