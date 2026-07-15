@@ -64,6 +64,7 @@ function NewDeliveryPage() {
     region_id: "none",
     value: "4.99", // Delivery fee (frete) padrão moto
     notes: "",
+    address_label: "Casa",
   });
 
   // Coords state is defined below, but we need it here for useEffect. We can define our coords state here or do state updates inside useEffect later.
@@ -567,6 +568,7 @@ function NewDeliveryPage() {
         customer_neighborhood: addr.neighborhood || "",
         customer_address_complement: addr.complement || "",
         region_id: addr.region_id || "none",
+        address_label: addr.label || "Casa",
       }));
 
       if (addr.latitude && addr.longitude) {
@@ -665,6 +667,7 @@ function NewDeliveryPage() {
               latitude: dropoffCoords ? dropoffCoords[1] : null,
               longitude: dropoffCoords ? dropoffCoords[0] : null,
               region_id: f.region_id === "none" ? null : f.region_id,
+              label: f.address_label || "Casa",
             },
           ]);
         }
@@ -678,6 +681,7 @@ function NewDeliveryPage() {
           .update({
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
+            customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
             address: fullAddress,
             customer_address_number: f.customer_address_number,
             customer_neighborhood: f.customer_neighborhood,
@@ -702,6 +706,7 @@ function NewDeliveryPage() {
               short_id: shortId,
               customer_name: f.customer_name,
               customer_phone: f.customer_phone,
+              customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
               address: fullAddress,
               customer_address_number: f.customer_address_number,
               customer_neighborhood: f.customer_neighborhood,
@@ -880,6 +885,34 @@ function NewDeliveryPage() {
                     className="rounded-xl h-11 bg-background"
                     placeholder="Apto, Bloco, Casa..."
                   />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Tipo de Endereço</Label>
+                  <div className="flex gap-2">
+                    {[
+                      { id: "Casa", label: "Casa", icon: Home },
+                      { id: "Trabalho", label: "Trabalho", icon: Briefcase },
+                      { id: "Outro", label: "Outro", icon: MapPin },
+                    ].map((item) => {
+                      const active = f.address_label === item.id;
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          type="button"
+                          onClick={() => setF({ ...f, address_label: item.id })}
+                          className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border text-xs font-bold transition-all ${
+                            active
+                              ? "border-primary bg-primary/10 text-primary animate-scaleIn"
+                              : "border-input bg-background text-muted-foreground hover:bg-muted/50"
+                          }`}
+                        >
+                          <Icon className="h-3.5 w-3.5" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
