@@ -92,6 +92,11 @@ function BusinessSettingsPage() {
   const [gallery, setGallery] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState(() => DEFAULT_WORKING_DAYS.map((day) => ({ ...day })));
   
+  // Delivery settings
+  const [deliveryMode, setDeliveryMode] = useState<string>("fixed_fee");
+  const [deliveryRegionsPricing, setDeliveryRegionsPricing] = useState<any[]>([]);
+  const [allRegions, setAllRegions] = useState<any[]>([]);
+  
   const [latitude, setLatitude] = useState<number | null>(null);
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
@@ -159,6 +164,33 @@ function BusinessSettingsPage() {
         setWorkingDays(normalizeWorkingDays(company.business_hours));
         if (company.latitude) setLatitude(company.latitude);
         if (company.longitude) setLongitude(company.longitude);
+        
+        setDeliveryMode(company.delivery_mode || "fixed_fee");
+        
+        let parsedPricing: any[] = [];
+        if (company.delivery_regions_pricing) {
+          let matrix = company.delivery_regions_pricing;
+          if (typeof matrix === 'string') {
+            try { matrix = JSON.parse(matrix); } catch(e) {}
+          }
+          if (matrix && typeof matrix === 'object' && !Array.isArray(matrix) && matrix.matrix) {
+            matrix = matrix.matrix;
+          }
+          if (Array.isArray(matrix)) {
+            parsedPricing = matrix;
+          }
+        }
+        setDeliveryRegionsPricing(parsedPricing);
+      }
+
+      // Fetch regions list
+      const { data: regionsData } = await supabase
+        .from("regions")
+        .select("*")
+        .eq("is_active", true)
+        .order("name");
+      if (regionsData) {
+        setAllRegions(regionsData);
       }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -357,6 +389,23 @@ function BusinessSettingsPage() {
     setWorkingDays(newDays);
   };
 
+  const handleRegionPriceChange = (regionId: string, value: string) => {
+    const cleanVal = value.replace(/[^0-9.,]/g, "").replace(",", ".");
+    setDeliveryRegionsPricing((prev) => {
+      const exists = prev.some((p) => p.region_id === regionId);
+      if (exists) {
+        return prev.map((p) => (p.region_id === regionId ? { ...p, price: cleanVal } : p));
+      } else {
+        return [...prev, { region_id: regionId, price: cleanVal }];
+      }
+    });
+  };
+
+  const getRegionPriceValue = (regionId: string) => {
+    const match = deliveryRegionsPricing.find((p) => p.region_id === regionId);
+    return match ? match.price : "";
+  };
+
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!companyId) return;
@@ -373,7 +422,9 @@ function BusinessSettingsPage() {
           logo_url: logoUrl,
           cover_url: coverUrl,
           category: category,
-          delivery_fee: parseFloat(deliveryFee.replace(',', '.')),
+          delivery_mode: deliveryMode,
+          delivery_fee: deliveryMode === "fixed_fee" ? parseFloat(deliveryFee.replace(',', '.')) : 0,
+          delivery_regions_pricing: deliveryRegionsPricing,
           is_open: isOpen,
           show_in_marketplace: showInMarketplace,
           business_hours: JSON.stringify(workingDays),
@@ -727,19 +778,81 @@ function BusinessSettingsPage() {
                              </div>
                          </div>
 
-                         <div className="space-y-2">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Taxa de Entrega Padrão (R$)</label>
-                            <div className="relative">
-                               <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
-                               <input
-                                  value={deliveryFee}
-                                  onChange={(e) => setDeliveryFee(e.target.value.replace(/[^0-9.,]/g, ""))}
-                                  className="w-full pl-11 pr-5 py-3.5 rounded-2xl border border-border bg-background outline-none font-black text-primary text-lg"
-                                  placeholder="0,00"
-                               />
+                         <div className="space-y-4 col-span-full border-t border-border/40 pt-6">
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground block">Configuração de Taxa de Entrega</label>
+                            
+                            <div className="flex gap-3">
+                              <button
+                                type="button"
+                                onClick={() => setDeliveryMode("fixed_fee")}
+                                className={`flex-1 py-4 px-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 font-black transition-all ${
+                                  deliveryMode === "fixed_fee"
+                                    ? "border-primary bg-primary/5 text-primary shadow-glow"
+                                    : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                                }`}
+                              >
+                                <DollarSign className="h-5 w-5" />
+                                <span className="text-sm">Taxa Única / Fixo</span>
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider text-center">Único valor p/ todas entregas</span>
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => setDeliveryMode("regions")}
+                                className={`flex-1 py-4 px-6 rounded-2xl border-2 flex flex-col items-center justify-center gap-2 font-black transition-all ${
+                                  deliveryMode === "regions"
+                                    ? "border-primary bg-primary/5 text-primary shadow-glow"
+                                    : "border-border bg-card text-muted-foreground hover:bg-muted/50"
+                                }`}
+                              >
+                                <MapPinIcon className="h-5 w-5" />
+                                <span className="text-sm">Por Bairros e Regiões</span>
+                                <span className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider text-center">Valores por local de destino</span>
+                              </button>
                             </div>
-                         </div>
-                      </div>
+
+                            {deliveryMode === "fixed_fee" ? (
+                              <div className="space-y-2 animate-scaleIn duration-300">
+                                 <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Valor da Taxa Única (R$)</label>
+                                 <div className="relative max-w-xs">
+                                    <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-primary" />
+                                    <input
+                                       value={deliveryFee}
+                                       onChange={(e) => setDeliveryFee(e.target.value.replace(/[^0-9.,]/g, ""))}
+                                       className="w-full pl-11 pr-5 py-3.5 rounded-2xl border border-border bg-background outline-none font-black text-primary text-lg"
+                                       placeholder="0,00"
+                                    />
+                                 </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-4 animate-scaleIn duration-300">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2 block">Definir Valores por Regiões</label>
+                                <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2 border border-border/40 p-4 rounded-[1.5rem] bg-secondary/10">
+                                  {allRegions.map((region) => {
+                                    const val = getRegionPriceValue(region.id);
+                                    return (
+                                      <div key={region.id} className="bg-card border border-border/40 rounded-xl p-3.5 space-y-2 flex flex-col justify-between">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: region.color || "#3b82f6" }} />
+                                          <span className="text-xs font-bold text-foreground leading-tight line-clamp-2">{region.name}</span>
+                                        </div>
+                                        <div className="relative">
+                                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">R$</span>
+                                          <input
+                                            type="text"
+                                            value={val}
+                                            placeholder={(region.price || 0).toFixed(2)}
+                                            onChange={(e) => handleRegionPriceChange(region.id, e.target.value)}
+                                            className="w-full pl-8 pr-3 py-2 rounded-lg border border-border bg-background text-xs font-black text-primary outline-none focus:border-primary/50"
+                                          />
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </div>
 
                       {/* GALLERY SECTION */}
                       <div className="pt-8 space-y-4">

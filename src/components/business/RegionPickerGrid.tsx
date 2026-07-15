@@ -28,7 +28,7 @@ export const RegionPickerGrid = memo(({ companyId, onRegionSelect, disabled, ini
       if (companyId) {
         const { data: comp } = await supabase
           .from('companies')
-          .select('pricing_table_id')
+          .select('pricing_table_id, delivery_mode, delivery_fee, delivery_regions_pricing')
           .eq('id', companyId)
           .single();
         if (comp) {
@@ -49,11 +49,32 @@ export const RegionPickerGrid = memo(({ companyId, onRegionSelect, disabled, ini
   }, [companyId]);
 
   const getRegionFee = (region: any) => {
-    // 1. Custom pricing rule for this company's pricing table
+    if (companySettings?.delivery_mode === 'fixed_fee' && companySettings?.delivery_fee != null) {
+      return Number(companySettings.delivery_fee);
+    }
+
+    // 1. Custom pricing matrix (custom_regions or regions)
+    if (companySettings?.delivery_regions_pricing) {
+      let matrix = companySettings.delivery_regions_pricing;
+      if (typeof matrix === 'string') {
+        try { matrix = JSON.parse(matrix); } catch(e) {}
+      }
+      if (matrix && typeof matrix === 'object' && !Array.isArray(matrix) && matrix.matrix) {
+        matrix = matrix.matrix;
+      }
+      if (Array.isArray(matrix)) {
+        const match = matrix.find((m: any) => m.region_id === region.id || m.to === region.id);
+        if (match && match.price != null && match.price !== "") {
+          return Number(match.price);
+        }
+      }
+    }
+
+    // 2. Custom pricing rule for this company's pricing table
     const rule = pricingRules.find(r => r.region_id === region.id);
     if (rule) return Number(rule.price);
 
-    // 2. Fallback to region's default price
+    // 3. Fallback to region's default price
     return Number(region.price || 0);
   };
 
