@@ -597,18 +597,25 @@ export type Database = {
           customer_name: string
           customer_neighborhood: string | null
           customer_phone: string | null
+          delivery_address: string | null
+          delivery_latitude: number | null
+          delivery_longitude: number | null
           difficulty: string | null
           distance_km: number | null
           driver_id: string | null
           estimated_time_minutes: number | null
           estimated_value: number | null
           id: string
+          is_customer_errand: boolean | null
           latitude: number | null
           longitude: number | null
           notes: string | null
           order_id: string | null
           order_value: number | null
           payment_method: string | null
+          pickup_address: string | null
+          pickup_latitude: number | null
+          pickup_longitude: number | null
           proof_photo_url: string | null
           region_id: string | null
           short_id: string | null
@@ -637,18 +644,25 @@ export type Database = {
           customer_name: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
+          is_customer_errand?: boolean | null
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
           order_id?: string | null
           order_value?: number | null
           payment_method?: string | null
+          pickup_address?: string | null
+          pickup_latitude?: number | null
+          pickup_longitude?: number | null
           proof_photo_url?: string | null
           region_id?: string | null
           short_id?: string | null
@@ -677,18 +691,25 @@ export type Database = {
           customer_name?: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
+          delivery_address?: string | null
+          delivery_latitude?: number | null
+          delivery_longitude?: number | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
+          is_customer_errand?: boolean | null
           latitude?: number | null
           longitude?: number | null
           notes?: string | null
           order_id?: string | null
           order_value?: number | null
           payment_method?: string | null
+          pickup_address?: string | null
+          pickup_latitude?: number | null
+          pickup_longitude?: number | null
           proof_photo_url?: string | null
           region_id?: string | null
           short_id?: string | null
@@ -2014,6 +2035,7 @@ export type Database = {
         Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
         Returns: Json
       }
+      user_owns_company: { Args: { _company_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "company" | "driver" | "customer"
