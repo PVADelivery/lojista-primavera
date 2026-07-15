@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
 import { toast } from "sonner";
+import { RegionPickerGrid } from "@/components/business/RegionPickerGrid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -87,36 +88,7 @@ function NewDeliveryPage() {
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const PVA_BOUNDS = "-54.40,-15.65,-54.20,-15.45";
 
-  const { data: regions, error: queryError } = useQuery({
-    queryKey: ["regions", company?.id, company?.pricing_table_id],
-    queryFn: async () => {
-      if (!company?.id) return [];
-      
-      const { data: allRegions, error } = await supabase.from("regions").select("*").order("name");
-      if (error) throw error;
-      
-      let regionsWithPrices = allRegions || [];
-      
-      if (company.pricing_table_id) {
-        const { data: rules } = await supabase
-          .from("pricing_rules")
-          .select("*")
-          .eq("pricing_table_id", company.pricing_table_id);
-          
-        if (rules && rules.length > 0) {
-          regionsWithPrices = regionsWithPrices.map(r => {
-            const rule = rules.find(rule => rule.region_id === r.id);
-            if (rule) {
-              return { ...r, price: rule.price };
-            }
-            return r;
-          });
-        }
-      }
-      return regionsWithPrices;
-    },
-    enabled: !!company?.id,
-  });
+  // Regions are now loaded by the RegionPickerGrid component internally
 
   // Fetch or set company location
   useEffect(() => {
@@ -560,14 +532,14 @@ function NewDeliveryPage() {
     setShowSuggestions(false);
   };
 
-  const handleRegionChange = (val: string) => {
-    const region = regions?.find((r: any) => r.id === val);
-    setF({
-      ...f,
-      region_id: val,
-      value: region ? Number(region.fee).toFixed(2) : f.value,
-      customer_neighborhood: region ? region.name : f.customer_neighborhood,
-    });
+  const handleRegionSelect = (fee: number, regionId: string, regionName: string) => {
+    setF(prev => ({
+      ...prev,
+      region_id: regionId,
+      value: fee.toFixed(2),
+      customer_neighborhood: regionName,
+    }));
+    toast.success(`Região selecionada: ${regionName} - R$ ${fee.toFixed(2)}`);
   };
 
   const handleMoneyChange = (field: "value" | "order_value" | "change_for", val: string) => {
@@ -821,34 +793,17 @@ function NewDeliveryPage() {
                   />
                 </div>
               </div>
+              {/* Região - Grid de cards igual ao É Pra Já */}
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
+                <RegionPickerGrid
+                  companyId={company?.id}
+                  onRegionSelect={handleRegionSelect}
+                  initialSelectedId={f.region_id !== "none" ? f.region_id : null}
+                />
+              </div>
+
               <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Região / Bairro</Label>
-                  <Select value={f.region_id} onValueChange={handleRegionChange}>
-                    <SelectTrigger className="rounded-xl h-11 bg-background">
-                      <SelectValue placeholder="Selecione ou digite" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
-                      <SelectItem value="none">Outro Bairro (Digitar)</SelectItem>
-                      {regions?.map((r: any) => (
-                        <SelectItem key={r.id} value={String(r.id)}>
-                          {r.name} - R$ {Number(r.price || 0).toFixed(2)}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {!regions && <p className="text-xs text-red-500">Carregando ou falha ao buscar regiões {queryError && `(${queryError.message})`}</p>}
-                  {regions?.length === 0 && <p className="text-xs text-orange-500">Nenhuma região cadastrada no sistema.</p>}
-                  {f.region_id === "none" && (
-                    <Input
-                      value={f.customer_neighborhood}
-                      onChange={(e) => setF({ ...f, customer_neighborhood: e.target.value })}
-                      required
-                      className="rounded-xl h-11 mt-2 bg-background"
-                      placeholder="Ex: Centro"
-                    />
-                  )}
-                </div>
                 <div className="space-y-1.5">
                   <Label>Complemento (Opcional)</Label>
                   <Input
