@@ -856,8 +856,8 @@ function NewDeliveryPage() {
                   </p>
                 )}
               </div>
-            </div>
-              {/* Observações (dentro da seção de endereço) */}
+
+              {/* Observações */}
               <div className="space-y-1.5">
                 <Label>Observações para o Entregador (Opcional)</Label>
                 <div className="relative">
