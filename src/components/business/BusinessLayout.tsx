@@ -303,7 +303,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" })}>
+                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" as any })}>
                     <UserIcon className="h-4 w-4 mr-2" /> Perfil
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => nav({ to: "/business/settings" })}>
