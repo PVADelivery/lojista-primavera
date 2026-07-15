@@ -100,6 +100,8 @@ function BusinessHomePage() {
           <div className="flex flex-col sm:flex-row gap-3">
             <Link
               to="/business/delivery-new"
+              search={{ edit: undefined }}
+
               className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Plus className="h-4 w-4 mr-2" />Nova Solicitação
