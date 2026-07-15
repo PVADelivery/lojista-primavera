@@ -106,9 +106,6 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
     
     setIsSaving(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error("Não autenticado");
-
       // Obter o maior sort_order atual para adicionar no fim
       const { data: existing } = await supabase
         .from("products")
@@ -121,7 +118,6 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
 
       const payload = parsedData.map(p => ({
         company_id: companyId,
-        user_id: user.id,
         name: p.name,
         category: p.category,
         price: p.price,
@@ -130,7 +126,7 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
         sort_order: nextSortOrder++,
       }));
 
-      const { error } = await supabase.from("products").insert(payload);
+      const { error } = await supabase.from("products").insert(payload as any);
       if (error) throw error;
 
       toast.success(`${parsedData.length} produtos importados com sucesso!`);
@@ -138,8 +134,8 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
       setPastedText("");
       onSuccess();
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao salvar no banco de dados.");
+      console.error("Bulk import error:", err);
+      toast.error(err?.message ? `Erro: ${err.message}` : "Erro ao salvar no banco de dados.");
     } finally {
       setIsSaving(false);
     }
