@@ -1,10 +1,23 @@
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
+import {
+  Table,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/components/ui/table";
 import { Info, Copy, Check, Upload, Trash2, Save } from "lucide-react";
 
 interface ImportedProduct {
@@ -36,14 +49,14 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
 
     setIsParsing(true);
     try {
-      const lines = pastedText.split(/\r?\n/).filter(l => l.trim() !== "");
-      
+      const lines = pastedText.split(/\r?\n/).filter((l) => l.trim() !== "");
+
       const newProducts: ImportedProduct[] = [];
-      
+
       for (const line of lines) {
         // Separa por tabulação (Excel/Google Sheets)
         let columns = line.split("\t");
-        
+
         // Se não houver tabulação, tentar separar por ponto e vírgula ou pipe (|)
         if (columns.length === 1) {
           if (line.includes("|")) {
@@ -82,7 +95,7 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
               name,
               category: category || "Outros",
               price,
-              description: description || ""
+              description: description || "",
             });
           }
         }
@@ -103,7 +116,7 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
 
   const handleSave = async () => {
     if (parsedData.length === 0) return;
-    
+
     setIsSaving(true);
     try {
       // Obter o maior sort_order atual para adicionar no fim
@@ -113,10 +126,10 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
         .eq("company_id", companyId)
         .order("sort_order", { ascending: false })
         .limit(1);
-        
+
       let nextSortOrder = (existing?.[0]?.sort_order || 0) + 1;
 
-      const payload = parsedData.map(p => ({
+      const payload = parsedData.map((p) => ({
         company_id: companyId,
         name: p.name,
         category: p.category,
@@ -126,16 +139,18 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
         sort_order: nextSortOrder++,
       }));
 
-      const { error } = await supabase.from("products").insert(payload as any);
+      const { error } = await supabase.from("products").insert(payload);
       if (error) throw error;
 
       toast.success(`${parsedData.length} produtos importados com sucesso!`);
       setParsedData([]);
       setPastedText("");
       onSuccess();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Bulk import error:", err);
-      toast.error(err?.message ? `Erro: ${err.message}` : "Erro ao salvar no banco de dados.");
+      const errorMessage =
+        err instanceof Error ? err.message : (err as { message?: string })?.message;
+      toast.error(errorMessage ? `Erro: ${errorMessage}` : "Erro ao salvar no banco de dados.");
     } finally {
       setIsSaving(false);
     }
@@ -145,7 +160,9 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col p-0">
         <div className="p-6 border-b bg-muted/30">
-          <DialogTitle className="text-2xl font-black text-foreground">Importação em Lote</DialogTitle>
+          <DialogTitle className="text-2xl font-black text-foreground">
+            Importação em Lote
+          </DialogTitle>
           <DialogDescription className="mt-2 text-sm text-muted-foreground">
             Copie os dados da sua planilha (Excel, Google Sheets) e cole na caixa abaixo.
           </DialogDescription>
@@ -158,19 +175,21 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
                 <Info className="h-5 w-5 flex-shrink-0" />
                 <div>
                   <p className="font-bold">Formato esperado das colunas:</p>
-                  <p className="mt-1 font-mono bg-background px-2 py-1 rounded inline-block text-xs border">Nome | Categoria | Preço | Descrição (Opcional)</p>
+                  <p className="mt-1 font-mono bg-background px-2 py-1 rounded inline-block text-xs border">
+                    Nome | Categoria | Preço | Descrição (Opcional)
+                  </p>
                 </div>
               </div>
 
-              <Textarea 
-                placeholder="Cole os dados aqui..." 
+              <Textarea
+                placeholder="Cole os dados aqui..."
                 className="min-h-[250px] font-mono text-sm resize-none"
                 value={pastedText}
                 onChange={handlePasteChange}
               />
 
-              <Button 
-                onClick={processPastedText} 
+              <Button
+                onClick={processPastedText}
                 disabled={!pastedText.trim() || isParsing}
                 className="w-full h-12 rounded-xl"
               >
@@ -183,7 +202,9 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
               <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-4 flex gap-3 text-sm">
                 <Info className="h-5 w-5 flex-shrink-0 text-amber-600" />
                 <p>
-                  <strong>Aviso Importante:</strong> Esses produtos serão importados <strong>sem foto</strong>. Lembre-se de editá-los depois pelo painel para adicionar as imagens e evitar que eles fiquem sem destaque no aplicativo.
+                  <strong>Aviso Importante:</strong> Esses produtos serão importados{" "}
+                  <strong>sem foto</strong>. Lembre-se de editá-los depois pelo painel para
+                  adicionar as imagens e evitar que eles fiquem sem destaque no aplicativo.
                 </p>
               </div>
 
@@ -201,11 +222,15 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
                     {parsedData.map((p, i) => (
                       <TableRow key={i}>
                         <TableCell className="font-bold">{p.name}</TableCell>
-                        <TableCell className="text-muted-foreground text-xs">{p.category}</TableCell>
+                        <TableCell className="text-muted-foreground text-xs">
+                          {p.category}
+                        </TableCell>
                         <TableCell>R$ {p.price.toFixed(2)}</TableCell>
                         <TableCell>
-                          <button 
-                            onClick={() => setParsedData(prev => prev.filter((_, idx) => idx !== i))}
+                          <button
+                            onClick={() =>
+                              setParsedData((prev) => prev.filter((_, idx) => idx !== i))
+                            }
                             className="text-destructive hover:bg-destructive/10 p-1.5 rounded-lg transition-colors"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -218,15 +243,11 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
               </div>
 
               <div className="flex gap-3 pt-2">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setParsedData([])}
-                  className="flex-1 h-12"
-                >
+                <Button variant="outline" onClick={() => setParsedData([])} className="flex-1 h-12">
                   Voltar e Colar Novamente
                 </Button>
-                <Button 
-                  onClick={handleSave} 
+                <Button
+                  onClick={handleSave}
                   disabled={isSaving}
                   className="flex-1 h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-bold"
                 >
