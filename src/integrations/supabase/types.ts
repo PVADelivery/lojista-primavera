@@ -1335,6 +1335,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          origin: string | null
           type: string
         }
         Insert: {
@@ -1344,6 +1345,7 @@ export type Database = {
           date: string
           description: string
           id?: string
+          origin?: string | null
           type: string
         }
         Update: {
@@ -1353,6 +1355,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          origin?: string | null
           type?: string
         }
         Relationships: []
