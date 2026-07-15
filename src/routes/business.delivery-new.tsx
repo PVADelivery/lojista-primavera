@@ -857,63 +857,18 @@ function NewDeliveryPage() {
                 )}
               </div>
             </div>
-          </section>
-
-          {/* Seção: Detalhes da Corrida */}
-          <section className="space-y-4">
-            <h3 className="text-sm font-bold flex items-center gap-2 text-foreground/80">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">3</span>
-              Detalhes do Transporte
-            </h3>
-            <div className="grid sm:grid-cols-2 gap-4">
+              {/* Observações (dentro da seção de endereço) */}
               <div className="space-y-1.5">
-                <Label>Veículo Necessário</Label>
-                <Select value={f.vehicle_type} onValueChange={(v) => setF({ ...f, vehicle_type: v })}>
-                  <SelectTrigger className="rounded-xl h-11 bg-secondary/30">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="rounded-2xl">
-                    <SelectItem value="moto">
-                      <div className="flex items-center gap-2">
-                        <Motorbike className="h-4 w-4" /> Moto (Padrão)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="carro">
-                      <div className="flex items-center gap-2">
-                        <Car className="h-4 w-4" /> Carro (Itens Maiores)
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="carro_aberto">
-                      <div className="flex items-center gap-2">
-                        <Car className="h-4 w-4" /> Carro Aberto (Frete)
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Taxa do Entregador (Frete R$)</Label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  value={f.value}
-                  onChange={(e) => handleMoneyChange("value", e.target.value)}
-                  required
-                  className="rounded-xl h-11 bg-secondary/30 font-black text-primary"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-            <div className="space-y-1.5">
-              <Label>Observações para o Entregador (Opcional)</Label>
-              <div className="relative">
-                <Info className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <textarea
-                  value={f.notes}
-                  onChange={(e) => setF({ ...f, notes: e.target.value })}
-                  className="w-full rounded-xl border border-input bg-secondary/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] pl-9 resize-none"
-                  placeholder="Instruções de cuidado, como chegar, etc."
-                />
+                <Label>Observações para o Entregador (Opcional)</Label>
+                <div className="relative">
+                  <Info className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <textarea
+                    value={f.notes}
+                    onChange={(e) => setF({ ...f, notes: e.target.value })}
+                    className="w-full rounded-xl border border-input bg-secondary/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] pl-9 resize-none"
+                    placeholder="Instruções de cuidado, como chegar, etc."
+                  />
+                </div>
               </div>
             </div>
           </section>
@@ -921,7 +876,7 @@ function NewDeliveryPage() {
           {/* Seção: Acerto Financeiro */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2 text-foreground/80">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">4</span>
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">3</span>
               Acerto com Cliente (Cobrança)
             </h3>
             <div className="space-y-4 p-5 rounded-[1.5rem] bg-emerald-500/5 border border-emerald-500/20">
@@ -995,9 +950,11 @@ function NewDeliveryPage() {
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Criar Solicitação de Entrega"}
             </Button>
-            <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
-              O entregador receberá R$ {Number(f.value || 0).toFixed(2)} por esta corrida.
-            </p>
+            {f.value && Number(f.value) > 0 && (
+              <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
+                Taxa de entrega: <strong className="text-primary">R$ {Number(f.value).toFixed(2)}</strong>
+              </p>
+            )}
           </div>
         </form>
       </div>
