@@ -17,6 +17,7 @@ import { initials } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon-v3.png";
 import { brl } from "@/lib/format";
+import { useMyCompany } from "@/services/companies";
 
 
 interface Company {
@@ -71,15 +72,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   const [historyIdx, setHistoryIdx] = useState(0);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
-  const { data: company } = useQuery({
-    queryKey: ["my-company", user?.id],
-    enabled: !!user?.id,
-    queryFn: async (): Promise<Company | null> => {
-      const { data } = await supabase.from("companies").select("id,name,logo_url,is_open")
-        .eq("user_id", user!.id).maybeSingle();
-      return data ? (data as Company) : null;
-    },
-  });
+  const { data: company } = useMyCompany();
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ["pending-orders", company?.id],
