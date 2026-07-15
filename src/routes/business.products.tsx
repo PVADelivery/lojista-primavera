@@ -332,17 +332,42 @@ function BusinessProductsPage() {
 }
 
 // ── Product Card ──────────────────────────────────────────────────────────────
-function ProductCard({ product, isDragging, isOver, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions }: any) {
+function ProductCard({ product, onEdit, onDelete, onToggle, onDragStart, onDrop, onManageOptions }: any) {
+  const [isDraggingLocal, setIsDraggingLocal] = useState(false);
+  const [isOverLocal, setIsOverLocal] = useState(false);
+  
   const parsedImages = parseImages(product.image_url);
   const mainImage = parsedImages.length > 0 ? parsedImages[0] : null;
 
   return (
     <div
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        setIsDraggingLocal(true);
+        onDragStart();
+      }}
+      onDragEnd={() => {
+        setIsDraggingLocal(false);
+      }}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = "move";
+        setIsOverLocal(true);
+      }}
+      onDragLeave={() => {
+        setIsOverLocal(false);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        setIsOverLocal(false);
+        onDrop();
+      }}
       className={cn(
         "bg-card border border-border/60 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group flex flex-col",
         !product.is_active && "opacity-75 grayscale-[0.3]",
-        isDragging ? "opacity-40 scale-95 cursor-grabbing shadow-none" : "cursor-grab hover:-translate-y-1",
-        isOver ? "border-primary ring-2 ring-primary/30 scale-[1.02]" : "",
+        isDraggingLocal ? "opacity-40 scale-95 cursor-grabbing shadow-none" : "cursor-grab hover:-translate-y-1",
+        isOverLocal ? "border-primary ring-2 ring-primary/30 scale-[1.02]" : "",
       )}
     >
       {/* Drag Handle — visible on hover */}
