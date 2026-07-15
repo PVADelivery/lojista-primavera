@@ -11,6 +11,7 @@ import {
   GripVertical, ListPlus,
 } from "lucide-react";
 import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
+import { BulkImportModal } from "@/components/business/BulkImportModal";
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 
@@ -64,6 +65,7 @@ function BusinessProductsPage() {
   const [loading, setLoading] = useState(true);
   const companyId = company?.id;
   const [showForm, setShowForm] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [managingOptions, setManagingOptions] = useState<Product | null>(null);
 
@@ -204,6 +206,12 @@ function BusinessProductsPage() {
           onClose={() => { setShowForm(false); setEditingProduct(null); }}
           onSaved={() => { setShowForm(false); setEditingProduct(null); fetchCompanyAndProducts(); }}
         />
+        <BulkImportModal 
+          isOpen={showBulkImport} 
+          onClose={() => setShowBulkImport(false)} 
+          onSuccess={() => { setShowBulkImport(false); fetchCompanyAndProducts(); }} 
+          companyId={companyId!} 
+        />
       </div>
     );
   }
@@ -239,14 +247,24 @@ function BusinessProductsPage() {
             Arraste os cards para reordenar dentro de cada categoria
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          disabled={!companyId}
-          className="px-8 py-4 rounded-[2rem] bg-primary text-primary-foreground font-black flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
-        >
-          <Plus className="h-6 w-6" />
-          Novo Item
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowBulkImport(true)}
+            disabled={!companyId}
+            className="px-6 py-4 rounded-[2rem] bg-secondary text-secondary-foreground font-black flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+          >
+            <ListPlus className="h-5 w-5" />
+            Importar em Lote
+          </button>
+          <button
+            onClick={() => setShowForm(true)}
+            disabled={!companyId}
+            className="px-8 py-4 rounded-[2rem] bg-primary text-primary-foreground font-black flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+          >
+            <Plus className="h-6 w-6" />
+            Novo Item
+          </button>
+        </div>
       </div>
 
       {loading ? (
