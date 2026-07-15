@@ -104,7 +104,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         () => qc.invalidateQueries({ queryKey: ["deliveries"] }))
       .subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [company?.id, qc]);
+  }, [company?.id]);
 
   const toggleStore = async (open: boolean) => {
     if (!company) return;

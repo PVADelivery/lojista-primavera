@@ -59,5 +59,5 @@ export function useRealtimeDeliveries() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [qc]);
+  }, []);
 }
