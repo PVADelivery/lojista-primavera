@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet, Users, History, Tag,
   Settings, LogOut, Bell, Search, Power, User as UserIcon,
-  ChevronLeft, ChevronRight, HelpCircle, Smartphone, MapPin
+  ChevronLeft, ChevronRight, HelpCircle, Smartphone, MapPin, Store, ExternalLink
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -23,15 +23,31 @@ interface Company {
   id: string; name: string; logo_url: string | null; is_open: boolean;
 }
 
-const SIDE_ICONS = [
-  { to: "/business", label: "Painel", icon: LayoutDashboard, exact: true },
-  { to: "/business/orders", label: "Pedidos", icon: ShoppingBag },
-  { to: "/business/products", label: "Cardápio", icon: UtensilsCrossed },
-  { to: "/business/coupons", label: "Cupons", icon: Tag },
-  { to: "/business/customers", label: "Clientes", icon: Users },
-  { to: "/business/finance", label: "Financeiro", icon: Wallet },
-  { to: "/business/history", label: "Histórico", icon: History },
-  { to: "/business/map", label: "Regiões", icon: MapPin },
+const SIDEBAR_GROUPS = [
+  {
+    title: "OPERACIONAL",
+    items: [
+      { to: "/business", label: "Painel de Entregas", icon: LayoutDashboard, exact: true },
+      { to: "/business/orders", label: "Novos Pedidos", icon: ShoppingBag },
+    ]
+  },
+  {
+    title: "MARKETPLACE",
+    items: [
+      { to: "/marketplace", label: "Marketplace", icon: Store, external: true },
+      { to: "/business/products", label: "Cardápio/Produtos", icon: UtensilsCrossed },
+      { to: "/business/coupons", label: "Cupons de Desconto", icon: Tag },
+      { to: "/business/customers", label: "Meus Clientes", icon: Users },
+    ]
+  },
+  {
+    title: "GESTÃO",
+    items: [
+      { to: "/business/finance", label: "Financeiro", icon: Wallet },
+      { to: "/business/history", label: "Histórico", icon: History },
+      { to: "/business/map", label: "Regiões", icon: MapPin },
+    ]
+  }
 ];
 
 const TOP_TABS = [
@@ -133,39 +149,70 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           </Link>
 
           {/* Nav Links */}
-          <nav className="flex-1 flex flex-col gap-1.5 p-4 overflow-y-auto overflow-x-hidden">
-            {isSidebarExpanded && (
-              <div className="text-[10px] font-bold text-sidebar-foreground/40 mb-2 uppercase tracking-wider px-2 whitespace-nowrap">Menu Principal</div>
-            )}
-            {SIDE_ICONS.map((it) => {
-              const active = isActive(it.to, it.exact);
-              return (
-                <Tooltip key={it.to} delayDuration={0}>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to={it.to}
-                      className={`relative h-12 flex items-center gap-3 transition-all group overflow-hidden ${
-                        isSidebarExpanded ? "px-3 rounded-xl" : "justify-center rounded-xl mx-auto w-12"
-                      } ${
-                        active
-                          ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
-                          : "text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                      }`}
-                    >
-                      {/* Subtle active glow */}
-                      {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
-                      
-                      <it.icon className={`h-5 w-5 min-w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
-                      
-                      {isSidebarExpanded && (
-                        <span className="truncate whitespace-nowrap">{it.label}</span>
-                      )}
-                    </Link>
-                  </TooltipTrigger>
-                  {!isSidebarExpanded && <TooltipContent side="right" className="font-bold">{it.label}</TooltipContent>}
-                </Tooltip>
-              );
-            })}
+          <nav className="flex-1 flex flex-col gap-6 p-4 overflow-y-auto overflow-x-hidden">
+            {SIDEBAR_GROUPS.map((group, groupIdx) => (
+              <div key={group.title} className="flex flex-col gap-1.5">
+                {isSidebarExpanded && (
+                  <div className="text-[10px] font-bold text-sidebar-foreground/40 mb-1 uppercase tracking-wider px-2 whitespace-nowrap">
+                    {group.title}
+                  </div>
+                )}
+                {group.items.map((it) => {
+                  const active = isActive(it.to, it.exact);
+                  
+                  if (it.external) {
+                    return (
+                      <Tooltip key={it.to} delayDuration={0}>
+                        <TooltipTrigger asChild>
+                          <a
+                            href={it.to}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`relative h-12 flex items-center gap-3 transition-all group overflow-hidden ${
+                              isSidebarExpanded ? "px-3 rounded-xl" : "justify-center rounded-xl mx-auto w-12"
+                            } text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground`}
+                          >
+                            <it.icon className="h-5 w-5 min-w-5 text-sidebar-foreground/50 group-hover:text-primary transition-colors" />
+                            {isSidebarExpanded && (
+                              <span className="truncate whitespace-nowrap flex-1">{it.label}</span>
+                            )}
+                            {isSidebarExpanded && <ExternalLink className="w-3.5 h-3.5 text-sidebar-foreground/30" />}
+                          </a>
+                        </TooltipTrigger>
+                        {!isSidebarExpanded && <TooltipContent side="right" className="font-bold">{it.label}</TooltipContent>}
+                      </Tooltip>
+                    );
+                  }
+
+                  return (
+                    <Tooltip key={it.to} delayDuration={0}>
+                      <TooltipTrigger asChild>
+                        <Link
+                          to={it.to}
+                          className={`relative h-12 flex items-center gap-3 transition-all group overflow-hidden ${
+                            isSidebarExpanded ? "px-3 rounded-xl" : "justify-center rounded-xl mx-auto w-12"
+                          } ${
+                            active
+                              ? "bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20"
+                              : "text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground"
+                          }`}
+                        >
+                          {/* Subtle active glow */}
+                          {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
+                          
+                          <it.icon className={`h-5 w-5 min-w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
+                          
+                          {isSidebarExpanded && (
+                            <span className="truncate whitespace-nowrap">{it.label}</span>
+                          )}
+                        </Link>
+                      </TooltipTrigger>
+                      {!isSidebarExpanded && <TooltipContent side="right" className="font-bold">{it.label}</TooltipContent>}
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
 
           {/* Sidebar Footer */}
