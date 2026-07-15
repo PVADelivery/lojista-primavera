@@ -206,12 +206,6 @@ function BusinessProductsPage() {
           onClose={() => { setShowForm(false); setEditingProduct(null); }}
           onSaved={() => { setShowForm(false); setEditingProduct(null); fetchCompanyAndProducts(); }}
         />
-        <BulkImportModal 
-          isOpen={showBulkImport} 
-          onClose={() => setShowBulkImport(false)} 
-          onSuccess={() => { setShowBulkImport(false); fetchCompanyAndProducts(); }} 
-          companyId={companyId!} 
-        />
       </div>
     );
   }
@@ -325,6 +319,14 @@ function BusinessProductsPage() {
           ))}
         </div>
       )}
+      
+      {/* BulkImportModal — always mounted so it works from any state */}
+      <BulkImportModal 
+        isOpen={showBulkImport} 
+        onClose={() => setShowBulkImport(false)} 
+        onSuccess={() => { setShowBulkImport(false); fetchCompanyAndProducts(); }} 
+        companyId={companyId ?? ""} 
+      />
     </div>
   );
 }
