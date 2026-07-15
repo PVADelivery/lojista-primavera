@@ -148,9 +148,9 @@ export function BulkImportModal({ isOpen, onClose, onSuccess, companyId }: BulkI
       onSuccess();
     } catch (err) {
       console.error("Bulk import error:", err);
-      const errorMessage =
-        err instanceof Error ? err.message : (err as { message?: string })?.message;
-      toast.error(errorMessage ? `Erro: ${errorMessage}` : "Erro ao salvar no banco de dados.");
+      // Force stringify the error to see exactly what went wrong if it's not a standard Error
+      const errorString = JSON.stringify(err);
+      toast.error(`Falha: ${errorString}`);
     } finally {
       setIsSaving(false);
     }
