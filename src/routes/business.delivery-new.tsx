@@ -17,6 +17,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/business/delivery-new")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      edit: (search.edit as string) || undefined,
+    };
+  },
   component: NewDeliveryPage,
 });
 
@@ -40,6 +45,7 @@ function NewDeliveryPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const { edit: editId } = Route.useSearch();
 
   // Form State
   const [f, setF] = useState({
@@ -60,6 +66,49 @@ function NewDeliveryPage() {
     notes: "",
   });
 
+  // Coords state is defined below, but we need it here for useEffect. We can define our coords state here or do state updates inside useEffect later.
+  // Let's define the query and effect here, but define coords state above.
+  const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
+  const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
+  const [routeDistance, setRouteDistance] = useState<number | null>(null);
+  const [isGeocoding, setIsGeocoding] = useState(false);
+
+  const { data: editingDelivery } = useQuery({
+    queryKey: ["delivery", editId],
+    queryFn: async () => {
+      if (!editId) return null;
+      const { data, error } = await supabase.from("deliveries").select("*").eq("id", editId).single();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!editId,
+  });
+
+  useEffect(() => {
+    if (editingDelivery) {
+      setF({
+        customer_name: editingDelivery.customer_name || "",
+        customer_phone: editingDelivery.customer_phone || "",
+        customer_cpf: editingDelivery.customer_cpf || "",
+        address: editingDelivery.address ? editingDelivery.address.split(" - ")[0] : "",
+        customer_address_number: editingDelivery.customer_address_number || "",
+        customer_neighborhood: editingDelivery.customer_neighborhood || "",
+        customer_address_complement: editingDelivery.customer_address_complement || "",
+        payment_method: editingDelivery.payment_method === "pago" ? "dinheiro" : editingDelivery.payment_method || "dinheiro",
+        is_paid: editingDelivery.payment_method === "pago",
+        order_value: editingDelivery.order_value ? String(editingDelivery.order_value) : "",
+        change_for: editingDelivery.change_for ? String(editingDelivery.change_for) : "",
+        vehicle_type: editingDelivery.vehicle_type || "moto",
+        region_id: editingDelivery.region_id || "none",
+        value: editingDelivery.value ? String(editingDelivery.value) : "4.99",
+        notes: editingDelivery.notes || "",
+      });
+
+      if (editingDelivery.latitude && editingDelivery.longitude) {
+        setDropoffCoords([editingDelivery.longitude, editingDelivery.latitude]);
+      }
+    }
+  }, [editingDelivery]);
   // Autocomplete / Search State
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
@@ -71,11 +120,6 @@ function NewDeliveryPage() {
   const mapRef = useRef<maplibregl.Map | null>(null);
   const pickupMarkerRef = useRef<maplibregl.Marker | null>(null);
   const dropoffMarkerRef = useRef<maplibregl.Marker | null>(null);
-
-  const [pickupCoords, setPickupCoords] = useState<[number, number] | null>(null);
-  const [dropoffCoords, setDropoffCoords] = useState<[number, number] | null>(null);
-  const [routeDistance, setRouteDistance] = useState<number | null>(null);
-  const [isGeocoding, setIsGeocoding] = useState(false);
 
   // Fullscreen map states
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
@@ -626,13 +670,12 @@ function NewDeliveryPage() {
         }
       }
 
-      // 3. Write Manual Delivery
-      const deliveryWrite = await supabase
-        .from("deliveries")
-        .insert([
-          {
-            company_id: company.id,
-            short_id: shortId,
+      // 3. Write Manual Delivery (either update or insert)
+      let deliveryWrite;
+      if (editId) {
+        deliveryWrite = await supabase
+          .from("deliveries")
+          .update({
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
             address: fullAddress,
@@ -646,17 +689,42 @@ function NewDeliveryPage() {
             region_id: f.region_id === "none" ? null : f.region_id,
             value: Number(f.value || 0),
             notes: f.notes,
-            status: "pending",
-          },
-        ])
-        .select("*")
-        .single();
+          })
+          .eq("id", editId)
+          .select("*")
+          .single();
+      } else {
+        deliveryWrite = await supabase
+          .from("deliveries")
+          .insert([
+            {
+              company_id: company.id,
+              short_id: shortId,
+              customer_name: f.customer_name,
+              customer_phone: f.customer_phone,
+              address: fullAddress,
+              customer_address_number: f.customer_address_number,
+              customer_neighborhood: f.customer_neighborhood,
+              customer_address_complement: f.customer_address_complement,
+              payment_method: f.is_paid ? "pago" : f.payment_method,
+              order_value: f.is_paid ? 0 : Number(f.order_value || 0),
+              change_for: f.is_paid ? 0 : Number(f.change_for || 0),
+              vehicle_type: f.vehicle_type,
+              region_id: f.region_id === "none" ? null : f.region_id,
+              value: Number(f.value || 0),
+              notes: f.notes,
+              status: "pending",
+            },
+          ])
+          .select("*")
+          .single();
+      }
 
       if (deliveryWrite.error) {
         throw deliveryWrite.error;
       }
 
-      toast.success("Corrida solicitada com sucesso!");
+      toast.success(editId ? "Corrida atualizada com sucesso!" : "Corrida solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
       navigate({ to: "/business" });
     } catch (err: any) {
@@ -684,7 +752,7 @@ function NewDeliveryPage() {
           </Button>
           <div>
             <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema de Despacho</p>
-            <h1 className="text-xl font-black tracking-tight">Nova Solicitação de Entrega</h1>
+            <h1 className="text-xl font-black tracking-tight">{editId ? "Editar Solicitação de Entrega" : "Nova Solicitação de Entrega"}</h1>
           </div>
         </div>
       </div>
@@ -948,7 +1016,7 @@ function NewDeliveryPage() {
               disabled={busy}
               className="w-full rounded-2xl h-14 text-base font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
             >
-              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : "Criar Solicitação de Entrega"}
+              {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : editId ? "Salvar Alterações" : "Criar Solicitação de Entrega"}
             </Button>
             {f.value && Number(f.value) > 0 && (
               <p className="text-center text-xs text-muted-foreground mt-4 font-medium">

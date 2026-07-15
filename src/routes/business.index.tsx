@@ -7,6 +7,7 @@ import { brl } from "@/lib/format";
 import {
   Clock, Truck, Wallet, Plus, MapPin, Phone, CheckCircle2,
   ShoppingBag, ArrowUpRight, Sparkles, Activity, TrendingUp,
+  Pencil, Trash2
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -52,6 +53,17 @@ function BusinessHomePage() {
     qc.invalidateQueries({ queryKey: ["deliveries"] });
   };
 
+  const cancelDelivery = async (id: string) => {
+    if (!confirm("Deseja realmente cancelar esta entrega?")) return;
+    const { error } = await supabase.from("deliveries").update({ status: "cancelled" }).eq("id", id);
+    if (error) {
+      toast.error("Erro ao cancelar entrega: " + error.message);
+    } else {
+      toast.success("Entrega cancelada");
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+    }
+  };
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const companyName = company?.name || profile?.full_name?.split(" ")[0] || "lojista";
@@ -74,68 +86,50 @@ function BusinessHomePage() {
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
               Ao vivo · {now}
             </div>
-            <h1 className="mt-4 text-[clamp(2.4rem,5.5vw,4.5rem)] font-black leading-[0.95] tracking-tight">
+            <h1 className="mt-3 text-4xl font-black tracking-tight leading-none sm:text-5xl">
               {greeting},<br />
               <span className="text-primary">{companyName}.</span>
             </h1>
-            <p className="mt-4 max-w-md text-base opacity-75">
+            <p className="mt-4 text-sm font-medium opacity-80 max-w-md leading-relaxed">
               {stats.total > 0
-                ? `Você tem ${stats.total} ${stats.total === 1 ? "entrega ativa" : "entregas ativas"} acontecendo agora.`
+                ? `Você tem ${stats.total} entrega${stats.total > 1 ? "s" : ""} ativa${stats.total > 1 ? "s" : ""} acontecendo agora.`
                 : "Tudo calmo por aqui. Crie sua primeira entrega do dia."}
             </p>
-
-            <div className="mt-7 flex flex-wrap gap-3">
-              <Link
-                to="/business/delivery-new"
-                className="inline-flex items-center justify-center whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-2xl h-13 px-7 bg-primary text-primary-foreground hover:bg-primary/90 font-black shadow-glow group"
-              >
-                <Plus className="h-5 w-5 mr-2 transition-transform group-hover:rotate-90" />
-                Nova Solicitação
-              </Link>
-              <Button
-                variant="ghost"
-                size="lg"
-                className="rounded-2xl h-13 px-6 text-[hsl(var(--sidebar-foreground))] hover:bg-white/10 font-bold"
-              >
-                <Activity className="h-4 w-4 mr-2" /> Acompanhar rota
-              </Button>
-            </div>
           </div>
 
-          {/* Big metric panel */}
-          <div className="relative rounded-3xl bg-white/5 backdrop-blur border border-white/10 p-6">
-            <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.25em] opacity-70">
-              <span>Receita manual · hoje</span>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </div>
-            <p className="mt-3 text-5xl sm:text-6xl font-black tracking-tighter text-primary">
-              {brl(stats.todayManual)}
-            </p>
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <MiniMetric label="Pendentes" value={stats.pending} />
-              <MiniMetric label="Em rota" value={stats.inRoute} />
-            </div>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Link
+              to="/business/delivery-new"
+              className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            >
+              <Plus className="h-4 w-4 mr-2" />Nova Solicitação
+            </Link>
+            <button className="h-12 px-6 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 font-black text-sm uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]">
+              Acompanhar rota
+            </button>
           </div>
         </div>
       </section>
 
-      {/* STAT BAND — numbered, editorial */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {/* STATS */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <StatCard n="01" icon={Clock} label="Pendentes" value={stats.pending} hint="aguardando coleta" tone="warning" />
         <StatCard n="02" icon={Truck} label="Em rota" value={stats.inRoute} hint="entregadores ativos" tone="info" />
         <StatCard n="03" icon={Wallet} label="Receita manual" value={brl(stats.todayManual)} hint="vendas diretas hoje" tone="primary" />
-      </div>
+      </section>
 
+      {/* MARKETPLACE */}
       <Section title="Marketplace" kicker="Entregas geradas por pedidos online" count={marketplace.length}>
         {marketplace.length === 0 ? (
           <EmptyState icon={ShoppingBag} text="Nenhum pedido em entrega no momento." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {marketplace.map((d: any) => <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)} />)}
+            {marketplace.map((d: any) => <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)} onCancel={() => cancelDelivery(d.id)} />)}
           </div>
         )}
       </Section>
 
+      {/* MANUAL */}
       <Section title="Manuais" kicker="Entregas criadas direto por você" count={manual.length}>
         {manual.length === 0 ? (
           <EmptyState icon={Sparkles} text="Crie sua primeira entrega manual em segundos." action={
@@ -148,7 +142,14 @@ function BusinessHomePage() {
           } />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {manual.map((d: any) => <DeliveryCard key={d.id} d={d} onFinish={() => finishDelivery(d.id)} />)}
+            {manual.map((d: any) => (
+              <DeliveryCard 
+                key={d.id} 
+                d={d} 
+                onFinish={() => finishDelivery(d.id)} 
+                onCancel={() => cancelDelivery(d.id)} 
+              />
+            ))}
           </div>
         )}
       </Section>
@@ -225,7 +226,7 @@ function EmptyState({ icon: Icon, text, action }: any) {
   );
 }
 
-function DeliveryCard({ d, marketplace, onFinish }: any) {
+function DeliveryCard({ d, marketplace, onFinish, onCancel }: any) {
   return (
     <div className="group relative bg-card border border-border rounded-[2rem] p-5 hover:shadow-card hover:border-primary/40 transition-all hover:-translate-y-0.5">
       <div className="flex items-center justify-between">
@@ -238,7 +239,29 @@ function DeliveryCard({ d, marketplace, onFinish }: any) {
             <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Manual
           </span>
         )}
-        <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
+        <div className="flex items-center gap-2">
+          {/* Edit button: only for manual pending deliveries */}
+          {!marketplace && (d.status === "pending" || d.status === "broadcasted") && (
+            <Link
+              to="/business/delivery-new"
+              search={{ edit: d.id }}
+              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-all shadow-sm flex items-center justify-center"
+              title="Editar corrida"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </Link>
+          )}
+          {/* Cancel button: for all active deliveries */}
+          {d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled" && (
+            <button
+              onClick={onCancel}
+              className="p-2 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shadow-sm flex items-center justify-center"
+              title="Cancelar corrida"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="flex items-start justify-between mt-3 gap-2">
