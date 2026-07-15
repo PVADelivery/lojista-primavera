@@ -87,7 +87,7 @@ function NewDeliveryPage() {
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   const PVA_BOUNDS = "-54.40,-15.65,-54.20,-15.45";
 
-  const { data: regions } = useQuery({
+  const { data: regions, error: queryError } = useQuery({
     queryKey: ["regions", company?.id, company?.pricing_table_id],
     queryFn: async () => {
       if (!company?.id) return [];
@@ -831,12 +831,14 @@ function NewDeliveryPage() {
                     <SelectContent className="rounded-2xl">
                       <SelectItem value="none">Outro Bairro (Digitar)</SelectItem>
                       {regions?.map((r: any) => (
-                        <SelectItem key={r.id} value={r.id}>
-                          {r.name} - R$ {Number(r.price).toFixed(2)}
+                        <SelectItem key={r.id} value={String(r.id)}>
+                          {r.name} - R$ {Number(r.price || 0).toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
+                  {!regions && <p className="text-xs text-red-500">Carregando ou falha ao buscar regiões {queryError && `(${queryError.message})`}</p>}
+                  {regions?.length === 0 && <p className="text-xs text-orange-500">Nenhuma região cadastrada no sistema.</p>}
                   {f.region_id === "none" && (
                     <Input
                       value={f.customer_neighborhood}
