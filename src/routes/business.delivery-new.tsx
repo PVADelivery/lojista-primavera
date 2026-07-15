@@ -103,7 +103,9 @@ function NewDeliveryPage() {
         region_id: editingDelivery.region_id || "none",
         value: editingDelivery.value ? String(editingDelivery.value) : "4.99",
         notes: editingDelivery.notes || "",
+        address_label: editingDelivery.address_label || "Casa",
       });
+
 
       if (editingDelivery.latitude && editingDelivery.longitude) {
         setDropoffCoords([editingDelivery.longitude, editingDelivery.latitude]);
