@@ -4,10 +4,12 @@ import type { DeliveryStatus } from "@/types/models";
 
 // DB enum delivery_status: pending, broadcasted, accepted, collecting, in_transit, delivered, cancelled, returned, completed
 function toDbStatus(status: string) {
+  if (status === "in_transit") return "in_route";
   return status;
 }
 
 function toAppStatus(status: string) {
+  if (status === "in_route") return "in_transit";
   return status as DeliveryStatus;
 }
 

@@ -29,7 +29,7 @@ function BusinessHomePage() {
     queryFn: async () => {
       const { data } = await supabase.from("deliveries").select("*")
         .eq("company_id", company!.id)
-        .in("status", ["pending", "broadcasted", "accepted", "collecting", "in_route", "in_transit"])
+        .in("status", ["pending", "broadcasted", "accepted", "collecting", "in_route"])
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -38,7 +38,7 @@ function BusinessHomePage() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const stats = {
     pending: deliveries.filter((d: any) => d.status === "pending").length,
-    inRoute: deliveries.filter((d: any) => ["in_route", "in_transit", "accepted", "collecting"].includes(d.status)).length,
+    inRoute: deliveries.filter((d: any) => ["in_route", "accepted", "collecting"].includes(d.status)).length,
     todayManual: deliveries.filter((d: any) => !d.order_id && new Date(d.created_at) >= today).reduce((s: number, d: any) => s + Number(d.value || 0), 0),
     total: deliveries.length,
   };
