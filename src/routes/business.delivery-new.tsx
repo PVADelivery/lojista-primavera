@@ -88,11 +88,32 @@ function NewDeliveryPage() {
   const PVA_BOUNDS = "-54.40,-15.65,-54.20,-15.45";
 
   const { data: regions } = useQuery({
-    queryKey: ["regions", company?.id],
+    queryKey: ["regions", company?.id, company?.pricing_table_id],
     queryFn: async () => {
       if (!company?.id) return [];
-      const { data } = await supabase.from("regions").select("*").eq("company_id", company.id);
-      return data || [];
+      
+      const { data: allRegions, error } = await supabase.from("regions").select("*").order("name");
+      if (error) throw error;
+      
+      let regionsWithPrices = allRegions || [];
+      
+      if (company.pricing_table_id) {
+        const { data: rules } = await supabase
+          .from("pricing_rules")
+          .select("*")
+          .eq("pricing_table_id", company.pricing_table_id);
+          
+        if (rules && rules.length > 0) {
+          regionsWithPrices = regionsWithPrices.map(r => {
+            const rule = rules.find(rule => rule.region_id === r.id);
+            if (rule) {
+              return { ...r, price: rule.price };
+            }
+            return r;
+          });
+        }
+      }
+      return regionsWithPrices;
     },
     enabled: !!company?.id,
   });
@@ -811,7 +832,7 @@ function NewDeliveryPage() {
                       <SelectItem value="none">Outro Bairro (Digitar)</SelectItem>
                       {regions?.map((r: any) => (
                         <SelectItem key={r.id} value={r.id}>
-                          {r.name} - R$ {Number(r.fee).toFixed(2)}
+                          {r.name} - R$ {Number(r.price).toFixed(2)}
                         </SelectItem>
                       ))}
                     </SelectContent>
