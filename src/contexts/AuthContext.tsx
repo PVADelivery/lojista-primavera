@@ -23,6 +23,7 @@ interface AuthCtx {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
   hasRole: (role: Role) => boolean;
   refresh: () => Promise<void>;
   rolesLoaded: boolean;
@@ -38,14 +39,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [rolesLoaded, setRolesLoaded] = useState(false);
 
-  const fetchUserData = async (uid: string) => {
-    const [{ data: r }, { data: p }] = await Promise.all([
-      supabase.from("user_roles").select("role").eq("user_id", uid),
-      supabase.from("profiles").select("user_id,full_name,avatar_url,phone,status").eq("user_id", uid).maybeSingle(),
-    ]);
-    setRoles((r ?? []).map((x: { role: Role }) => x.role));
-    setProfile((p as Profile) ?? null);
-    setRolesLoaded(true);
+  const fetchUserData = async (userId: string) => {
+    try {
+      // 1. Tenta buscar as roles usando a função segura (ignora RLS)
+      const { data: rpcRoles, error: rpcError } = await supabase.rpc("get_my_roles");
+      
+      let userRoles: Role[] = [];
+
+      if (!rpcError && rpcRoles) {
+        // Se a função existir e rodar com sucesso, usamos o resultado dela.
+        userRoles = rpcRoles.map((r: any) => r.role as Role);
+      } else {
+        // 2. FALLBACK SE A FUNÇÃO AINDA NÃO FOI CRIADA NO BANCO:
+        const [rolesRes, profileRes] = await Promise.all([
+          supabase.from("user_roles").select("role").eq("user_id", userId),
+          supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+        ]);
+        
+        userRoles = (rolesRes.data?.map((r) => r.role as Role)) ?? [];
+        
+        // Fallback antigo do profile
+        if (userRoles.length === 0 && (profileRes.data as any)?.role) {
+          userRoles = [(profileRes.data as any).role as Role];
+        }
+      }
+
+      // ATUALIZA O PERFIL PARA OUTROS USOS DA APLICAÇÃO
+      const { data: profileData } = await supabase.from("profiles").select("user_id,full_name,avatar_url,phone,status").eq("user_id", userId).maybeSingle();
+
+      setRoles(userRoles);
+      setProfile(profileData as Profile ?? null);
+    } catch (e) {
+      console.error("Auth: error fetching user data", e);
+      setRoles([]);
+      setProfile(null);
+    } finally {
+      setRolesLoaded(true);
+    }
   };
 
   useEffect(() => {
@@ -86,9 +116,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    localStorage.clear();
-    sessionStorage.clear();
     window.location.href = "/login";
+  };
+
+  const deleteAccount = async () => {
+    if (!user) return;
+    const { error } = await supabase.rpc("delete_user_account");
+    if (error) throw error;
+    await signOut();
   };
 
   const refresh = async () => {
@@ -102,7 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user, session, profile, roles,
         userStatus: profile?.status ?? null,
-        loading, signIn, signUp, signOut, hasRole, refresh, rolesLoaded,
+        loading, signIn, signUp, signOut, deleteAccount, hasRole, refresh, rolesLoaded,
       }}
     >
       {children}

@@ -91,9 +91,20 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
     map.current = new maplibregl.Map({
       container: mapContainer.current,
-      style: "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+          },
+        },
+        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
+      },
       center: [centerCity.lng, centerCity.lat],
       zoom: 12,
+      attributionControl: false,
     });
 
     map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");

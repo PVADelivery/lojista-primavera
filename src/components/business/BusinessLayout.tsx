@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { initials } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon-v3.png";
+import { brl } from "@/lib/format";
 
 
 interface Company {
@@ -37,10 +38,6 @@ const TOP_TABS = [
   { to: "/business", label: "Painel", exact: true },
   { to: "/business/orders", label: "Pedidos" },
   { to: "/business/products", label: "Cardápio" },
-  { to: "/business/coupons", label: "Cupons" },
-  { to: "/business/customers", label: "Clientes" },
-  { to: "/business/finance", label: "Financeiro" },
-  { to: "/business/history", label: "Histórico" },
   { to: "/business/map", label: "Regiões" },
 ];
 
@@ -53,7 +50,7 @@ const MOBILE_NAV = [
 ];
 
 export function BusinessLayout({ children }: { children?: React.ReactNode }) {
-  const { user, profile, signOut, refresh } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const loc = useLocation();
   const nav = useNavigate();
   const qc = useQueryClient();
@@ -66,26 +63,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
     queryFn: async (): Promise<Company | null> => {
       const { data } = await supabase.from("companies").select("id,name,logo_url,is_open")
         .eq("user_id", user!.id).maybeSingle();
-      if (!data) {
-        const { data: c } = await supabase.from("companies")
-          .insert({ user_id: user!.id, name: profile?.full_name ?? "Minha Loja" })
-          .select("id,name,logo_url,is_open").single();
-          
-        if (c) {
-          await supabase.from("user_roles").insert({
-            user_id: user!.id,
-            role: "company",
-            company_id: c.id
-          });
-          
-          setTimeout(() => {
-            refresh();
-          }, 100);
-        }
-        
-        return c as Company;
-      }
-      return data as Company;
+      return data ? (data as Company) : null;
     },
   });
 
@@ -194,7 +172,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <div className="p-4 border-t border-sidebar-border/50 flex flex-col gap-1 overflow-hidden">
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
-                <Link to="/business/profile" className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
+                <Link to="/business/settings" className={`h-11 flex items-center gap-3 text-sidebar-foreground/70 font-semibold hover:bg-sidebar-accent hover:text-sidebar-foreground transition-colors ${isSidebarExpanded ? "px-3 rounded-xl w-full" : "justify-center rounded-xl mx-auto w-11"}`}>
                   <Settings className="h-5 w-5 min-w-5 text-sidebar-foreground/50" />
                   {isSidebarExpanded && <span className="text-sm whitespace-nowrap">Configurações</span>}
                 </Link>
@@ -245,24 +223,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               </button>
             </div>
 
-            {/* Tabs */}
-            <nav className="hidden md:flex items-center gap-1 ml-2 overflow-x-auto max-w-[65%] scrollbar-none whitespace-nowrap">
-              {TOP_TABS.map((t) => {
-                const active = isActive(t.to, t.exact);
-                return (
-                  <Link
-                    key={t.to}
-                    to={t.to}
-                    className={`relative px-4 h-16 flex items-center text-sm font-bold transition shrink-0 ${
-                      active ? "text-foreground" : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {t.label}
-                    {active && <span className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-primary" />}
-                  </Link>
-                );
-              })}
-            </nav>
+            {/* Top Navigation Removed as requested */}
 
             <div className="flex-1" />
 
@@ -316,7 +277,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                           onClick={() => nav({ to: "/business/orders" })}
                         >
                           <p className="font-bold text-sm">Novo pedido — {o.customer_name ?? "Cliente"}</p>
-                          <p className="text-xs text-muted-foreground mt-0.5">R$ {Number(o.total).toFixed(2)}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{brl(Number(o.total))}</p>
                         </li>
                       ))}
                     </ul>
@@ -342,10 +303,10 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" })}>
+                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" as any })}>
                     <UserIcon className="h-4 w-4 mr-2" /> Perfil
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" })}>
+                  <DropdownMenuItem onClick={() => nav({ to: "/business/settings" })}>
                     <Settings className="h-4 w-4 mr-2" /> Configurações
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />

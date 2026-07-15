@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
@@ -22,7 +22,6 @@ function BusinessHomePage() {
   const { profile } = useAuth();
   const { data: company } = useMyCompany();
   const qc = useQueryClient();
-  const [showForm, setShowForm] = useState(false);
 
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id],
@@ -30,7 +29,7 @@ function BusinessHomePage() {
     queryFn: async () => {
       const { data } = await supabase.from("deliveries").select("*")
         .eq("company_id", company!.id)
-        .not("status", "in", "(delivered,cancelled,completed)")
+        .in("status", ["pending", "broadcasted", "accepted", "collecting", "in_route", "in_transit"])
         .order("created_at", { ascending: false });
       return data ?? [];
     },
@@ -86,14 +85,13 @@ function BusinessHomePage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-              <Button
-                onClick={() => setShowForm(!showForm)}
-                size="lg"
-                className="rounded-2xl h-13 px-7 bg-primary text-primary-foreground hover:bg-primary/90 font-black shadow-glow group"
+              <Link
+                to="/business/delivery-new"
+                className="inline-flex items-center justify-center whitespace-nowrap text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 rounded-2xl h-13 px-7 bg-primary text-primary-foreground hover:bg-primary/90 font-black shadow-glow group"
               >
                 <Plus className="h-5 w-5 mr-2 transition-transform group-hover:rotate-90" />
-                {showForm ? "Voltar ao painel" : "Nova entrega"}
-              </Button>
+                Nova Solicitação
+              </Link>
               <Button
                 variant="ghost"
                 size="lg"
@@ -121,42 +119,39 @@ function BusinessHomePage() {
         </div>
       </section>
 
-      {showForm ? (
-        <NewDeliveryForm companyId={company?.id} onDone={() => { setShowForm(false); qc.invalidateQueries({ queryKey: ["deliveries"] }); }} />
-      ) : (
-        <>
-          {/* STAT BAND — numbered, editorial */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <StatCard n="01" icon={Clock} label="Pendentes" value={stats.pending} hint="aguardando coleta" tone="warning" />
-            <StatCard n="02" icon={Truck} label="Em rota" value={stats.inRoute} hint="entregadores ativos" tone="info" />
-            <StatCard n="03" icon={Wallet} label="Receita manual" value={brl(stats.todayManual)} hint="vendas diretas hoje" tone="primary" />
+      {/* STAT BAND — numbered, editorial */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <StatCard n="01" icon={Clock} label="Pendentes" value={stats.pending} hint="aguardando coleta" tone="warning" />
+        <StatCard n="02" icon={Truck} label="Em rota" value={stats.inRoute} hint="entregadores ativos" tone="info" />
+        <StatCard n="03" icon={Wallet} label="Receita manual" value={brl(stats.todayManual)} hint="vendas diretas hoje" tone="primary" />
+      </div>
+
+      <Section title="Marketplace" kicker="Entregas geradas por pedidos online" count={marketplace.length}>
+        {marketplace.length === 0 ? (
+          <EmptyState icon={ShoppingBag} text="Nenhum pedido em entrega no momento." />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {marketplace.map((d: any) => <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)} />)}
           </div>
+        )}
+      </Section>
 
-          <Section title="Marketplace" kicker="Entregas geradas por pedidos online" count={marketplace.length}>
-            {marketplace.length === 0 ? (
-              <EmptyState icon={ShoppingBag} text="Nenhum pedido em entrega no momento." />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {marketplace.map((d: any) => <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)} />)}
-              </div>
-            )}
-          </Section>
-
-          <Section title="Manuais" kicker="Entregas criadas direto por você" count={manual.length}>
-            {manual.length === 0 ? (
-              <EmptyState icon={Sparkles} text="Crie sua primeira entrega manual em segundos." action={
-                <Button onClick={() => setShowForm(true)} className="mt-4 rounded-xl font-bold">
-                  <Plus className="h-4 w-4 mr-2" />Nova entrega
-                </Button>
-              } />
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                {manual.map((d: any) => <DeliveryCard key={d.id} d={d} onFinish={() => finishDelivery(d.id)} />)}
-              </div>
-            )}
-          </Section>
-        </>
-      )}
+      <Section title="Manuais" kicker="Entregas criadas direto por você" count={manual.length}>
+        {manual.length === 0 ? (
+          <EmptyState icon={Sparkles} text="Crie sua primeira entrega manual em segundos." action={
+            <Link
+              to="/business/delivery-new"
+              className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 mt-4 rounded-xl font-bold"
+            >
+              <Plus className="h-4 w-4 mr-2" />Nova entrega
+            </Link>
+          } />
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {manual.map((d: any) => <DeliveryCard key={d.id} d={d} onFinish={() => finishDelivery(d.id)} />)}
+          </div>
+        )}
+      </Section>
 
       {/* ── BONASOFT Watermark ── */}
       <div className="mt-16 pb-8 flex justify-center opacity-40 select-none pointer-events-none">
@@ -246,7 +241,10 @@ function DeliveryCard({ d, marketplace, onFinish }: any) {
         <ArrowUpRight className="h-4 w-4 text-muted-foreground/40 group-hover:text-primary group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition" />
       </div>
 
-      <p className="mt-3 font-black text-lg leading-tight line-clamp-1">{d.customer_name ?? "Cliente"}</p>
+      <div className="flex items-start justify-between mt-3 gap-2">
+        <p className="font-black text-lg leading-tight line-clamp-1">{d.customer_name ?? "Cliente"}</p>
+        {d.short_id && <span className="bg-secondary text-secondary-foreground font-mono text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0">{d.short_id}</span>}
+      </div>
 
       <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
         <p className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 shrink-0" /><span className="line-clamp-2">{d.address}</span></p>
@@ -263,43 +261,5 @@ function DeliveryCard({ d, marketplace, onFinish }: any) {
         </Button>
       </div>
     </div>
-  );
-}
-
-function NewDeliveryForm({ companyId, onDone }: { companyId?: string; onDone: () => void }) {
-  const [f, setF] = useState({ customer_name: "", customer_phone: "", address: "", value: "" });
-  const [busy, setBusy] = useState(false);
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!companyId) return;
-    setBusy(true);
-    const { error } = await supabase.from("deliveries").insert({
-      company_id: companyId,
-      customer_name: f.customer_name,
-      customer_phone: f.customer_phone,
-      address: f.address,
-      value: Number(f.value || 0),
-      status: "pending",
-    });
-    setBusy(false);
-    if (error) toast.error(error.message);
-    else { toast.success("Entrega criada!"); onDone(); }
-  };
-  return (
-    <form onSubmit={submit} className="bg-card border border-border rounded-[2.5rem] p-8 space-y-5 max-w-2xl">
-      <div>
-        <p className="text-[11px] font-black uppercase tracking-[0.25em] text-muted-foreground">Cadastro rápido</p>
-        <h2 className="mt-1 font-black text-3xl tracking-tight">Nova entrega</h2>
-      </div>
-      <div className="grid sm:grid-cols-2 gap-4">
-        <div><Label>Nome do cliente</Label><Input value={f.customer_name} onChange={(e) => setF({ ...f, customer_name: e.target.value })} required className="rounded-xl h-11 mt-1.5" /></div>
-        <div><Label>Telefone</Label><Input value={f.customer_phone} onChange={(e) => setF({ ...f, customer_phone: e.target.value })} className="rounded-xl h-11 mt-1.5" /></div>
-      </div>
-      <div><Label>Endereço de entrega</Label><Input value={f.address} onChange={(e) => setF({ ...f, address: e.target.value })} required className="rounded-xl h-11 mt-1.5" /></div>
-      <div><Label>Valor (R$)</Label><Input type="number" step="0.01" value={f.value} onChange={(e) => setF({ ...f, value: e.target.value })} required className="rounded-xl h-11 mt-1.5" /></div>
-      <Button type="submit" disabled={busy} size="lg" className="rounded-xl h-12 px-7 font-black shadow-glow">
-        {busy ? "Criando..." : "Criar entrega"}
-      </Button>
-    </form>
   );
 }

@@ -39,6 +39,7 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
           style: "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json",
           center: destCoords ? [destCoords.lng, destCoords.lat] : [-56.097, -15.601], // Default Cuiabá
           zoom: 14,
+          attributionControl: false,
         });
 
         map.addControl(new maplibregl.NavigationControl(), "bottom-right");

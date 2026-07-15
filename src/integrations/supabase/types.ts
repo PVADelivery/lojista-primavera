@@ -170,6 +170,57 @@ export type Database = {
         }
         Relationships: []
       }
+      business_directory: {
+        Row: {
+          address: string | null
+          card_image_url: string | null
+          card_style: string | null
+          category: string
+          created_at: string
+          featured: boolean
+          hours: string | null
+          id: string
+          name: string
+          phone: string | null
+          rating: number | null
+          updated_at: string
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address?: string | null
+          card_image_url?: string | null
+          card_style?: string | null
+          category?: string
+          created_at?: string
+          featured?: boolean
+          hours?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          rating?: number | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string | null
+          card_image_url?: string | null
+          card_style?: string | null
+          category?: string
+          created_at?: string
+          featured?: boolean
+          hours?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          rating?: number | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           company_id: string
@@ -533,13 +584,19 @@ export type Database = {
           assignment_type: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
+          change_for: number | null
+          city_id: string | null
           collected_at: string | null
           commission: number
           company_id: string
           completed_at: string | null
           created_at: string
+          customer_address_complement: string | null
+          customer_address_number: string | null
           customer_cpf: string | null
           customer_name: string
+          customer_neighborhood: string | null
+          customer_phone: string | null
           difficulty: string | null
           distance_km: number | null
           driver_id: string | null
@@ -550,8 +607,11 @@ export type Database = {
           longitude: number | null
           notes: string | null
           order_id: string | null
+          order_value: number | null
+          payment_method: string | null
           proof_photo_url: string | null
           region_id: string | null
+          short_id: string | null
           signature_url: string | null
           status: Database["public"]["Enums"]["delivery_status"]
           updated_at: string
@@ -564,13 +624,19 @@ export type Database = {
           assignment_type?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          change_for?: number | null
+          city_id?: string | null
           collected_at?: string | null
           commission?: number
           company_id: string
           completed_at?: string | null
           created_at?: string
+          customer_address_complement?: string | null
+          customer_address_number?: string | null
           customer_cpf?: string | null
           customer_name: string
+          customer_neighborhood?: string | null
+          customer_phone?: string | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -581,8 +647,11 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           order_id?: string | null
+          order_value?: number | null
+          payment_method?: string | null
           proof_photo_url?: string | null
           region_id?: string | null
+          short_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
@@ -595,13 +664,19 @@ export type Database = {
           assignment_type?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
+          change_for?: number | null
+          city_id?: string | null
           collected_at?: string | null
           commission?: number
           company_id?: string
           completed_at?: string | null
           created_at?: string
+          customer_address_complement?: string | null
+          customer_address_number?: string | null
           customer_cpf?: string | null
           customer_name?: string
+          customer_neighborhood?: string | null
+          customer_phone?: string | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -612,8 +687,11 @@ export type Database = {
           longitude?: number | null
           notes?: string | null
           order_id?: string | null
+          order_value?: number | null
+          payment_method?: string | null
           proof_photo_url?: string | null
           region_id?: string | null
+          short_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
           updated_at?: string
@@ -621,6 +699,13 @@ export type Database = {
           vehicle_type?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "deliveries_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "deliveries_company_id_fkey"
             columns: ["company_id"]
@@ -1250,6 +1335,7 @@ export type Database = {
           date: string
           description: string
           id: string
+          origin: string | null
           type: string
         }
         Insert: {
@@ -1259,6 +1345,7 @@ export type Database = {
           date: string
           description: string
           id?: string
+          origin?: string | null
           type: string
         }
         Update: {
@@ -1268,6 +1355,7 @@ export type Database = {
           date?: string
           description?: string
           id?: string
+          origin?: string | null
           type?: string
         }
         Relationships: []
@@ -1899,6 +1987,13 @@ export type Database = {
       }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
+      get_my_roles: {
+        Args: never
+        Returns: {
+          role: string
+        }[]
+      }
+      get_user_company_ids: { Args: { uid: string }; Returns: string[] }
       has_profile_role: {
         Args: { _role: string; _user_id: string }
         Returns: boolean

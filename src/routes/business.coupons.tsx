@@ -4,6 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useCoupons, useCouponMutations, Coupon } from "@/services/coupons";
 import { useProductsManager } from "@/services/stores-products";
+import { format } from "date-fns";
+import { CurrencyInput } from "@/components/ui/CurrencyInput";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -374,15 +376,22 @@ function BusinessCouponsPage() {
                   <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">
                     {discountType === "percentage" ? "Valor (%)" : "Valor (R$)"}
                   </Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={discountValue}
-                    onChange={(e) => setDiscountValue(e.target.value)}
-                    className="h-12 rounded-xl border-2 border-muted focus:border-primary transition-all font-black text-lg"
-                  />
+                  {discountType === "percentage" ? (
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={discountValue}
+                      onChange={(e) => setDiscountValue(e.target.value)}
+                      className="h-12 rounded-xl border-2 border-muted focus:border-primary transition-all font-black text-lg"
+                    />
+                  ) : (
+                    <CurrencyInput
+                      value={discountValue}
+                      onChangeValue={setDiscountValue}
+                      className="h-12 rounded-xl border-2 border-muted focus:border-primary transition-all font-black text-lg"
+                    />
+                  )}
                 </div>
               </div>
 
@@ -440,13 +449,9 @@ function BusinessCouponsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Pedido Mínimo</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="R$ 0,00"
+                  <CurrencyInput
                     value={minOrderValue}
-                    onChange={(e) => setMinOrderValue(e.target.value)}
+                    onChangeValue={setMinOrderValue}
                     className="h-12 rounded-xl border-2 border-muted focus:border-primary transition-all font-bold"
                   />
                 </div>
@@ -466,13 +471,9 @@ function BusinessCouponsPage() {
               {discountType === "percentage" && (
                 <div className="space-y-2">
                   <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1">Desconto Máximo (R$)</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Ilimitado"
+                  <CurrencyInput
                     value={maxDiscountValue}
-                    onChange={(e) => setMaxDiscountValue(e.target.value)}
+                    onChangeValue={setMaxDiscountValue}
                     className="h-12 rounded-xl border-2 border-muted focus:border-primary transition-all font-bold"
                   />
                 </div>

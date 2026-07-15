@@ -16,12 +16,13 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as BusinessIndexRouteImport } from './routes/business.index'
 import { Route as LoginBusinessRouteImport } from './routes/login.business'
 import { Route as InviteTokenRouteImport } from './routes/invite.$token'
-import { Route as BusinessProfileRouteImport } from './routes/business.profile'
+import { Route as BusinessSettingsRouteImport } from './routes/business.settings'
 import { Route as BusinessProductsRouteImport } from './routes/business.products'
 import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
 import { Route as BusinessMapRouteImport } from './routes/business.map'
 import { Route as BusinessHistoryRouteImport } from './routes/business.history'
 import { Route as BusinessFinanceRouteImport } from './routes/business.finance'
+import { Route as BusinessDeliveryNewRouteImport } from './routes/business.delivery-new'
 import { Route as BusinessCustomersRouteImport } from './routes/business.customers'
 import { Route as BusinessCouponsRouteImport } from './routes/business.coupons'
 
@@ -60,9 +61,9 @@ const InviteTokenRoute = InviteTokenRouteImport.update({
   path: '/invite/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
-const BusinessProfileRoute = BusinessProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const BusinessSettingsRoute = BusinessSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => BusinessRoute,
 } as any)
 const BusinessProductsRoute = BusinessProductsRouteImport.update({
@@ -90,6 +91,11 @@ const BusinessFinanceRoute = BusinessFinanceRouteImport.update({
   path: '/finance',
   getParentRoute: () => BusinessRoute,
 } as any)
+const BusinessDeliveryNewRoute = BusinessDeliveryNewRouteImport.update({
+  id: '/delivery-new',
+  path: '/delivery-new',
+  getParentRoute: () => BusinessRoute,
+} as any)
 const BusinessCustomersRoute = BusinessCustomersRouteImport.update({
   id: '/customers',
   path: '/customers',
@@ -108,12 +114,13 @@ export interface FileRoutesByFullPath {
   '/pending-approval': typeof PendingApprovalRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
+  '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business/': typeof BusinessIndexRoute
@@ -124,12 +131,13 @@ export interface FileRoutesByTo {
   '/pending-approval': typeof PendingApprovalRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
+  '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business': typeof BusinessIndexRoute
@@ -142,12 +150,13 @@ export interface FileRoutesById {
   '/pending-approval': typeof PendingApprovalRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
+  '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
-  '/business/profile': typeof BusinessProfileRoute
+  '/business/settings': typeof BusinessSettingsRoute
   '/invite/$token': typeof InviteTokenRoute
   '/login/business': typeof LoginBusinessRoute
   '/business/': typeof BusinessIndexRoute
@@ -161,12 +170,13 @@ export interface FileRouteTypes {
     | '/pending-approval'
     | '/business/coupons'
     | '/business/customers'
+    | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business/'
@@ -177,12 +187,13 @@ export interface FileRouteTypes {
     | '/pending-approval'
     | '/business/coupons'
     | '/business/customers'
+    | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business'
@@ -194,12 +205,13 @@ export interface FileRouteTypes {
     | '/pending-approval'
     | '/business/coupons'
     | '/business/customers'
+    | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
-    | '/business/profile'
+    | '/business/settings'
     | '/invite/$token'
     | '/login/business'
     | '/business/'
@@ -264,11 +276,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof InviteTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/business/profile': {
-      id: '/business/profile'
-      path: '/profile'
-      fullPath: '/business/profile'
-      preLoaderRoute: typeof BusinessProfileRouteImport
+    '/business/settings': {
+      id: '/business/settings'
+      path: '/settings'
+      fullPath: '/business/settings'
+      preLoaderRoute: typeof BusinessSettingsRouteImport
       parentRoute: typeof BusinessRoute
     }
     '/business/products': {
@@ -306,6 +318,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessFinanceRouteImport
       parentRoute: typeof BusinessRoute
     }
+    '/business/delivery-new': {
+      id: '/business/delivery-new'
+      path: '/delivery-new'
+      fullPath: '/business/delivery-new'
+      preLoaderRoute: typeof BusinessDeliveryNewRouteImport
+      parentRoute: typeof BusinessRoute
+    }
     '/business/customers': {
       id: '/business/customers'
       path: '/customers'
@@ -326,24 +345,26 @@ declare module '@tanstack/react-router' {
 interface BusinessRouteChildren {
   BusinessCouponsRoute: typeof BusinessCouponsRoute
   BusinessCustomersRoute: typeof BusinessCustomersRoute
+  BusinessDeliveryNewRoute: typeof BusinessDeliveryNewRoute
   BusinessFinanceRoute: typeof BusinessFinanceRoute
   BusinessHistoryRoute: typeof BusinessHistoryRoute
   BusinessMapRoute: typeof BusinessMapRoute
   BusinessOrdersRoute: typeof BusinessOrdersRoute
   BusinessProductsRoute: typeof BusinessProductsRoute
-  BusinessProfileRoute: typeof BusinessProfileRoute
+  BusinessSettingsRoute: typeof BusinessSettingsRoute
   BusinessIndexRoute: typeof BusinessIndexRoute
 }
 
 const BusinessRouteChildren: BusinessRouteChildren = {
   BusinessCouponsRoute: BusinessCouponsRoute,
   BusinessCustomersRoute: BusinessCustomersRoute,
+  BusinessDeliveryNewRoute: BusinessDeliveryNewRoute,
   BusinessFinanceRoute: BusinessFinanceRoute,
   BusinessHistoryRoute: BusinessHistoryRoute,
   BusinessMapRoute: BusinessMapRoute,
   BusinessOrdersRoute: BusinessOrdersRoute,
   BusinessProductsRoute: BusinessProductsRoute,
-  BusinessProfileRoute: BusinessProfileRoute,
+  BusinessSettingsRoute: BusinessSettingsRoute,
   BusinessIndexRoute: BusinessIndexRoute,
 }
 

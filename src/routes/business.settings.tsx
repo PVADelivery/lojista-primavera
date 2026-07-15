@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,8 +7,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
-  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign
+  Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair, AlertTriangle
 } from "lucide-react";
+import * as maplibregl from "maplibre-gl";
+import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_WORKING_DAYS = [
@@ -65,12 +67,12 @@ const normalizeWorkingDays = (value: any) => {
   });
 };
 
-export const Route = createFileRoute("/business/profile")({
-  component: BusinessProfilePage,
+export const Route = createFileRoute("/business/settings")({
+  component: BusinessSettingsPage,
 });
 
-function BusinessProfilePage() {
-  const { user, profile } = useAuth();
+function BusinessSettingsPage() {
+  const { user, profile, deleteAccount } = useAuth();
   const qc = useQueryClient();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -89,6 +91,13 @@ function BusinessProfilePage() {
   const [showInMarketplace, setShowInMarketplace] = useState(false);
   const [gallery, setGallery] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState(() => DEFAULT_WORKING_DAYS.map((day) => ({ ...day })));
+  
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markerRef = useRef<maplibregl.Marker | null>(null);
 
   // Edit states for overlays
   const [isEditingLogo, setIsEditingLogo] = useState(false);
@@ -148,6 +157,8 @@ function BusinessProfilePage() {
         setDeliveryFee(company.delivery_fee?.toString() || "0.00");
         setGallery(normalizeGallery(company.gallery));
         setWorkingDays(normalizeWorkingDays(company.business_hours));
+        if (company.latitude) setLatitude(company.latitude);
+        if (company.longitude) setLongitude(company.longitude);
       }
     } catch (err) {
       console.error("Erro ao carregar dados:", err);
@@ -156,9 +167,56 @@ function BusinessProfilePage() {
     }
   };
 
+  // Map Initialization
+  useEffect(() => {
+    if (!isMapFullscreen || !mapContainerRef.current) return;
+    
+    if (mapRef.current) {
+       mapRef.current.remove();
+       mapRef.current = null;
+    }
+
+    const center = longitude && latitude ? [longitude, latitude] : [-54.3075, -15.5606];
+
+    mapRef.current = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          "osm-tiles": {
+            type: "raster",
+            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+            tileSize: 256,
+          },
+        },
+        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
+      },
+      center: [center[0], center[1]],
+      zoom: 16,
+      attributionControl: false,
+    });
+
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+    };
+  }, [isMapFullscreen]);
+
+  const handleSetLocation = () => {
+     if (mapRef.current) {
+        const center = mapRef.current.getCenter();
+        setLongitude(center.lng);
+        setLatitude(center.lat);
+        setIsMapFullscreen(false);
+        toast.success("Localização atualizada! Não esqueça de salvar o perfil.");
+     }
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = event.target.files?.[0];
-    if (!file || !companyId) return;
+    if (!file || !companyId || !user?.id) return;
 
     // Validate size and type
     if (file.size > 5 * 1024 * 1024) {
@@ -170,7 +228,7 @@ function BusinessProfilePage() {
     try {
       const fileExt = file.name.split('.').pop();
       const fileName = `${type}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-      const filePath = `${companyId}/${fileName}`;
+      const filePath = `${user.id}/${fileName}`;
 
       // Upload to Supabase Storage
       const { error: uploadError } = await supabase.storage
@@ -207,7 +265,7 @@ function BusinessProfilePage() {
 
   const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0 || !companyId) return;
+    if (!files || files.length === 0 || !companyId || !user?.id) return;
 
     setIsUploading(true);
     try {
@@ -222,7 +280,7 @@ function BusinessProfilePage() {
 
         const fileExt = file.name.split('.').pop();
         const fileName = `gallery-${Math.random().toString(36).substring(2)}.${fileExt}`;
-        const filePath = `${companyId}/gallery/${fileName}`;
+        const filePath = `${user.id}/gallery/${fileName}`;
 
         const { error: uploadError } = await supabase.storage
           .from('store-assets')
@@ -255,22 +313,41 @@ function BusinessProfilePage() {
     if (!companyId) return;
     const newActive = !isOpen;
     setIsOpen(newActive);
-    setShowInMarketplace(newActive);
     try {
       const { error } = await supabase
         .from("companies")
-        .update({ is_open: newActive, show_in_marketplace: newActive })
+        .update({ is_open: newActive })
         .eq("id", companyId);
       if (error) throw error;
       toast.success(
         newActive
-          ? "Loja ativa! Visível no marketplace e aceitando pedidos."
-          : "Loja pausada. Oculta no marketplace e sem receber pedidos."
+          ? "Loja aberta para receber pedidos!"
+          : "Loja fechada temporariamente."
       );
     } catch {
       setIsOpen(!newActive);
-      setShowInMarketplace(!newActive);
       toast.error("Erro ao atualizar status da loja");
+    }
+  };
+
+  const toggleMarketplace = async () => {
+    if (!companyId) return;
+    const newActive = !showInMarketplace;
+    setShowInMarketplace(newActive);
+    try {
+      const { error } = await supabase
+        .from("companies")
+        .update({ show_in_marketplace: newActive })
+        .eq("id", companyId);
+      if (error) throw error;
+      toast.success(
+        newActive
+          ? "Sua loja agora está visível no Marketplace!"
+          : "Sua loja foi ocultada do Marketplace."
+      );
+    } catch {
+      setShowInMarketplace(!newActive);
+      toast.error("Erro ao atualizar visibilidade");
     }
   };
 
@@ -286,12 +363,11 @@ function BusinessProfilePage() {
     setSaving(true);
 
     try {
-      const hoursJson = JSON.stringify(workingDays);
       const { error } = await supabase
         .from("companies")
         .update({
           name: storeName,
-          phone,
+          phone: phone.replace(/[^0-9]/g, ""),
           address,
           description,
           logo_url: logoUrl,
@@ -300,8 +376,10 @@ function BusinessProfilePage() {
           delivery_fee: parseFloat(deliveryFee.replace(',', '.')),
           is_open: isOpen,
           show_in_marketplace: showInMarketplace,
-          business_hours: hoursJson,
+          business_hours: JSON.stringify(workingDays),
           gallery: gallery,
+          latitude: latitude,
+          longitude: longitude
         })
         .eq("id", companyId);
 
@@ -468,42 +546,77 @@ function BusinessProfilePage() {
                         </div>
                         
                         <div className="pt-4 border-t border-border/40 mt-6 space-y-3">
-                             <button
-                                type="button"
-                                onClick={toggleStoreActive}
-                                className={cn(
-                                  "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
-                                  isOpen
-                                    ? "bg-emerald-50 border-emerald-400 shadow-md shadow-emerald-100"
-                                    : "bg-muted/40 border-border/60 hover:border-border"
-                                )}
-                             >
-                                <div className="text-left">
-                                   <p className={cn(
-                                     "text-[11px] font-black uppercase tracking-widest",
-                                     isOpen ? "text-emerald-700" : "text-muted-foreground"
-                                   )}>
-                                     {isOpen ? "✅ Loja Ativa" : "⏸️ Loja Pausada"}
-                                   </p>
-                                   <p className={cn(
-                                     "text-[10px] font-medium mt-0.5",
-                                     isOpen ? "text-emerald-600" : "text-muted-foreground"
-                                   )}>
-                                     {isOpen
-                                       ? "Visível no marketplace · Aceitando pedidos"
-                                       : "Oculta no marketplace · Sem receber pedidos"}
-                                   </p>
-                                </div>
-                                <div className={cn(
-                                  "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
-                                  isOpen ? "bg-emerald-500" : "bg-muted-foreground/30"
-                                )}>
-                                   <span className={cn(
-                                     "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
-                                     isOpen ? "translate-x-6" : "translate-x-1"
-                                   )} />
-                                </div>
-                             </button>
+                              <div className="flex flex-col gap-4">
+                               <button
+                                  type="button"
+                                  onClick={toggleStoreActive}
+                                  className={cn(
+                                    "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
+                                    isOpen
+                                      ? "bg-emerald-50 border-emerald-400 shadow-md shadow-emerald-100"
+                                      : "bg-muted/40 border-border/60 hover:border-border"
+                                  )}
+                               >
+                                  <div className="text-left flex-1 pr-4">
+                                     <p className={cn(
+                                       "text-[11px] font-black uppercase tracking-widest",
+                                       isOpen ? "text-emerald-700" : "text-muted-foreground"
+                                     )}>
+                                       {isOpen ? "✅ Loja Ativa" : "⏸️ Loja Pausada"}
+                                     </p>
+                                     <p className={cn(
+                                       "text-[10px] font-medium mt-0.5",
+                                       isOpen ? "text-emerald-600" : "text-muted-foreground"
+                                     )}>
+                                       {isOpen ? "Recebendo pedidos" : "Sem receber pedidos"}
+                                     </p>
+                                  </div>
+                                  <div className={cn(
+                                    "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
+                                    isOpen ? "bg-emerald-500" : "bg-muted-foreground/30"
+                                  )}>
+                                     <span className={cn(
+                                       "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                                       isOpen ? "translate-x-6" : "translate-x-1"
+                                     )} />
+                                  </div>
+                               </button>
+
+                               <button
+                                  type="button"
+                                  onClick={toggleMarketplace}
+                                  className={cn(
+                                    "w-full flex items-center justify-between p-4 rounded-2xl border-2 transition-all duration-300 cursor-pointer group",
+                                    showInMarketplace
+                                      ? "bg-primary/10 border-primary shadow-md shadow-primary/20"
+                                      : "bg-muted/40 border-border/60 hover:border-border"
+                                  )}
+                               >
+                                  <div className="text-left flex-1 pr-4">
+                                     <p className={cn(
+                                       "text-[11px] font-black uppercase tracking-widest",
+                                       showInMarketplace ? "text-primary" : "text-muted-foreground"
+                                     )}>
+                                       {showInMarketplace ? "🌟 No Marketplace" : "🙈 Oculta no App"}
+                                     </p>
+                                     <p className={cn(
+                                       "text-[10px] font-medium mt-0.5",
+                                       showInMarketplace ? "text-primary/80" : "text-muted-foreground"
+                                     )}>
+                                       {showInMarketplace ? "Visível para clientes" : "Apenas link direto"}
+                                     </p>
+                                  </div>
+                                  <div className={cn(
+                                    "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors",
+                                    showInMarketplace ? "bg-primary" : "bg-muted-foreground/30"
+                                  )}>
+                                     <span className={cn(
+                                       "pointer-events-none block h-5 w-5 rounded-full bg-white shadow-lg ring-0 transition-transform",
+                                       showInMarketplace ? "translate-x-6" : "translate-x-1"
+                                     )} />
+                                  </div>
+                               </button>
+                             </div>
 
                            <div className="space-y-3">
                               <div className="flex items-center justify-between">
@@ -536,25 +649,25 @@ function BusinessProfilePage() {
                                       <span className={cn("text-xs font-bold w-10", wd.active ? "text-foreground" : "text-muted-foreground")}>{wd.day}</span>
                                     </div>
                                     
-                                    <div className={cn("flex items-center gap-3 transition-all", !wd.active && "opacity-20 pointer-events-none")}>
+                                    <div className={cn("flex items-center gap-1.5 sm:gap-3 transition-all", !wd.active && "opacity-20 pointer-events-none")}>
                                       <div className="relative">
-                                        <Clock3 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                                        <Clock3 className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
                                         <input 
                                           type="text" 
                                           value={wd.start} 
                                           onChange={(e) => updateWorkingDay(idx, 'start', e.target.value)}
-                                          className="w-20 pl-7 pr-2 py-1.5 text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                                          className="w-[4rem] sm:w-20 pl-5 sm:pl-7 pr-1 sm:pr-2 py-1.5 text-[10px] sm:text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
                                           placeholder="08:00"
                                         />
                                       </div>
-                                      <span className="text-[10px] font-black text-muted-foreground/30">➜</span>
+                                      <span className="text-[9px] sm:text-[10px] font-black text-muted-foreground/30">➜</span>
                                       <div className="relative">
-                                        <Clock3 className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
+                                        <Clock3 className="absolute left-1.5 sm:left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground/50" />
                                         <input 
                                           type="text" 
                                           value={wd.end} 
                                           onChange={(e) => updateWorkingDay(idx, 'end', e.target.value)}
-                                          className="w-20 pl-7 pr-2 py-1.5 text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                                          className="w-[4rem] sm:w-20 pl-5 sm:pl-7 pr-1 sm:pr-2 py-1.5 text-[10px] sm:text-[11px] font-black bg-background border border-border rounded-xl text-center outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
                                           placeholder="18:00"
                                         />
                                       </div>
@@ -596,6 +709,22 @@ function BusinessProfilePage() {
                                   placeholder="Av. Brasil, 123 - Centro"
                                />
                             </div>
+                         </div>
+                         
+                         <div className="space-y-2">
+                             <label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-2">Localização Exata no Mapa</label>
+                             <div 
+                               onClick={() => setIsMapFullscreen(true)}
+                               className="relative h-24 rounded-2xl overflow-hidden border-2 border-primary/20 bg-primary/5 cursor-pointer flex flex-col items-center justify-center group hover:bg-primary/10 transition-all"
+                             >
+                                 <MapPinIcon className="h-6 w-6 text-primary mb-1 group-hover:scale-110 transition-transform" />
+                                 <span className="text-[10px] font-black uppercase tracking-widest text-primary">
+                                     {latitude && longitude ? "Alterar Ponto no Mapa" : "Marcar Ponto no Mapa"}
+                                 </span>
+                                 {latitude && longitude && (
+                                     <span className="text-[8px] text-muted-foreground mt-1">Localização Configurada</span>
+                                 )}
+                             </div>
                          </div>
 
                          <div className="space-y-2">
@@ -680,7 +809,7 @@ function BusinessProfilePage() {
                        </div>
                        <div className="h-14 bg-muted/40 rounded-xl p-2">
                           <p className="text-[7px] text-muted-foreground line-clamp-4 italic leading-relaxed">
-                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do Pronto Agora."}
+                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do Primavera Delivery."}
                           </p>
                        </div>
                        <div className="space-y-2">
@@ -763,6 +892,81 @@ function BusinessProfilePage() {
         </div>,
         document.body
       )}
+
+      {/* MAP MODAL */}
+      {isMapFullscreen && createPortal(
+         <div className="fixed inset-0 z-[200] bg-background animate-in fade-in duration-300 flex flex-col">
+           {/* Header */}
+           <div className="h-20 border-b border-border bg-card px-6 flex items-center justify-between shadow-sm z-10 shrink-0">
+             <div className="flex items-center gap-4">
+               <button onClick={() => setIsMapFullscreen(false)} className="p-3 bg-muted rounded-full hover:bg-muted/80 transition-colors cursor-pointer">
+                 <X className="w-5 h-5 text-foreground" />
+               </button>
+               <div>
+                 <h2 className="text-lg font-black text-foreground">Localização da Loja</h2>
+                 <p className="text-xs text-muted-foreground font-bold">Arraste o mapa para marcar a loja</p>
+               </div>
+             </div>
+             <button 
+               onClick={handleSetLocation}
+               className="px-6 py-3 bg-primary text-primary-foreground rounded-full text-sm font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl shadow-primary/20 cursor-pointer"
+             >
+               Confirmar Local
+             </button>
+           </div>
+           
+           {/* Map Area */}
+           <div className="flex-1 relative">
+             <div ref={mapContainerRef} className="w-full h-full" />
+             
+             {/* Center Crosshair */}
+             <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
+               <div className="relative flex flex-col items-center justify-center -mt-8">
+                 <div className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full mb-2 shadow-lg animate-bounce">
+                   Local Exato
+                 </div>
+                 <Crosshair className="w-8 h-8 text-primary drop-shadow-md" />
+                 <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1 shadow-lg" />
+               </div>
+             </div>
+           </div>
+         </div>,
+         document.body
+      )}
+
+      {/* Danger Zone */}
+      <div className="pt-6 mt-8 border-t border-border/50">
+        <div className="bg-destructive/5 rounded-3xl p-6 border border-destructive/20 space-y-4 shadow-sm relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-destructive/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none" />
+          <div className="flex items-center gap-3 text-destructive relative z-10">
+            <div className="w-10 h-10 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
+              <AlertTriangle className="h-5 w-5" />
+            </div>
+            <p className="text-lg font-black tracking-tight">Zona de Perigo</p>
+          </div>
+          <p className="text-sm text-muted-foreground leading-relaxed relative z-10">
+            Ao excluir sua conta, todos os seus dados de estabelecimento, histórico de vendas e faturamento serão permanentemente removidos. Esta ação não pode ser desfeita.
+          </p>
+          
+          <div className="relative z-10 pt-2">
+            <button 
+              onClick={async () => {
+                if(confirm("Você tem certeza absoluta? Esta ação é irreversível. Todos os dados da sua empresa e acesso ao painel do lojista serão deletados imediatamente.")) {
+                  try {
+                    await deleteAccount();
+                    toast.success("Conta excluída. Sentiremos sua falta!");
+                  } catch (err) {
+                    toast.error("Não foi possível remover sua conta agora.");
+                  }
+                }
+              }}
+              className="w-full py-4 rounded-2xl bg-destructive text-destructive-foreground text-sm font-black uppercase tracking-widest hover:bg-destructive/90 transition-all flex items-center justify-center gap-2 shadow-xl shadow-destructive/20 cursor-pointer"
+            >
+              Excluir minha conta permanentemente
+            </button>
+          </div>
+        </div>
+      </div>
 
       {/* ── BONASOFT Watermark ── */}
       <div className="mt-16 pb-8 flex justify-center opacity-40 select-none pointer-events-none">
