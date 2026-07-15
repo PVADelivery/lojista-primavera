@@ -45,7 +45,6 @@ const SIDEBAR_GROUPS = [
     items: [
       { to: "/business/finance", label: "Financeiro", icon: Wallet },
       { to: "/business/history", label: "Histórico", icon: History },
-      { to: "/business/map", label: "Regiões", icon: MapPin },
     ]
   }
 ];
@@ -54,7 +53,6 @@ const TOP_TABS = [
   { to: "/business", label: "Painel", exact: true },
   { to: "/business/orders", label: "Pedidos" },
   { to: "/business/products", label: "Cardápio" },
-  { to: "/business/map", label: "Regiões" },
 ];
 
 const MOBILE_NAV = [
