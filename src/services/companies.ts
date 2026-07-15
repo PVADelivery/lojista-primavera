@@ -62,9 +62,6 @@ export function useMyCompany() {
   return useQuery({
     queryKey: ['my-company', user?.id],
     enabled: !!user?.id,
-    queryFn: async () => {
-      const { data } = await supabase.from('companies').select('*').eq('user_id', user!.id).maybeSingle();
-      return data;
-    },
+    queryFn: () => fetchCompanyByUserId(user!.id),
   });
 }
