@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
@@ -217,7 +217,7 @@ function OrdersPage() {
         hr { border: none; border-top: 1px dashed #ccc; margin: 16px 0; }
         .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #999; }
       </style></head><body>
-        <h1>Primavera Delivery</h1>
+        <h1>MT Express</h1>
         <p style="color:#666;margin-top:0">Comanda de Pedido</p>
         <hr/>
         <div class="label">Pedido</div>

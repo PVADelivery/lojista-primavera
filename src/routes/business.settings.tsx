@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+﻿import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -923,7 +923,7 @@ function BusinessSettingsPage() {
                        </div>
                        <div className="h-14 bg-muted/40 rounded-xl p-2">
                           <p className="text-[7px] text-muted-foreground line-clamp-4 italic leading-relaxed">
-                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do Primavera Delivery."}
+                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do MT Express."}
                           </p>
                        </div>
                        <div className="space-y-2">
