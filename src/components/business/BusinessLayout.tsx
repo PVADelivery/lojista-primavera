@@ -133,7 +133,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           {/* Logo & Brand */}
           <Link to="/business" className={`h-20 flex items-center gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors ${isSidebarExpanded ? "px-6" : "px-0 justify-center"}`}>
             <div className="h-12 w-12 min-w-12 flex items-center justify-center">
-              <img src={logoIcon} alt="MT Express" className="h-full w-full object-contain" />
+              <img src={logoIcon} alt="MT 24horas express" className="h-full w-full object-contain" />
             </div>
             {isSidebarExpanded && (
               <div className="flex flex-col whitespace-nowrap overflow-hidden">
@@ -240,9 +240,9 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
               <div className="h-10 w-10 flex items-center justify-center">
-                <img src={logoIcon} alt="MT Express" className="h-full w-full object-contain" />
+                <img src={logoIcon} alt="MT 24horas express" className="h-full w-full object-contain" />
               </div>
-              <span className="font-black text-sm">MT Express</span>
+              <span className="font-black text-sm">MT 24horas express</span>
             </div>
 
 

@@ -227,7 +227,7 @@ function OrdersPage() {
         hr { border: none; border-top: 1px dashed #ccc; margin: 16px 0; }
         .footer { margin-top: 24px; text-align: center; font-size: 11px; color: #999; }
       </style></head><body>
-        <h1>MT Express</h1>
+        <h1>MT 24horas express</h1>
         <p style="color:#666;margin-top:0">Comanda de Pedido</p>
         <hr/>
         <div class="label">Pedido</div>

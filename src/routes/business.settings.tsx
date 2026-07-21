@@ -943,7 +943,7 @@ function BusinessSettingsPage() {
                        </div>
                        <div className="h-14 bg-muted/40 rounded-xl p-2">
                           <p className="text-[7px] text-muted-foreground line-clamp-4 italic leading-relaxed">
-                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do MT Express."}
+                             {description || "Sua descrição aparecerá aqui para os milhares de clientes do MT 24horas express."}
                           </p>
                        </div>
                        <div className="space-y-2">
