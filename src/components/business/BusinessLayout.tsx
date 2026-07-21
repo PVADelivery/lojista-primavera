@@ -35,7 +35,7 @@ const SIDEBAR_GROUPS = [
   {
     title: "MARKETPLACE",
     items: [
-      { to: "https://primaveradelivery.com", label: "Marketplace", icon: Store, external: true },
+      { to: "https://mt24horasexpress.com", label: "Marketplace", icon: Store, external: true },
       { to: "/business/products", label: "Cardápio/Produtos", icon: UtensilsCrossed },
       { to: "/business/coupons", label: "Cupons de Desconto", icon: Tag },
       { to: "/business/customers", label: "Meus Clientes", icon: Users },
