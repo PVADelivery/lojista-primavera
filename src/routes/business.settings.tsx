@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -248,7 +248,7 @@ function BusinessSettingsPage() {
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'cover') => {
     const file = event.target.files?.[0];
-    if (!file || !companyId || !user?.id) return;
+    if (!file || !user?.id) return;
 
     // Validate size and type
     if (file.size > 5 * 1024 * 1024) {
@@ -297,7 +297,7 @@ function BusinessSettingsPage() {
 
   const handleGalleryUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
-    if (!files || files.length === 0 || !companyId || !user?.id) return;
+    if (!files || files.length === 0 || !user?.id) return;
 
     setIsUploading(true);
     try {
@@ -342,9 +342,12 @@ function BusinessSettingsPage() {
   };
 
   const toggleStoreActive = async () => {
-    if (!companyId) return;
     const newActive = !isOpen;
     setIsOpen(newActive);
+    if (!companyId) {
+      toast.info("Lembre-se de salvar o perfil para aplicar as mudanças.");
+      return;
+    }
     try {
       const { error } = await supabase
         .from("companies")
@@ -363,9 +366,12 @@ function BusinessSettingsPage() {
   };
 
   const toggleMarketplace = async () => {
-    if (!companyId) return;
     const newActive = !showInMarketplace;
     setShowInMarketplace(newActive);
+    if (!companyId) {
+      toast.info("Lembre-se de salvar o perfil para aplicar as mudanças.");
+      return;
+    }
     try {
       const { error } = await supabase
         .from("companies")
@@ -408,13 +414,10 @@ function BusinessSettingsPage() {
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!companyId) return;
     setSaving(true);
 
     try {
-      const { error } = await supabase
-        .from("companies")
-        .update({
+      const payload = {
           name: storeName,
           phone: phone.replace(/[^0-9]/g, ""),
           address,
@@ -423,7 +426,7 @@ function BusinessSettingsPage() {
           cover_url: coverUrl,
           category: category,
           delivery_mode: deliveryMode,
-          delivery_fee: deliveryMode === "fixed_fee" ? parseFloat(deliveryFee.replace(',', '.')) : 0,
+          delivery_fee: deliveryMode === "fixed_fee" ? parseFloat(deliveryFee.replace(',', '.')) || 0 : 0,
           delivery_regions_pricing: deliveryRegionsPricing,
           is_open: isOpen,
           show_in_marketplace: showInMarketplace,
@@ -431,10 +434,27 @@ function BusinessSettingsPage() {
           gallery: gallery,
           latitude: latitude,
           longitude: longitude
-        })
-        .eq("id", companyId);
+      };
 
-      if (error) throw error;
+      if (companyId) {
+        const { error } = await supabase
+          .from("companies")
+          .update(payload)
+          .eq("id", companyId);
+        if (error) throw error;
+      } else {
+        const { data, error } = await supabase
+          .from("companies")
+          .insert({
+             ...payload,
+             user_id: user?.id,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        if (data) setCompanyId(data.id);
+      }
+
       qc.invalidateQueries({ queryKey: ["my-company"] });
       toast.success("Perfil Social atualizado!", {
         description: "Suas mudanças já estão visíveis no marketplace.",
