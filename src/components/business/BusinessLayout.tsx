@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,7 +100,10 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   }, [company?.id]);
 
   const toggleStore = async (open: boolean) => {
-    if (!company) return;
+    if (!company) {
+      toast.info("Você precisa configurar e salvar seu perfil em Configurações antes de abrir a loja.");
+      return;
+    }
     await supabase.from("companies").update({ is_open: open }).eq("id", company.id);
     qc.invalidateQueries({ queryKey: ["my-company"] });
     toast.success(open ? "Loja aberta — recebendo pedidos" : "Loja fechada");
