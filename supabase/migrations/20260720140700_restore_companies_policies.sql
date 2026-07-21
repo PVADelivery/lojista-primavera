@@ -28,5 +28,5 @@ CREATE POLICY "companies owner write" ON public.companies
 -- Permite que clientes (marketplace) leiam empresas visiveis publicamente
 DROP POLICY IF EXISTS "companies marketplace public read" ON public.companies;
 CREATE POLICY "companies marketplace public read" ON public.companies
-  FOR SELECT TO anon
+  FOR SELECT
   USING (show_in_marketplace = true);
