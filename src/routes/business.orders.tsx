@@ -1,4 +1,4 @@
-﻿import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
@@ -49,7 +49,16 @@ function OrdersPage() {
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState("0,00");
+  const [selectedRegionId, setSelectedRegionId] = useState("");
   const [busyDispatch, setBusyDispatch] = useState(false);
+
+  const { data: regions = [] } = useQuery({
+    queryKey: ["regions"],
+    queryFn: async () => {
+      const { data } = await supabase.from("regions").select("*").order("name");
+      return data || [];
+    },
+  });
 
   // Controle Transacional Rigoroso (Kanban Loop Bug Fix)
   const processingOrderIdsRef = useRef<Set<string>>(new Set());
@@ -180,6 +189,7 @@ function OrdersPage() {
       customer_phone: selectedOrder.customers?.phone || selectedOrder.customer_phone,
       address: selectedOrder.delivery_address || "Não informado",
       value: fee,
+      region_id: selectedRegionId || null,
       status: "pending"
     }).select().single();
 
@@ -461,6 +471,23 @@ function OrdersPage() {
                   autoFocus
                 />
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Região da Entrega (Opcional)</label>
+              <div className="text-xs text-muted-foreground mb-2 ml-1">
+                Endereço: {selectedOrder?.delivery_address || "Não informado"}
+              </div>
+              <select
+                value={selectedRegionId}
+                onChange={(e) => setSelectedRegionId(e.target.value)}
+                className="w-full h-14 px-4 rounded-[1.25rem] bg-secondary/30 border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all text-sm font-bold tracking-tight outline-none appearance-none"
+              >
+                <option value="">Selecione uma região...</option>
+                {regions.map((r: any) => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
+                ))}
+              </select>
             </div>
 
             <div className="flex gap-3 pt-2">
