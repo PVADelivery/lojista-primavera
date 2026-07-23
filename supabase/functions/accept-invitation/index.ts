@@ -101,6 +101,8 @@ Deno.serve(async (req) => {
           name: correctName, 
           email: finalEmail, 
           phone: phone || null,
+          is_active: true,
+          is_open: true,
           created_by_admin_id: invitation.invited_by || null,
         });
       } else {
@@ -108,6 +110,8 @@ Deno.serve(async (req) => {
           name: correctName, 
           email: finalEmail, 
           phone: phone || null,
+          is_active: true,
+          is_open: true,
           created_by_admin_id: invitation.invited_by || null,
         }).eq("user_id", userId);
       }
