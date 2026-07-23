@@ -118,6 +118,38 @@ function NewDeliveryPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
+  // Live Customer Autocomplete Search from Database
+  useEffect(() => {
+    if (!company?.id || !customerQuery.trim()) {
+      setCustomerSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      const q = customerQuery.trim();
+      const cleanPhone = q.replace(/\D/g, "");
+
+      let queryBuilder = supabase
+        .from("customers")
+        .select("*, addresses(*)")
+        .eq("company_id", company.id)
+        .limit(8);
+
+      if (cleanPhone.length >= 3) {
+        queryBuilder = queryBuilder.or(`name.ilike.%${q}%,phone.ilike.%${cleanPhone}%`);
+      } else {
+        queryBuilder = queryBuilder.ilike("name", `%${q}%`);
+      }
+
+      const { data } = await queryBuilder;
+      if (data) {
+        setCustomerSuggestions(data);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [customerQuery, company?.id]);
+
   // Map and routing State
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -616,12 +648,26 @@ function NewDeliveryPage() {
       const phoneClean = f.customer_phone.replace(/\D/g, "");
 
       if (f.customer_name.trim()) {
-        const { data: existingCust } = await supabase
-          .from("customers")
-          .select("id")
-          .eq("company_id", company.id)
-          .eq("phone", phoneClean)
-          .maybeSingle();
+        let existingCust = null;
+        if (phoneClean) {
+          const { data } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("company_id", company.id)
+            .eq("phone", phoneClean)
+            .maybeSingle();
+          existingCust = data;
+        }
+        
+        if (!existingCust) {
+          const { data } = await supabase
+            .from("customers")
+            .select("id")
+            .eq("company_id", company.id)
+            .ilike("name", f.customer_name.trim())
+            .maybeSingle();
+          existingCust = data;
+        }
 
         const custPayload = {
           company_id: company.id,
@@ -789,16 +835,24 @@ function NewDeliveryPage() {
                     placeholder="Ex: João da Silva"
                   />
                   {showSuggestions && customerSuggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-popover border border-border rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                    <div className="absolute z-20 w-full mt-1 bg-popover border border-border rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/20">
                       {customerSuggestions.map((cust) => (
                         <button
                           key={cust.id}
                           type="button"
                           onClick={() => selectCustomer(cust)}
-                          className="w-full text-left px-4 py-2 hover:bg-accent text-sm flex flex-col border-b border-border/20 last:border-b-0"
+                          className="w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors text-sm flex flex-col group"
                         >
-                          <span className="font-bold">{cust.name}</span>
-                          <span className="text-xs text-muted-foreground">{cust.phone || "Sem telefone"}</span>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{cust.name}</span>
+                            <span className="text-xs font-semibold text-muted-foreground">{cust.phone || "Sem telefone"}</span>
+                          </div>
+                          {cust.addresses && cust.addresses.length > 0 && (
+                            <span className="text-[11px] text-muted-foreground/80 mt-0.5 truncate flex items-center gap-1">
+                              <MapPin className="h-3 w-3 text-primary shrink-0" />
+                              {cust.addresses[0].street}{cust.addresses[0].number ? `, ${cust.addresses[0].number}` : ''}{cust.addresses[0].neighborhood ? ` - ${cust.addresses[0].neighborhood}` : ''}
+                            </span>
+                          )}
                         </button>
                       ))}
                     </div>
