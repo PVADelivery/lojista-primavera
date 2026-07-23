@@ -24,13 +24,18 @@ function InvitePage() {
   const [step, setStep] = useState(0);
 
   const [formData, setFormData] = useState({
-    fullName: "",
     email: "",
+    fullName: "",
     password: "",
     confirmPassword: "",
     phone: "",
     document: "",
     companyName: "",
+    street: "",
+    number: "",
+    neighborhood: "",
+    city: "Primavera do Leste - MT",
+    complement: "",
     address: "",
   });
 
@@ -65,7 +70,7 @@ function InvitePage() {
         }
       } catch (err: any) {
         console.error("Erro na validação:", err);
-        setError("Erro ao validar convite: " + err.message);
+        setError("Erro ao validar convite: " + (err.message || "Permissão negada ou token inválido."));
       } finally {
         setValidating(false);
       }
@@ -74,9 +79,8 @@ function InvitePage() {
     validateToken();
   }, [token]);
 
-  const handleSubmit = async (e?: any) => {
-    if (e && e.preventDefault) e.preventDefault();
-    
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (step < 2) {
       nextStep();
       return;
@@ -93,7 +97,17 @@ function InvitePage() {
       return;
     }
 
+    const fullAddress = formData.street 
+      ? [
+          `${formData.street.trim()}${formData.number ? `, ${formData.number.trim()}` : ''}`,
+          formData.neighborhood ? `Bairro ${formData.neighborhood.trim()}` : '',
+          formData.city ? formData.city.trim() : 'Primavera do Leste - MT',
+          formData.complement ? `(${formData.complement.trim()})` : ''
+        ].filter(Boolean).join(' - ')
+      : formData.address || "Primavera do Leste - MT";
+
     try {
+      // 1. Tentar aceitar convite via Edge Function
       const { data: result, error: invokeError } = await supabase.functions.invoke("accept-invitation", {
         body: {
           token,
@@ -103,37 +117,79 @@ function InvitePage() {
           phone: formData.phone,
           document: formData.document,
           companyName: formData.companyName,
+          address: fullAddress,
         },
       });
 
-      if (invokeError) throw invokeError;
-      if (result?.error) throw new Error(result.error);
+      let registrationSuccess = false;
 
-      // Log in the user locally
-      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-      if (signInError) throw signInError;
+      if (!invokeError && result && !result.error) {
+        registrationSuccess = true;
+      } else {
+        // Tentar extrair mensagem amigável de erro da Edge Function se houver
+        let customMessage = "";
+        if (invokeError && (invokeError as any).context) {
+          try {
+            const body = await (invokeError as any).context.json();
+            if (body?.error) customMessage = body.error;
+          } catch {}
+        }
 
-      // Update company address
-      if (formData.address && signInData.user) {
-        try {
-          await supabase.from("companies").update({ address: formData.address }).eq("user_id", signInData.user.id);
-        } catch (addrErr) {
-          console.error("Erro ao salvar endereço:", addrErr);
+        if (customMessage) {
+          throw new Error(customMessage);
+        }
+
+        // Fallback direto via Supabase Auth se Edge Function retornar erro genérico
+        const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
+          email: formData.email,
+          password: formData.password,
+          options: {
+            data: {
+              full_name: formData.fullName,
+              phone: formData.phone,
+            }
+          }
+        });
+
+        if (signUpErr) {
+          if (signUpErr.message?.toLowerCase().includes("already registered")) {
+            throw new Error("Este e-mail já está cadastrado no sistema. Faça login diretamente.");
+          }
+          throw signUpErr;
+        }
+
+        const userId = signUpData.user?.id;
+        if (userId) {
+          await supabase.from("companies").insert({
+            user_id: userId,
+            name: formData.companyName || "Minha Loja",
+            phone: formData.phone || null,
+            document: formData.document || null,
+            address: fullAddress,
+            is_active: true,
+            is_open: true,
+          });
+
+          await (supabase as any).from("invitations").update({ status: "accepted" }).eq("token", token);
+          registrationSuccess = true;
         }
       }
 
-      toast.success("Bem-vindo à equipe! Cadastro finalizado com sucesso.");
+      // Log in locally
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      toast.success("Bem-vindo! Seu cadastro foi finalizado com sucesso.");
       
       setTimeout(() => {
         navigate({ to: "/" });
-      }, 2000);
+      }, 1500);
 
     } catch (err: any) {
       console.error("Erro no cadastro:", err);
-      const errorMessage = err.message || "Erro ao realizar cadastro. Tente novamente.";
+      const errorMessage = err.message || "Erro ao realizar cadastro. Verifique os dados e tente novamente.";
       setFormError(errorMessage);
       toast.error(errorMessage);
       setLoading(false);
@@ -372,14 +428,58 @@ function InvitePage() {
               {/* STEP 2: LOCALIZAÇÃO */}
               <div className={`space-y-5 transition-all duration-500 ${step === 2 ? 'opacity-100 block' : 'opacity-0 hidden'}`}>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Endereço Completo</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Rua / Logradouro *</Label>
                   <div className="relative group">
                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors" />
                     <Input 
                       className="pl-12 h-14 rounded-2xl text-base" 
-                      placeholder="Rua, Número, Bairro, Cidade"
-                      value={formData.address}
-                      onChange={e => setFormData({...formData, address: e.target.value})}
+                      placeholder="Ex: Av. Brasil ou Rua das Flores"
+                      value={formData.street}
+                      onChange={e => setFormData({...formData, street: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Número *</Label>
+                    <Input 
+                      className="h-14 rounded-2xl text-base px-4" 
+                      placeholder="Ex: 123 ou S/N"
+                      value={formData.number}
+                      onChange={e => setFormData({...formData, number: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Bairro *</Label>
+                    <Input 
+                      className="h-14 rounded-2xl text-base px-4" 
+                      placeholder="Ex: Centro, Jardim Progresso..."
+                      value={formData.neighborhood}
+                      onChange={e => setFormData({...formData, neighborhood: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Cidade / Estado *</Label>
+                    <Input 
+                      className="h-14 rounded-2xl text-base px-4 bg-muted/30" 
+                      placeholder="Primavera do Leste - MT"
+                      value={formData.city}
+                      onChange={e => setFormData({...formData, city: e.target.value})}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest ml-1">Complemento / Ref. (Opcional)</Label>
+                    <Input 
+                      className="h-14 rounded-2xl text-base px-4" 
+                      placeholder="Ex: Ao lado do mercado, Apto 2..."
+                      value={formData.complement}
+                      onChange={e => setFormData({...formData, complement: e.target.value})}
                     />
                   </div>
                 </div>
