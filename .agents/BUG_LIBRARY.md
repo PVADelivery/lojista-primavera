@@ -133,13 +133,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 
 
+
 ---
 
-### 20. Bloqueio de Carregamento de Corridas/Entregas por Trava Assíncrona `enabled: !!driverId` (`driver.index.tsx`)
-* **Sintoma**: Entregador online visualizava a mensagem "Sem corridas de Táxi ou Moto Táxi disponíveis" mesmo existindo corridas no banco de dados.
-* **Causa Raiz**: As hooks `useQuery` para `available` e `availableRides` no app do entregador utilizavam a condição `enabled: !!driverId`. Como `driverId` é resolvido assincronamente via `ensureDriverRow`, o React Query desativava a execução da consulta, mantendo o resultado como `undefined` e forçando o render do fallback de lista vazia.
+### 21. Falha Silenciosa ao Clicar em "Aceitar Corrida" por `driverId` Nulo (`driver.index.tsx`)
+* **Sintoma**: O motorista clicava no botão "Aceitar Corrida" na lista de solicitações disponíveis, mas a corrida não era aceita e nenhum feedback visual era exibido.
+* **Causa Raiz**: As funções `handleAcceptRide` e `handleAccept` continham a guarda prematura `if (!driverId) return;`. Se o estado local `driverId` estivesse nulo ou atrasado, o evento do clique abortava em silêncio sem tentar recuperar o cadastro do motorista e sem emitir alertas.
 * **Solução Padrão**:
-  Remover a restrição `enabled: !!driverId` e definir `enabled: true` em consultas de ofertas globais desatribuidas (`driver_id IS NULL`), permitindo carregamento imediato:
+  1. Tentar resolver o `driverId` dinamicamente no momento da ação via `ensureDriverRow(user.id)`.
+  2. Caso o ID persista nulo, emitir mensagem de aviso clara via `toast.error(...)`:
   ```tsx
-  enabled: true,
+  let targetDriverId = driverId;
+  if (!targetDriverId && user) {
+    try { targetDriverId = await ensureDriverRow(user.id); setDriverId(targetDriverId); } catch (e) {}
+  }
+  if (!targetDriverId) { toast.error("Motorista não identificado..."); return; }
   ```
