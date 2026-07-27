@@ -648,7 +648,7 @@ function NewDeliveryPage() {
       const phoneClean = f.customer_phone.replace(/\D/g, "");
 
       if (f.customer_name.trim()) {
-        let existingCust = null;
+        let existingCust: { id: string } | null = null;
         if (phoneClean) {
           const { data } = await supabase
             .from("customers")
