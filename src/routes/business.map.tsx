@@ -25,12 +25,14 @@ function BusinessMapPage() {
 
   // Load saved city on mount
   useEffect(() => {
+    if (typeof window === "undefined") return;
     const stored = localStorage.getItem(CITY_STORAGE_KEY);
     if (stored) setSelectedCityName(stored);
   }, []);
 
   const selectCity = (cityName: string | null) => {
     setSelectedCityName(cityName);
+    if (typeof window === "undefined") return;
     if (cityName) localStorage.setItem(CITY_STORAGE_KEY, cityName);
     else localStorage.removeItem(CITY_STORAGE_KEY);
     setShowCityDropdown(false);

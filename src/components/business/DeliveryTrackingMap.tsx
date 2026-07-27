@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, MapPin, Loader2 } from "lucide-react";
@@ -13,14 +12,15 @@ interface DeliveryTrackingMapProps {
 
 export default function DeliveryTrackingMap({ deliveryId, driverId, destinationAddress }: DeliveryTrackingMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const driverMarkerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<any>(null);
+  const driverMarkerRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [eta, setEta] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mapContainerRef.current) return;
+    if (!mapContainerRef.current || typeof window === "undefined") return;
 
+    let isMounted = true;
     const initMap = async () => {
       try {
         setLoading(true);
@@ -29,10 +29,13 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
           destCoords = await geocodeAddress(destinationAddress);
         }
 
-        if (!mapContainerRef.current) {
+        if (!mapContainerRef.current || !isMounted) {
           setLoading(false);
           return;
         }
+
+        const maplibreglModule = await import("maplibre-gl");
+        const maplibregl = maplibreglModule.default || maplibreglModule;
 
         const map = new maplibregl.Map({
           container: mapContainerRef.current,

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import type { RegionRow } from "@/services/regions";
@@ -21,8 +20,8 @@ interface UnifiedMapProps {
 
 export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = false }: UnifiedMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<maplibregl.Map | null>(null);
-  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const map = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const regionsRenderedRef = useRef<string[]>([]);
   const mapLoaded = useRef(false);
 
@@ -73,47 +72,54 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         const coords = (r.polygon as any);
         if (Array.isArray(coords)) {
             coords.forEach((c: any) => {
-               if (c.lat && c.lng) {
-                   totalLng += c.lng;
-                   totalLat += c.lat;
-                   count++;
-               }
+              totalLat += c.lat || c[1];
+              totalLng += c.lng || c[0];
+              count++;
             });
         }
       }
     });
 
-    return count > 0 ? [totalLng / count, totalLat / count] as [number, number] : null;
+    if (count === 0) return null;
+    return [totalLng / count, totalLat / count] as [number, number];
   };
 
+  // Map Initialization (SSR Safe)
   useEffect(() => {
-    if (!mapContainer.current || map.current) return;
+    if (!mapContainer.current || map.current || typeof window === "undefined") return;
 
-    map.current = new maplibregl.Map({
-      container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          "osm-tiles": {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
+    let isMounted = true;
+    import("maplibre-gl").then((maplibreglModule) => {
+      if (!isMounted || !mapContainer.current) return;
+      const maplibregl = maplibreglModule.default || maplibreglModule;
+
+      map.current = new maplibregl.Map({
+        container: mapContainer.current,
+        style: {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+            },
           },
+          layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
         },
-        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
-      },
-      center: [centerCity.lng, centerCity.lat],
-      zoom: 12,
-      attributionControl: false,
-    });
+        center: [centerCity.lng, centerCity.lat],
+        zoom: 12,
+        attributionControl: false,
+      });
 
-    map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
+      map.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
 
-    map.current.on("load", () => {
-      mapLoaded.current = true;
+      map.current.on("load", () => {
+        mapLoaded.current = true;
+      });
     });
 
     return () => {
+      isMounted = false;
       map.current?.remove();
       map.current = null;
     };
