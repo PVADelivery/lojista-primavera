@@ -89,8 +89,8 @@ function BusinessSettingsPage() {
   const [deliveryFee, setDeliveryFee] = useState("0.00");
   const [isOpen, setIsOpen] = useState(true);
   const [showInMarketplace, setShowInMarketplace] = useState(false);
-  const [gallery, setGallery] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState(() => DEFAULT_WORKING_DAYS.map((day) => ({ ...day })));
+  const [activeSettingsTab, setActiveSettingsTab] = useState("all");
   
   // Delivery settings
   const [deliveryMode, setDeliveryMode] = useState<string>("fixed_fee");
@@ -479,6 +479,33 @@ function BusinessSettingsPage() {
       <div>
         <p className="label-tiny">Configurações</p>
         <h1 className="text-3xl font-black tracking-tight">Editor de Perfil</h1>
+      </div>
+
+      {/* ── Sub-Abas de Navegação de Configurações ── */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-border hide-scrollbar">
+        {[
+          { id: "all", label: "Todas as Seções", icon: Layers },
+          { id: "profile", label: "Perfil & Negócio", icon: Store },
+          { id: "hours", label: "Horários de Funcionamento", icon: Clock3 },
+          { id: "location", label: "Contato & Localização", icon: MapPin },
+          { id: "delivery", label: "Taxa de Entrega", icon: DollarSign },
+          { id: "gallery", label: "Galeria de Fotos", icon: ImagePlus },
+          { id: "danger", label: "Zona de Perigo", icon: AlertTriangle },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveSettingsTab(tab.id)}
+            className={cn(
+              "px-4 py-2.5 rounded-2xl text-xs font-bold whitespace-nowrap flex items-center gap-2 transition-all cursor-pointer",
+              activeSettingsTab === tab.id
+                ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                : "bg-card border border-border/60 text-muted-foreground hover:bg-muted hover:text-foreground"
+            )}
+          >
+            <tab.icon className="h-4 w-4" />
+            {tab.label}
+          </button>
+        ))}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
@@ -913,9 +940,41 @@ function BusinessSettingsPage() {
         </div>
         </div>
 
-        {/* Right Column: Marketplace Preview Side (Simplified) */}
-        <div className="xl:col-span-4 hidden xl:block">
-           <div className="sticky top-28 bg-muted/30 border border-border/50 rounded-[3rem] p-8 text-center space-y-6">
+        {/* Right Column: Marketplace Preview Side & Sticky Lateral Sub-Menu */}
+        <div className="xl:col-span-4 hidden xl:block space-y-6">
+           {/* Sticky Lateral Sub-Menu Tabs */}
+           <div className="sticky top-24 bg-card border border-border/80 rounded-[2.5rem] p-6 shadow-card space-y-4">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground border-b border-border/40 pb-3">
+                 <Layers className="h-4 w-4 text-primary" /> Abas de Configuração
+              </div>
+              <nav className="space-y-1.5">
+                 {[
+                    { id: "all", label: "Todas as Seções", icon: Layers },
+                    { id: "profile", label: "Perfil & Negócio", icon: Store },
+                    { id: "hours", label: "Horários de Funcionamento", icon: Clock3 },
+                    { id: "location", label: "Contato & Localização", icon: MapPin },
+                    { id: "delivery", label: "Taxas de Entrega", icon: DollarSign },
+                    { id: "gallery", label: "Galeria de Fotos", icon: ImagePlus },
+                    { id: "danger", label: "Zona de Perigo", icon: AlertTriangle },
+                 ].map((tab) => (
+                    <button
+                       key={tab.id}
+                       onClick={() => setActiveSettingsTab(tab.id)}
+                       className={cn(
+                          "w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-xs font-bold transition-all text-left cursor-pointer",
+                          activeSettingsTab === tab.id
+                             ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                             : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                       )}
+                    >
+                       <tab.icon className="h-4 w-4 shrink-0" />
+                       <span className="truncate">{tab.label}</span>
+                    </button>
+                 ))}
+              </nav>
+           </div>
+
+           <div className="bg-muted/30 border border-border/50 rounded-[3rem] p-8 text-center space-y-6">
               <div className="flex items-center justify-center gap-2 text-primary">
                  <Eye className="h-5 w-5" />
                  <h3 className="font-black text-xs uppercase tracking-widest">Marketplace View</h3>
