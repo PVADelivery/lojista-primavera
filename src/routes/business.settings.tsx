@@ -9,7 +9,6 @@ import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
   Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair, AlertTriangle
 } from "lucide-react";
-import * as maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
 
@@ -101,8 +100,8 @@ function BusinessSettingsPage() {
   const [longitude, setLongitude] = useState<number | null>(null);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const markerRef = useRef<maplibregl.Marker | null>(null);
+  const mapRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
   // Edit states for overlays
   const [isEditingLogo, setIsEditingLogo] = useState(false);
@@ -199,10 +198,11 @@ function BusinessSettingsPage() {
     }
   };
 
-  // Map Initialization
+  // Map Initialization (SSR Safe Dynamic Import)
   useEffect(() => {
-    if (!isMapFullscreen || !mapContainerRef.current) return;
+    if (!isMapFullscreen || !mapContainerRef.current || typeof window === "undefined") return;
     
+    let isMounted = true;
     if (mapRef.current) {
        mapRef.current.remove();
        mapRef.current = null;
@@ -210,25 +210,29 @@ function BusinessSettingsPage() {
 
     const center = longitude && latitude ? [longitude, latitude] : [-54.3075, -15.5606];
 
-    mapRef.current = new maplibregl.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          "osm-tiles": {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
+    import("maplibre-gl").then((maplibregl) => {
+      if (!isMounted || !mapContainerRef.current) return;
+      mapRef.current = new maplibregl.Map({
+        container: mapContainerRef.current,
+        style: {
+          version: 8,
+          sources: {
+            "osm-tiles": {
+              type: "raster",
+              tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
+              tileSize: 256,
+            },
           },
+          layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
         },
-        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
-      },
-      center: [center[0], center[1]],
-      zoom: 16,
-      attributionControl: false,
+        center: [center[0], center[1]],
+        zoom: 16,
+        attributionControl: false,
+      });
     });
 
     return () => {
+      isMounted = false;
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
