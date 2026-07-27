@@ -134,18 +134,14 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 
 
+
 ---
 
-### 21. Falha Silenciosa ao Clicar em "Aceitar Corrida" por `driverId` Nulo (`driver.index.tsx`)
-* **Sintoma**: O motorista clicava no botão "Aceitar Corrida" na lista de solicitações disponíveis, mas a corrida não era aceita e nenhum feedback visual era exibido.
-* **Causa Raiz**: As funções `handleAcceptRide` e `handleAccept` continham a guarda prematura `if (!driverId) return;`. Se o estado local `driverId` estivesse nulo ou atrasado, o evento do clique abortava em silêncio sem tentar recuperar o cadastro do motorista e sem emitir alertas.
+### 22. Inconsistência Visual e de Nomenclatura nos Cartões de Corrida (`marketplace.rides.tsx`)
+* **Sintoma**: O cartão de corrida ativa em destaque no topo da tela exibia "Moto Táxi" / "Carro (Táxi)", enquanto os cartões do histórico na parte inferior exibiam rótulos reduzidos "Moto" / "Táxi" com layout e cores de badge totalmente diferentes.
+* **Causa Raiz**: O componente `marketplace.rides.tsx` não utilizava o mesmo padrão de rótulos e tokens visuais do design system entre o hero card (corrida em andamento) e a lista iterada de histórico.
 * **Solução Padrão**:
-  1. Tentar resolver o `driverId` dinamicamente no momento da ação via `ensureDriverRow(user.id)`.
-  2. Caso o ID persista nulo, emitir mensagem de aviso clara via `toast.error(...)`:
+  Padronizar a exibição para `"Moto Táxi"` e `"Táxi (Carro)"` em 100% dos cartões, unificando a estrutura dos marcadores de endereço (verde/vermelho), tipografia e badges de status:
   ```tsx
-  let targetDriverId = driverId;
-  if (!targetDriverId && user) {
-    try { targetDriverId = await ensureDriverRow(user.id); setDriverId(targetDriverId); } catch (e) {}
-  }
-  if (!targetDriverId) { toast.error("Motorista não identificado..."); return; }
+  {ride.vehicle_type === "taxi" ? "Táxi (Carro)" : "Moto Táxi"}
   ```
