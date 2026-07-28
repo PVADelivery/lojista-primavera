@@ -88,6 +88,7 @@ function BusinessSettingsPage() {
   const [deliveryFee, setDeliveryFee] = useState("0.00");
   const [isOpen, setIsOpen] = useState(true);
   const [showInMarketplace, setShowInMarketplace] = useState(false);
+  const [gallery, setGallery] = useState<string[]>([]);
   const [workingDays, setWorkingDays] = useState(() => DEFAULT_WORKING_DAYS.map((day) => ({ ...day })));
   const [activeSettingsTab, setActiveSettingsTab] = useState("all");
   
