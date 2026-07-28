@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+????import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import type { RegionRow } from "@/services/regions";
@@ -37,7 +37,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!searchQuery || searchQuery.length < 3) return;
-    
+
     setIsSearching(true);
     try {
       const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=5`);
@@ -71,11 +71,11 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
       if (r.polygon) {
         const coords = (r.polygon as any);
         if (Array.isArray(coords)) {
-            coords.forEach((c: any) => {
-              totalLat += c.lat || c[1];
-              totalLng += c.lng || c[0];
-              count++;
-            });
+          coords.forEach((c: any) => {
+            totalLat += c.lat || c[1];
+            totalLng += c.lng || c[0];
+            count++;
+          });
         }
       }
     });
@@ -158,16 +158,16 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
       regions.forEach((region) => {
         if (!region.polygon) return;
-        
+
         let coordinates: any[] = [];
         try {
-            if (typeof region.polygon === 'string') {
-                coordinates = JSON.parse(region.polygon);
-            } else {
-                coordinates = region.polygon as any;
-            }
-        } catch(e) {
-            return;
+          if (typeof region.polygon === 'string') {
+            coordinates = JSON.parse(region.polygon);
+          } else {
+            coordinates = region.polygon as any;
+          }
+        } catch (e) {
+          return;
         }
 
         if (!Array.isArray(coordinates) || coordinates.length === 0) return;
@@ -175,25 +175,25 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         // Convert {lat, lng} array to [lng, lat] array for GeoJSON
         const geojsonCoords = coordinates.map((c: any) => [c.lng, c.lat]);
         // Close the polygon if it isn't closed
-        if (geojsonCoords[0][0] !== geojsonCoords[geojsonCoords.length - 1][0] || 
-            geojsonCoords[0][1] !== geojsonCoords[geojsonCoords.length - 1][1]) {
-            geojsonCoords.push(geojsonCoords[0]);
+        if (geojsonCoords[0][0] !== geojsonCoords[geojsonCoords.length - 1][0] ||
+          geojsonCoords[0][1] !== geojsonCoords[geojsonCoords.length - 1][1]) {
+          geojsonCoords.push(geojsonCoords[0]);
         }
 
         const geojson = {
-            type: "Polygon",
-            coordinates: [geojsonCoords]
+          type: "Polygon",
+          coordinates: [geojsonCoords]
         };
 
         const srcId = `rsrc-${region.id}`;
-        
+
         m.addSource(srcId, {
           type: "geojson",
           data: {
             type: "Feature",
-            properties: { 
-              name: region.name, 
-              price: `R$ ${Number(region.price || 0).toFixed(2)}` 
+            properties: {
+              name: region.name,
+              price: `R$ ${Number(region.price || 0).toFixed(2)}`
             },
             geometry: geojson as any,
           },
@@ -254,7 +254,7 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
 
       const el = document.createElement("div");
       el.className = "driver-marker-container";
-      
+
       el.innerHTML = `
         <div class="pin-wrapper" style="
           position: relative;
@@ -393,37 +393,37 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         <form onSubmit={handleSearch} className="relative group">
           <div className="absolute inset-0 bg-background/60 backdrop-blur-xl rounded-2xl shadow-2xl ring-1 ring-black/10 group-focus-within:ring-primary/50 transition-all" />
           <div className="relative flex items-center px-4 py-3 gap-3">
-             {isSearching ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Search className="h-5 w-5 text-muted-foreground" />}
-             <input 
-               value={searchQuery}
-               onChange={(e) => setSearchQuery(e.target.value)}
-               placeholder="Buscar endereço no mapa..."
-               className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-foreground placeholder:text-muted-foreground/60"
-             />
-             {searchQuery && (
-               <button onClick={() => setSearchQuery("")} type="button" className="p-1 hover:bg-muted rounded-full">
-                  <X className="h-4 w-4" />
-               </button>
-             )}
+            {isSearching ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : <Search className="h-5 w-5 text-muted-foreground" />}
+            <input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar endereço no mapa..."
+              className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-foreground placeholder:text-muted-foreground/60"
+            />
+            {searchQuery && (
+              <button onClick={() => setSearchQuery("")} type="button" className="p-1 hover:bg-muted rounded-full">
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         </form>
 
         {/* Results Dropdown */}
         {searchResults.length > 0 && (
           <div className="mt-3 bg-background/90 backdrop-blur-2xl border border-border rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-4 duration-300">
-             {searchResults.map((res, i) => (
-                <button 
-                  key={i}
-                  onClick={() => goToLocation(res.lat, res.lon)}
-                  className="w-full flex items-start gap-3 p-4 text-left hover:bg-primary/10 border-b border-border/50 last:border-none transition-colors"
-                >
-                   <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
-                   <div>
-                      <p className="text-sm font-black text-foreground line-clamp-1">{res.display_name.split(",")[0]}</p>
-                      <p className="text-[10px] text-muted-foreground line-clamp-1">{res.display_name}</p>
-                   </div>
-                </button>
-             ))}
+            {searchResults.map((res, i) => (
+              <button
+                key={i}
+                onClick={() => goToLocation(res.lat, res.lon)}
+                className="w-full flex items-start gap-3 p-4 text-left hover:bg-primary/10 border-b border-border/50 last:border-none transition-colors"
+              >
+                <MapPin className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-black text-foreground line-clamp-1">{res.display_name.split(",")[0]}</p>
+                  <p className="text-[10px] text-muted-foreground line-clamp-1">{res.display_name}</p>
+                </div>
+              </button>
+            ))}
           </div>
         )}
       </div>
