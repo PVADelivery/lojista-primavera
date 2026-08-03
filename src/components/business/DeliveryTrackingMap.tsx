@@ -3,6 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { supabase } from "@/integrations/supabase/client";
 import { Truck, MapPin, Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/utils/freight";
+import { loadMapLibre } from "@/lib/maplibre";
 
 interface DeliveryTrackingMapProps {
   deliveryId: string;
@@ -34,8 +35,7 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
           return;
         }
 
-        const maplibreglModule = await import("maplibre-gl");
-        const maplibregl = maplibreglModule.default || maplibreglModule;
+        const maplibregl = await loadMapLibre();
 
         const map = new maplibregl.Map({
           container: mapContainerRef.current,
@@ -75,6 +75,7 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
 
     // Monitor driver location in real-time
     const fetchAndMarkDriver = async () => {
+      const maplibregl = await loadMapLibre();
       const { data: driver } = await supabase
         .from("delivery_drivers")
         .select("current_latitude, current_longitude")

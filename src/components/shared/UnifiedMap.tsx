@@ -244,7 +244,8 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
   // Realtime Drivers
   useEffect(() => {
     const currentMap = map.current;
-    if (!currentMap) return;
+    const ml = getMapLibre();
+    if (!currentMap || !ml) return;
 
     markersRef.current.forEach(mk => mk.remove());
     markersRef.current = [];
