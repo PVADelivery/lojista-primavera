@@ -377,9 +377,9 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         </div>
       `;
 
-      const marker = new maplibregl.Marker({ element: el })
+      const marker = new ml.Marker({ element: el })
         .setLngLat([driver.longitude, driver.latitude])
-        .setPopup(new maplibregl.Popup({ offset: 25, closeButton: false }).setHTML(popupContent))
+        .setPopup(new ml.Popup({ offset: 25, closeButton: false }).setHTML(popupContent))
         .addTo(currentMap);
 
       markersRef.current.push(marker);

@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation, Maximize2, MapPinned, X, Check, Home, Briefcase } from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
+import type * as maplibregl from "maplibre-gl";
+import { loadMapLibre, getMapLibre } from "@/lib/maplibre";
 import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/business/delivery-new")({
@@ -248,7 +250,11 @@ function NewDeliveryPage() {
 
     const initialCenter = pickupCoords || [-54.3075, -15.5606];
 
-    mapRef.current = new maplibregl.Map({
+    let cancelled = false;
+    const initSmall = async () => {
+      const ml = await loadMapLibre();
+      if (cancelled || !mapContainerRef.current || mapRef.current) return;
+      mapRef.current = new ml.Map({
       container: mapContainerRef.current,
       style: {
         version: 8,
@@ -265,9 +271,12 @@ function NewDeliveryPage() {
       zoom: 12,
       attributionControl: false,
       interactive: false, // Make small map static
-    });
+      });
+    };
+    initSmall();
 
     return () => {
+      cancelled = true;
       mapRef.current?.remove();
       mapRef.current = null;
     };
@@ -279,7 +288,11 @@ function NewDeliveryPage() {
 
     const center = dropoffCoords || pickupCoords || [-54.3075, -15.5606];
 
-    mapFull.current = new maplibregl.Map({
+    let cancelledFull = false;
+    const initFull = async () => {
+      const ml = await loadMapLibre();
+      if (cancelledFull || !mapContainerFull.current || mapFull.current) return;
+      mapFull.current = new ml.Map({
       container: mapContainerFull.current,
       style: {
         version: 8,
@@ -295,11 +308,13 @@ function NewDeliveryPage() {
       center: [center[0], center[1]],
       zoom: 15,
       attributionControl: false,
-    });
-
-    mapFull.current.addControl(new maplibregl.NavigationControl(), "bottom-right");
+      });
+      mapFull.current.addControl(new ml.NavigationControl(), "bottom-right");
+    };
+    initFull();
 
     return () => {
+      cancelledFull = true;
       mapFull.current?.remove();
       mapFull.current = null;
     };
@@ -441,7 +456,8 @@ function NewDeliveryPage() {
   // Update map markers and route when coordinates change
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const ml = getMapLibre();
+    if (!map || !ml) return;
 
     // Handle pickup marker
     if (pickupCoords) {
@@ -451,7 +467,7 @@ function NewDeliveryPage() {
         const el = document.createElement("div");
         el.className = "flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white border-2 border-white shadow-lg";
         el.innerHTML = "🏪";
-        pickupMarkerRef.current = new maplibregl.Marker({ element: el })
+        pickupMarkerRef.current = new ml.Marker({ element: el })
           .setLngLat(pickupCoords)
           .addTo(map);
       }
@@ -465,7 +481,7 @@ function NewDeliveryPage() {
         const el = document.createElement("div");
         el.className = "flex items-center justify-center w-8 h-8 rounded-full bg-rose-500 text-white border-2 border-white shadow-lg";
         el.innerHTML = "📍";
-        dropoffMarkerRef.current = new maplibregl.Marker({ element: el })
+        dropoffMarkerRef.current = new ml.Marker({ element: el })
           .setLngLat(dropoffCoords)
           .addTo(map);
       }
