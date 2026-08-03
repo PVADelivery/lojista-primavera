@@ -3,6 +3,7 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useOnlineDrivers } from "@/services/drivers";
 import type { RegionRow } from "@/services/regions";
 import { Search, Loader2, X, MapPin } from "lucide-react";
+import { loadMapLibre, getMapLibre } from "@/lib/maplibre";
 
 const escapeHtml = (s: unknown): string =>
   String(s ?? "")
@@ -89,9 +90,8 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
     if (!mapContainer.current || map.current || typeof window === "undefined") return;
 
     let isMounted = true;
-    import("maplibre-gl").then((maplibreglModule) => {
+    loadMapLibre().then((maplibregl) => {
       if (!isMounted || !mapContainer.current) return;
-      const maplibregl = maplibreglModule.default || maplibreglModule;
 
       map.current = new maplibregl.Map({
         container: mapContainer.current,
