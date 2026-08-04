@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { CheckCircle2, Building2 } from "lucide-react";
+import { CheckCircle2, Building2, ChevronDown } from "lucide-react";
 
 export interface DeliveryZone {
   id: string;
@@ -117,6 +117,7 @@ interface Props {
 
 export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => {
   const [selected, setSelected] = useState<{ zone: string; name: string } | null>(null);
+  const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
 
   const pick = (zone: DeliveryZone, name: string) => {
     if (disabled) return;
@@ -124,10 +125,24 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
     onRegionSelect?.(zone.price, "none", name);
   };
 
+  const toggleZone = (zoneId: string) => {
+    setExpandedZones((prev) => {
+      const next = new Set(prev);
+      if (next.has(zoneId)) {
+        next.delete(zoneId);
+      } else {
+        next.add(zoneId);
+      }
+      return next;
+    });
+  };
+
   return (
     <div className={`space-y-4 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
       {DELIVERY_ZONES.map((zone) => {
         const isZoneSelected = selected?.zone === zone.id;
+        const isExpanded = expandedZones.has(zone.id);
+        const hasNeighborhoods = zone.neighborhoods.length > 0;
         return (
           <div
             key={zone.id}
@@ -145,27 +160,47 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
               </span>
             </div>
 
-            <div className="p-4 bg-card space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {zone.neighborhoods.map((n) => {
-                  const active = isZoneSelected && selected?.name === n;
-                  return (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={() => pick(zone, n)}
-                      className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
-                        active
-                          ? "border-primary bg-primary/10 text-primary"
-                          : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
-                      }`}
-                    >
-                      {active && <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />}
-                      {n}
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="p-4 bg-card space-y-3">
+              {hasNeighborhoods && (
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                    {zone.neighborhoods.length} bairro{zone.neighborhoods.length > 1 ? "s" : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => toggleZone(zone.id)}
+                    className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-primary hover:text-primary/80 transition-colors"
+                  >
+                    {isExpanded ? "Ocultar bairros" : "Ver bairros"}
+                    <ChevronDown
+                      className={`h-4 w-4 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                </div>
+              )}
+
+              {isExpanded && hasNeighborhoods && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {zone.neighborhoods.map((n) => {
+                    const active = isZoneSelected && selected?.name === n;
+                    return (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => pick(zone, n)}
+                        className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
+                          active
+                            ? "border-primary bg-primary/10 text-primary"
+                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
+                        }`}
+                      >
+                        {active && <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />}
+                        {n}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
               <button
                 type="button"
@@ -184,3 +219,4 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
 });
 
 RegionZoneSelector.displayName = "RegionZoneSelector";
+
