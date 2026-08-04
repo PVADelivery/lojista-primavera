@@ -57,7 +57,7 @@ function NewDeliveryPage() {
     customer_address_number: "",
     customer_neighborhood: "",
     customer_address_complement: "",
-    payment_method: "dinheiro",
+    payment_method: "cartao",
     is_paid: false,
     order_value: "",
     change_for: "",
@@ -983,20 +983,6 @@ function NewDeliveryPage() {
 
               {/* Botão de Localização e Mapa */}
               <div className="space-y-2 pt-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGeocodeSearch}
-                  disabled={isGeocoding}
-                  className="w-full rounded-xl flex items-center justify-center gap-2 h-11 border-dashed mb-4"
-                >
-                  {isGeocoding ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Navigation className="h-4 w-4" />
-                  )}
-                  Buscar Endereço Digitado
-                </Button>
 
                 <div ref={mapContainerRef} className="hidden" />
 
