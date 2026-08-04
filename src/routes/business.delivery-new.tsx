@@ -1096,11 +1096,17 @@ function NewDeliveryPage() {
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : editId ? "Salvar Alterações" : "Criar Solicitação de Entrega"}
             </Button>
-            {f.value && Number(f.value) > 0 && (
-              <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
-                Taxa de entrega: <strong className="text-primary">R$ {Number(f.value).toFixed(2)}</strong>
-              </p>
-            )}
+            <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
+              {f.value && Number(f.value) > 0 ? (
+                <>
+                  Taxa de entrega: <strong className="text-primary">R$ {Number(f.value).toFixed(2)}</strong>
+                </>
+              ) : (
+                <>
+                  Taxa de entrega: <strong className="text-destructive">selecione uma região</strong>
+                </>
+              )}
+            </p>
           </div>
         </form>
       </div>
