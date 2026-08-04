@@ -181,24 +181,57 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
 
               {isExpanded && hasNeighborhoods && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  {zone.neighborhoods.map((n) => {
-                    const active = isZoneSelected && selected?.name === n;
-                    return (
-                      <button
-                        key={n}
-                        type="button"
-                        onClick={() => pick(zone, n)}
-                        className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
-                          active
-                            ? "border-primary bg-primary/10 text-primary"
-                            : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
-                        }`}
-                      >
-                        {active && <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />}
-                        {n}
-                      </button>
+                  {(() => {
+                    const sorted = [...zone.neighborhoods].sort((a, b) =>
+                      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
                     );
-                  })}
+                    const mid = Math.ceil(sorted.length / 2);
+                    const left = sorted.slice(0, mid);
+                    const right = sorted.slice(mid);
+                    const max = Math.max(left.length, right.length);
+                    return Array.from({ length: max }, (_, i) => (
+                      <div key={i} className="contents">
+                        {left[i] ? (
+                          <button
+                            key={left[i]}
+                            type="button"
+                            onClick={() => pick(zone, left[i])}
+                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
+                              isZoneSelected && selected?.name === left[i]
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
+                            }`}
+                          >
+                            {isZoneSelected && selected?.name === left[i] && (
+                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />
+                            )}
+                            {left[i]}
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                        {right[i] ? (
+                          <button
+                            key={right[i]}
+                            type="button"
+                            onClick={() => pick(zone, right[i])}
+                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
+                              isZoneSelected && selected?.name === right[i]
+                                ? "border-primary bg-primary/10 text-primary"
+                                : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
+                            }`}
+                          >
+                            {isZoneSelected && selected?.name === right[i] && (
+                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />
+                            )}
+                            {right[i]}
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    ));
+                  })()}
                 </div>
               )}
 
