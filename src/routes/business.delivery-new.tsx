@@ -934,13 +934,6 @@ function NewDeliveryPage() {
                   />
                 </div>
               </div>
-              {/* Regiões / Tabela de preços MT 24 Horas Express */}
-              <div className="space-y-2">
-                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
-                <RegionZoneSelector onRegionSelect={handleRegionSelect} />
-              </div>
-
-
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label>Complemento (Opcional)</Label>
@@ -981,19 +974,6 @@ function NewDeliveryPage() {
                 </div>
               </div>
 
-              {/* Botão de Localização e Mapa */}
-              <div className="space-y-2 pt-2">
-
-                <div ref={mapContainerRef} className="hidden" />
-
-
-                {routeDistance !== null && (
-                  <p className="text-xs font-semibold text-primary mt-1">
-                    Distância calculada: {routeDistance.toFixed(2)} KM
-                  </p>
-                )}
-              </div>
-
               {/* Observações */}
               <div className="space-y-1.5">
                 <Label>Observações para o Entregador (Opcional)</Label>
@@ -1007,6 +987,23 @@ function NewDeliveryPage() {
                   />
                 </div>
               </div>
+
+              {/* Localização / mapa oculto */}
+              <div className="space-y-2 pt-2">
+                <div ref={mapContainerRef} className="hidden" />
+                {routeDistance !== null && (
+                  <p className="text-xs font-semibold text-primary mt-1">
+                    Distância calculada: {routeDistance.toFixed(2)} KM
+                  </p>
+                )}
+              </div>
+
+              {/* Regiões / Tabela de preços */}
+              <div className="space-y-2">
+                <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
+                <RegionZoneSelector onRegionSelect={handleRegionSelect} />
+              </div>
+
             </div>
           </section>
 
