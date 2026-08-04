@@ -643,6 +643,11 @@ function NewDeliveryPage() {
     e.preventDefault();
     if (!company?.id) return;
 
+    if (f.region_id === "none" || !f.value || Number(f.value) <= 0) {
+      toast.error("Selecione uma região de entrega para calcular a taxa.", { duration: 5000 });
+      return;
+    }
+
     const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""
       }`;
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
