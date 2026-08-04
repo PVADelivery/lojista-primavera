@@ -742,6 +742,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "deliveries_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
@@ -1096,6 +1103,13 @@ export type Database = {
             referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "merchant_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       messages: {
@@ -1318,6 +1332,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1620,6 +1641,13 @@ export type Database = {
             referencedRelation: "companies_public"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profiles: {
@@ -1735,6 +1763,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2018,6 +2053,101 @@ export type Database = {
           phone?: string | null
           region_id?: string | null
           show_in_marketplace?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "companies_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      public_companies: {
+        Row: {
+          banner_url: string | null
+          business_hours: Json | null
+          category: string | null
+          city: string | null
+          city_id: string | null
+          cover_url: string | null
+          created_at: string | null
+          delivery_fee: number | null
+          delivery_mode: string | null
+          description: string | null
+          gallery: Json | null
+          id: string | null
+          is_active: boolean | null
+          is_open: boolean | null
+          latitude: number | null
+          logo_url: string | null
+          longitude: number | null
+          name: string | null
+          opening_hours: Json | null
+          prep_time: number | null
+          prep_time_max: number | null
+          prep_time_min: number | null
+          rating: number | null
+          region_id: string | null
+          show_in_marketplace: boolean | null
+          state: string | null
+        }
+        Insert: {
+          banner_url?: string | null
+          business_hours?: Json | null
+          category?: string | null
+          city?: string | null
+          city_id?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          delivery_fee?: number | null
+          delivery_mode?: string | null
+          description?: string | null
+          gallery?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          is_open?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name?: string | null
+          opening_hours?: Json | null
+          prep_time?: number | null
+          prep_time_max?: number | null
+          prep_time_min?: number | null
+          rating?: number | null
+          region_id?: string | null
+          show_in_marketplace?: boolean | null
+          state?: string | null
+        }
+        Update: {
+          banner_url?: string | null
+          business_hours?: Json | null
+          category?: string | null
+          city?: string | null
+          city_id?: string | null
+          cover_url?: string | null
+          created_at?: string | null
+          delivery_fee?: number | null
+          delivery_mode?: string | null
+          description?: string | null
+          gallery?: Json | null
+          id?: string | null
+          is_active?: boolean | null
+          is_open?: boolean | null
+          latitude?: number | null
+          logo_url?: string | null
+          longitude?: number | null
+          name?: string | null
+          opening_hours?: Json | null
+          prep_time?: number | null
+          prep_time_max?: number | null
+          prep_time_min?: number | null
+          rating?: number | null
+          region_id?: string | null
+          show_in_marketplace?: boolean | null
+          state?: string | null
         }
         Relationships: [
           {
