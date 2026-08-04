@@ -143,7 +143,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           </Link>
 
           {/* Nav Links */}
-          <nav className="flex-1 flex flex-col gap-6 p-4 overflow-y-auto overflow-x-hidden">
+          <nav className="flex flex-col gap-6 p-4 overflow-y-auto overflow-x-hidden">
             {SIDEBAR_GROUPS.map((group, groupIdx) => (
               <div key={group.title} className="flex flex-col gap-1.5">
                 {isSidebarExpanded && (
