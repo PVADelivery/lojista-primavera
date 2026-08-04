@@ -63,7 +63,7 @@ function NewDeliveryPage() {
     change_for: "",
     vehicle_type: "moto",
     region_id: "none",
-    value: "4.99", // Delivery fee (frete) padrão moto
+    value: "", // Taxa definida pela região selecionada
     notes: "",
     address_label: "Casa",
   });
@@ -102,7 +102,7 @@ function NewDeliveryPage() {
         change_for: editingDelivery.change_for ? String(editingDelivery.change_for) : "",
         vehicle_type: editingDelivery.vehicle_type || "moto",
         region_id: editingDelivery.region_id || "none",
-        value: editingDelivery.value ? String(editingDelivery.value) : "4.99",
+        value: editingDelivery.value ? String(editingDelivery.value) : "",
         notes: editingDelivery.notes || "",
         address_label: editingDelivery.address_label || "Casa",
       });
@@ -195,15 +195,7 @@ function NewDeliveryPage() {
     }
   }, [company]);
 
-  // Handle dynamic fee calculation based on distance
-  useEffect(() => {
-    if (f.region_id === "none" && routeDistance !== null) {
-      let fee = 4.99 + (routeDistance * 2.00); // Moto
-      if (f.vehicle_type === "carro") fee = 6.99 + (routeDistance * 3.00);
-      if (f.vehicle_type === "carro_aberto") fee = 9.99 + (routeDistance * 4.00);
-      setF(prev => ({ ...prev, value: fee.toFixed(2) }));
-    }
-  }, [routeDistance, f.vehicle_type, f.region_id]);
+  // Taxa de entrega definida exclusivamente pela região selecionada no RegionZoneSelector.
 
   // Customer search autocomplete query
   useEffect(() => {
@@ -650,6 +642,11 @@ function NewDeliveryPage() {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!company?.id) return;
+
+    if (f.region_id === "none" || !f.value || Number(f.value) <= 0) {
+      toast.error("Selecione uma região de entrega para calcular a taxa.", { duration: 5000 });
+      return;
+    }
 
     const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""
       }`;
@@ -1104,11 +1101,17 @@ function NewDeliveryPage() {
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : editId ? "Salvar Alterações" : "Criar Solicitação de Entrega"}
             </Button>
-            {f.value && Number(f.value) > 0 && (
-              <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
-                Taxa de entrega: <strong className="text-primary">R$ {Number(f.value).toFixed(2)}</strong>
-              </p>
-            )}
+            <p className="text-center text-xs text-muted-foreground mt-4 font-medium">
+              {f.value && Number(f.value) > 0 ? (
+                <>
+                  Taxa de entrega: <strong className="text-primary">R$ {Number(f.value).toFixed(2)}</strong>
+                </>
+              ) : (
+                <>
+                  Taxa de entrega: <strong className="text-destructive">selecione uma região</strong>
+                </>
+              )}
+            </p>
           </div>
         </form>
       </div>
