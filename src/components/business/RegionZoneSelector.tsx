@@ -1,5 +1,5 @@
 import { memo, useState } from "react";
-import { MapPin, CheckCircle2, Building2 } from "lucide-react";
+import { CheckCircle2, Building2 } from "lucide-react";
 
 export interface DeliveryZone {
   id: string;
