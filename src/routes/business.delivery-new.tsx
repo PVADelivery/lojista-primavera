@@ -937,15 +937,12 @@ function NewDeliveryPage() {
                   />
                 </div>
               </div>
-              {/* Região - Grid de cards igual ao É Pra Já */}
+              {/* Regiões / Tabela de preços MT 24 Horas Express */}
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
-                <RegionPickerGrid
-                  companyId={company?.id}
-                  onRegionSelect={handleRegionSelect}
-                  initialSelectedId={f.region_id !== "none" ? f.region_id : null}
-                />
+                <RegionZoneSelector onRegionSelect={handleRegionSelect} />
               </div>
+
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
