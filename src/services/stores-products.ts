@@ -8,7 +8,7 @@ export function useStores(regionId?: string) {
   return useQuery({
     queryKey: ["stores", regionId],
     queryFn: async () => {
-      let query = supabase.from("companies").select("*").eq("is_active", true);
+      let query = supabase.from("public_companies").select("*").eq("is_active", true);
       if (regionId) query = query.eq("city_id", regionId);
       const { data, error } = await query;
       if (error) throw error;
@@ -21,7 +21,7 @@ export function useStoreDetails(storeId: string) {
   return useQuery({
     queryKey: ["stores", storeId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("*").eq("id", storeId).single();
+      const { data, error } = await supabase.from("public_companies").select("*").eq("id", storeId).single();
       if (error) throw error;
       return data;
     },
