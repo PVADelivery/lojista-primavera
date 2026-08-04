@@ -1001,23 +1001,8 @@ function NewDeliveryPage() {
                   Buscar Endereço Digitado
                 </Button>
 
-                <Label className="text-xs text-muted-foreground mt-1 mb-1 block">
-                  Ou você pode selecionar no mapa com precisão:
-                </Label>
+                <div ref={mapContainerRef} className="hidden" />
 
-                {/* Miniatura do Mapa que abre Modal */}
-                <div
-                  onClick={() => setIsMapFullscreen(true)}
-                  className="relative h-44 rounded-2xl overflow-hidden border border-border shadow-sm cursor-pointer group hover:opacity-95 transition-all mt-2"
-                >
-                  <div ref={mapContainerRef} className="w-full h-full pointer-events-none" />
-                  <div className="absolute inset-0 bg-black/10 group-hover:bg-black/25 flex items-center justify-center transition-all">
-                    <span className="bg-background/90 backdrop-blur text-foreground px-4 py-2 rounded-full text-sm font-bold flex items-center gap-2 shadow-md">
-                      <Maximize2 className="w-4 h-4 text-primary" />
-                      Selecionar Local de Entrega
-                    </span>
-                  </div>
-                </div>
 
                 {routeDistance !== null && (
                   <p className="text-xs font-semibold text-primary mt-1">
