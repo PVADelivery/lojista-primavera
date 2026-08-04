@@ -21,7 +21,7 @@ export function useStoreDetails(storeId: string) {
   return useQuery({
     queryKey: ["stores", storeId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("companies").select("*").eq("id", storeId).single();
+      const { data, error } = await supabase.from("public_companies").select("*").eq("id", storeId).single();
       if (error) throw error;
       return data;
     },
