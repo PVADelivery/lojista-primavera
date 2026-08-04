@@ -1689,6 +1689,41 @@ export type Database = {
         }
         Relationships: []
       }
+      region_neighborhoods: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          region_id: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          region_id: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          region_id?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "region_neighborhoods_region_id_fkey"
+            columns: ["region_id"]
+            isOneToOne: false
+            referencedRelation: "regions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       regions: {
         Row: {
           color: string
@@ -1698,6 +1733,7 @@ export type Database = {
           is_active: boolean
           name: string
           price: number
+          sort_order: number
           updated_at: string
         }
         Insert: {
@@ -1708,6 +1744,7 @@ export type Database = {
           is_active?: boolean
           name: string
           price?: number
+          sort_order?: number
           updated_at?: string
         }
         Update: {
@@ -1718,6 +1755,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           price?: number
+          sort_order?: number
           updated_at?: string
         }
         Relationships: []
