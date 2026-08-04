@@ -112,22 +112,6 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
 
   return (
     <div className={`space-y-4 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-      <div className="rounded-2xl bg-foreground text-background px-4 py-3 flex flex-wrap items-center justify-between gap-2">
-        <span className="text-xs sm:text-sm font-black uppercase tracking-wider">
-          Plano Verde p/ Empresa — Ano 2026
-        </span>
-        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-primary">
-          R$ 5,00 Cupom à Vista
-        </span>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-muted/30 px-4 py-2 flex items-center justify-center gap-2">
-        <MapPin className="h-4 w-4 text-primary" />
-        <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider">
-          Para demais bairros: retirada região central
-        </span>
-      </div>
-
       {DELIVERY_ZONES.map((zone) => {
         const isZoneSelected = selected?.zone === zone.id;
         return (
@@ -181,11 +165,6 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled }: Props) => 
         );
       })}
 
-      <div className="space-y-2 text-[11px] sm:text-xs font-bold text-muted-foreground">
-        <p>SEM VALOR MENSAL / ENTREGA EXCLUSIVA - SEM ENTREGADORES TERCEIROS (APLICATIVOS)</p>
-        <p>100,00 MENSAL / ENTREGA COM ENTREGADORES TERCEIROS (APLICATIVOS)</p>
-        <p>TABELA PREÇO VALOR À VISTA - VALOR A PRAZO E COM NFS REAJUSTAR</p>
-      </div>
     </div>
   );
 });
