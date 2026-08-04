@@ -12,6 +12,13 @@ export interface DeliveryZone {
 
 export const DELIVERY_ZONES: DeliveryZone[] = [
   {
+    id: "zona-1",
+    title: "Região 1",
+    number: "1",
+    price: 8,
+    neighborhoods: [],
+  },
+  {
     id: "zona-2",
     title: "CENTRO - PVA 1 / JD RIVA 1/2/3/4",
     number: "2",
@@ -59,7 +66,7 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
     id: "zona-3",
     title: "REGIÃO 3",
     number: "3",
-    price: 15,
+    price: 12,
     neighborhoods: [
       "COND. PORTO SEGURO",
       "COND. TERRAZ",
@@ -82,7 +89,7 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
     id: "zona-4",
     title: "REGIÃO 4",
     number: "4",
-    price: 20,
+    price: 15,
     neighborhoods: [
       "BURITIS UNIVERSITARIO 1/2 - FASIPE",
       "BURITIS PRIME - BURITIS 6",
@@ -93,6 +100,13 @@ export const DELIVERY_ZONES: DeliveryZone[] = [
       "JD EUROPA",
       "SANTA FELICIDADE",
     ],
+  },
+  {
+    id: "zona-5",
+    title: "Região 5",
+    number: "5",
+    price: 20,
+    neighborhoods: [],
   },
 ];
 
