@@ -21,6 +21,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CreditsPanel } from "@/components/business/CreditsPanel";
+
 
 type DateRange = { from: Date; to: Date };
 
@@ -479,7 +481,15 @@ function BusinessFinancePage() {
               <TabsTrigger value="cashflow" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Fluxo de Caixa
               </TabsTrigger>
+              <TabsTrigger value="credits" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Créditos
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="credits" className="mt-4">
+              <CreditsPanel />
+            </TabsContent>
+
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6 mt-4">

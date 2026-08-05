@@ -18,6 +18,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon-v3.png";
 import { brl } from "@/lib/format";
 import { useMyCompany } from "@/services/companies";
+import { useCredits } from "@/services/credits";
+
 
 
 interface Company {
@@ -73,6 +75,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const { data: company } = useMyCompany();
+  const { balance: creditBalance, isLow: creditsLow } = useCredits();
+
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ["pending-orders", company?.id],
@@ -270,10 +274,23 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
+              {/* Credit balance chip */}
+              <Link
+                to="/business/finance"
+                className={`hidden sm:flex items-center gap-2 px-3 h-10 rounded-full transition ${
+                  creditsLow ? "bg-destructive/15 text-destructive" : "bg-secondary hover:bg-accent/10"
+                }`}
+                title="Saldo de créditos"
+              >
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-black">{brl(creditBalance)}</span>
+              </Link>
+
               {/* Search */}
               <button className="h-10 w-10 rounded-full bg-secondary hover:bg-accent/10 flex items-center justify-center transition" aria-label="Pesquisar">
                 <Search className="h-4 w-4" />
               </button>
+
 
               {/* Store open/close */}
               <div className="hidden sm:flex items-center gap-2 px-3 h-10 rounded-full bg-secondary">
@@ -359,10 +376,23 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             </div>
           </header>
 
+          {/* Low credits banner */}
+          {creditsLow && (
+            <div className="mx-4 mt-4 lg:mx-8 flex items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3">
+              <p className="text-xs sm:text-sm font-bold text-destructive">
+                Saldo de créditos baixo: {brl(creditBalance)}. Solicite uma recarga para continuar solicitando entregas.
+              </p>
+              <Link to="/business/finance" className="text-xs font-black underline whitespace-nowrap">
+                Recarregar
+              </Link>
+            </div>
+          )}
+
           {/* Content */}
           <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8">
             {children ?? <Outlet />}
           </main>
+
 
           {/* Mobile bottom nav */}
           <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-card/95 backdrop-blur-xl border border-border rounded-3xl shadow-2xl px-2 py-2 flex items-center justify-between">

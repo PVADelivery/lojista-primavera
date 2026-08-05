@@ -4,6 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
+import { useCredits } from "@/services/credits";
+import { brl } from "@/lib/format";
+
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
 import { Button } from "@/components/ui/button";
@@ -196,6 +199,10 @@ function NewDeliveryPage() {
   }, [company]);
 
   // Taxa de entrega definida exclusivamente pela região selecionada no RegionZoneSelector.
+  const { balance: creditBalance } = useCredits();
+  const deliveryFee = Number(f.value || 0);
+  const insufficientCredits = !editId && deliveryFee > 0 && creditBalance < deliveryFee;
+
 
   // Customer search autocomplete query
   useEffect(() => {
@@ -758,36 +765,56 @@ function NewDeliveryPage() {
           .select("*")
           .single();
       } else {
-        deliveryWrite = await supabase
-          .from("deliveries")
-          .insert([
-            {
-              company_id: company.id,
-              short_id: shortId,
-              customer_name: f.customer_name,
-              customer_phone: f.customer_phone,
-              customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
-              address: fullAddress,
-              customer_address_number: f.customer_address_number,
-              customer_neighborhood: f.customer_neighborhood,
-              customer_address_complement: f.customer_address_complement,
-              payment_method: f.is_paid ? "pago" : f.payment_method,
-              order_value: f.is_paid ? 0 : Number(f.order_value || 0),
-              change_for: f.is_paid ? 0 : Number(f.change_for || 0),
-              vehicle_type: f.vehicle_type,
-              region_id: f.region_id === "none" ? null : f.region_id,
-              value: Number(f.value || 0),
-              notes: f.notes,
-              status: "pending",
-            },
-          ])
-          .select("*")
-          .single();
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_delivery_with_credits", {
+          p_payload: {
+            company_id: company.id,
+            short_id: shortId,
+            customer_name: f.customer_name,
+            customer_phone: f.customer_phone,
+            customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
+            address: fullAddress,
+            customer_address_number: f.customer_address_number,
+            customer_neighborhood: f.customer_neighborhood,
+            customer_address_complement: f.customer_address_complement,
+            payment_method: f.is_paid ? "pago" : f.payment_method,
+            order_value: f.is_paid ? 0 : Number(f.order_value || 0),
+            change_for: f.is_paid ? 0 : Number(f.change_for || 0),
+            vehicle_type: f.vehicle_type,
+            region_id: f.region_id === "none" ? null : f.region_id,
+            value: Number(f.value || 0),
+            notes: f.notes,
+          },
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const res: any = rpcRes;
+        if (!res?.success) {
+          if (res?.error === "INSUFFICIENT_CREDITS") {
+            toast.error(
+              `Saldo de créditos insuficiente. Saldo: ${brl(Number(res.balance || 0))} · Necessário: ${brl(Number(res.required || 0))}. Solicite uma recarga em Financeiro > Créditos.`,
+              { duration: 10000 }
+            );
+            setBusy(false);
+            return;
+          }
+          if (res?.error === "FORBIDDEN") {
+            toast.error("Você não tem permissão para criar entregas para esta empresa.", { duration: 8000 });
+            setBusy(false);
+            return;
+          }
+          throw new Error(res?.error || "Erro ao criar entrega.");
+        }
+
+        qc.invalidateQueries({ queryKey: ["credits"] });
+        qc.invalidateQueries({ queryKey: ["credit-transactions"] });
+        deliveryWrite = { data: { id: res.delivery_id }, error: null } as any;
       }
 
       if (deliveryWrite.error) {
         throw deliveryWrite.error;
       }
+
 
       toast.success(editId ? "Corrida atualizada com sucesso!" : "Corrida solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
@@ -1077,9 +1104,36 @@ function NewDeliveryPage() {
 
           {/* Submit */}
           <div className="pt-4">
+            {!editId && (
+              <div
+                className={`mb-3 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
+                  insufficientCredits ? "border-destructive/50 bg-destructive/10" : "border-border/60 bg-card"
+                }`}
+              >
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Saldo de créditos
+                  </p>
+                  <p className={`text-lg font-black ${insufficientCredits ? "text-destructive" : "text-foreground"}`}>
+                    {brl(creditBalance)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Será debitado
+                  </p>
+                  <p className="text-lg font-black text-primary">{brl(deliveryFee)}</p>
+                </div>
+              </div>
+            )}
+            {insufficientCredits && (
+              <p className="mb-3 text-xs font-bold text-destructive text-center">
+                Créditos insuficientes para esta entrega. Solicite uma recarga em Financeiro &gt; Créditos.
+              </p>
+            )}
             <Button
               type="submit"
-              disabled={busy}
+              disabled={busy || insufficientCredits}
               className="w-full rounded-2xl h-14 text-base font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : editId ? "Salvar Alterações" : "Criar Solicitação de Entrega"}
@@ -1096,6 +1150,7 @@ function NewDeliveryPage() {
               )}
             </p>
           </div>
+
         </form>
       </div>
 
