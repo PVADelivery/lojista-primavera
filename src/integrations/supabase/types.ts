@@ -2293,7 +2293,6 @@ export type Database = {
     Views: {
       companies_public: {
         Row: {
-          address: string | null
           city_id: string | null
           created_at: string | null
           id: string | null
@@ -2302,12 +2301,10 @@ export type Database = {
           logo_url: string | null
           longitude: number | null
           name: string | null
-          phone: string | null
           region_id: string | null
           show_in_marketplace: boolean | null
         }
         Insert: {
-          address?: string | null
           city_id?: string | null
           created_at?: string | null
           id?: string | null
@@ -2316,12 +2313,10 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           name?: string | null
-          phone?: string | null
           region_id?: string | null
           show_in_marketplace?: boolean | null
         }
         Update: {
-          address?: string | null
           city_id?: string | null
           created_at?: string | null
           id?: string | null
@@ -2330,7 +2325,6 @@ export type Database = {
           logo_url?: string | null
           longitude?: number | null
           name?: string | null
-          phone?: string | null
           region_id?: string | null
           show_in_marketplace?: boolean | null
         }
