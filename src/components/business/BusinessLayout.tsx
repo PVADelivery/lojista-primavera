@@ -18,6 +18,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import logoIcon from "@/assets/logo-icon-v3.png";
 import { brl } from "@/lib/format";
 import { useMyCompany } from "@/services/companies";
+import { useCredits } from "@/services/credits";
+
 
 
 interface Company {
