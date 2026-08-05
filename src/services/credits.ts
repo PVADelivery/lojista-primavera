@@ -57,7 +57,7 @@ export function useCredits() {
   useEffect(() => {
     if (!companyId) return;
     const channel = supabase
-      .channel(`credits-${companyId}`)
+      .channel(`credits-${companyId}-${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "company_credits", filter: `company_id=eq.${companyId}` }, () => {
         qc.invalidateQueries({ queryKey: ["credits", companyId] });
       })

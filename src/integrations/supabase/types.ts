@@ -416,6 +416,67 @@ export type Database = {
           },
         ]
       }
+      company_credit_transactions: {
+        Row: {
+          amount: number
+          balance_after: number | null
+          company_id: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          payment_method: string | null
+          reference_id: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          balance_after?: number | null
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          reference_id?: string | null
+          type?: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number | null
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          payment_method?: string | null
+          reference_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "public_companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       company_credits: {
         Row: {
           balance: number
@@ -423,6 +484,8 @@ export type Database = {
           created_at: string
           id: string
           low_balance_threshold: number
+          total_consumed: number
+          total_purchased: number
           updated_at: string
         }
         Insert: {
@@ -431,6 +494,8 @@ export type Database = {
           created_at?: string
           id?: string
           low_balance_threshold?: number
+          total_consumed?: number
+          total_purchased?: number
           updated_at?: string
         }
         Update: {
@@ -439,6 +504,8 @@ export type Database = {
           created_at?: string
           id?: string
           low_balance_threshold?: number
+          total_consumed?: number
+          total_purchased?: number
           updated_at?: string
         }
         Relationships: [
@@ -2374,6 +2441,16 @@ export type Database = {
       }
     }
     Functions: {
+      add_company_credits: {
+        Args: {
+          _amount: number
+          _company_id: string
+          _description?: string
+          _payment_method?: string
+          _type?: string
+        }
+        Returns: Json
+      }
       admin_add_credits: {
         Args: { _amount: number; _company_id: string; _description?: string }
         Returns: Json
