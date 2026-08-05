@@ -21,6 +21,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { CreditsPanel } from "@/components/business/CreditsPanel";
+
 
 type DateRange = { from: Date; to: Date };
 
