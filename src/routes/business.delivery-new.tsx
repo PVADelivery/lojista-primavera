@@ -4,6 +4,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
+import { useCredits } from "@/services/credits";
+import { brl } from "@/lib/format";
+
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
 import { Button } from "@/components/ui/button";
