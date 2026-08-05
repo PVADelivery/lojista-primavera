@@ -270,10 +270,23 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
+              {/* Credit balance chip */}
+              <Link
+                to="/business/finance"
+                className={`hidden sm:flex items-center gap-2 px-3 h-10 rounded-full transition ${
+                  creditsLow ? "bg-destructive/15 text-destructive" : "bg-secondary hover:bg-accent/10"
+                }`}
+                title="Saldo de créditos"
+              >
+                <Wallet className="h-4 w-4" />
+                <span className="text-xs font-black">{brl(creditBalance)}</span>
+              </Link>
+
               {/* Search */}
               <button className="h-10 w-10 rounded-full bg-secondary hover:bg-accent/10 flex items-center justify-center transition" aria-label="Pesquisar">
                 <Search className="h-4 w-4" />
               </button>
+
 
               {/* Store open/close */}
               <div className="hidden sm:flex items-center gap-2 px-3 h-10 rounded-full bg-secondary">
