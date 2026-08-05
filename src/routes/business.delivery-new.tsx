@@ -1100,9 +1100,36 @@ function NewDeliveryPage() {
 
           {/* Submit */}
           <div className="pt-4">
+            {!editId && (
+              <div
+                className={`mb-3 flex items-center justify-between gap-3 rounded-2xl border px-4 py-3 ${
+                  insufficientCredits ? "border-destructive/50 bg-destructive/10" : "border-border/60 bg-card"
+                }`}
+              >
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Saldo de créditos
+                  </p>
+                  <p className={`text-lg font-black ${insufficientCredits ? "text-destructive" : "text-foreground"}`}>
+                    {brl(creditBalance)}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-muted-foreground">
+                    Será debitado
+                  </p>
+                  <p className="text-lg font-black text-primary">{brl(deliveryFee)}</p>
+                </div>
+              </div>
+            )}
+            {insufficientCredits && (
+              <p className="mb-3 text-xs font-bold text-destructive text-center">
+                Créditos insuficientes para esta entrega. Solicite uma recarga em Financeiro &gt; Créditos.
+              </p>
+            )}
             <Button
               type="submit"
-              disabled={busy}
+              disabled={busy || insufficientCredits}
               className="w-full rounded-2xl h-14 text-base font-black shadow-glow bg-primary hover:bg-primary/90 text-primary-foreground"
             >
               {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : editId ? "Salvar Alterações" : "Criar Solicitação de Entrega"}
@@ -1119,6 +1146,7 @@ function NewDeliveryPage() {
               )}
             </p>
           </div>
+
         </form>
       </div>
 
