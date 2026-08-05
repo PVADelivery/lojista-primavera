@@ -758,36 +758,56 @@ function NewDeliveryPage() {
           .select("*")
           .single();
       } else {
-        deliveryWrite = await supabase
-          .from("deliveries")
-          .insert([
-            {
-              company_id: company.id,
-              short_id: shortId,
-              customer_name: f.customer_name,
-              customer_phone: f.customer_phone,
-              customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
-              address: fullAddress,
-              customer_address_number: f.customer_address_number,
-              customer_neighborhood: f.customer_neighborhood,
-              customer_address_complement: f.customer_address_complement,
-              payment_method: f.is_paid ? "pago" : f.payment_method,
-              order_value: f.is_paid ? 0 : Number(f.order_value || 0),
-              change_for: f.is_paid ? 0 : Number(f.change_for || 0),
-              vehicle_type: f.vehicle_type,
-              region_id: f.region_id === "none" ? null : f.region_id,
-              value: Number(f.value || 0),
-              notes: f.notes,
-              status: "pending",
-            },
-          ])
-          .select("*")
-          .single();
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_delivery_with_credits", {
+          p_payload: {
+            company_id: company.id,
+            short_id: shortId,
+            customer_name: f.customer_name,
+            customer_phone: f.customer_phone,
+            customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
+            address: fullAddress,
+            customer_address_number: f.customer_address_number,
+            customer_neighborhood: f.customer_neighborhood,
+            customer_address_complement: f.customer_address_complement,
+            payment_method: f.is_paid ? "pago" : f.payment_method,
+            order_value: f.is_paid ? 0 : Number(f.order_value || 0),
+            change_for: f.is_paid ? 0 : Number(f.change_for || 0),
+            vehicle_type: f.vehicle_type,
+            region_id: f.region_id === "none" ? null : f.region_id,
+            value: Number(f.value || 0),
+            notes: f.notes,
+          },
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const res: any = rpcRes;
+        if (!res?.success) {
+          if (res?.error === "INSUFFICIENT_CREDITS") {
+            toast.error(
+              `Saldo de créditos insuficiente. Saldo: ${brl(Number(res.balance || 0))} · Necessário: ${brl(Number(res.required || 0))}. Solicite uma recarga em Financeiro > Créditos.`,
+              { duration: 10000 }
+            );
+            setBusy(false);
+            return;
+          }
+          if (res?.error === "FORBIDDEN") {
+            toast.error("Você não tem permissão para criar entregas para esta empresa.", { duration: 8000 });
+            setBusy(false);
+            return;
+          }
+          throw new Error(res?.error || "Erro ao criar entrega.");
+        }
+
+        qc.invalidateQueries({ queryKey: ["credits"] });
+        qc.invalidateQueries({ queryKey: ["credit-transactions"] });
+        deliveryWrite = { data: { id: res.delivery_id }, error: null } as any;
       }
 
       if (deliveryWrite.error) {
         throw deliveryWrite.error;
       }
+
 
       toast.success(editId ? "Corrida atualizada com sucesso!" : "Corrida solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });
