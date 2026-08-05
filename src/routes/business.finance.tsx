@@ -479,7 +479,15 @@ function BusinessFinancePage() {
               <TabsTrigger value="cashflow" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Fluxo de Caixa
               </TabsTrigger>
+              <TabsTrigger value="credits" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
+                Créditos
+              </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="credits" className="mt-4">
+              <CreditsPanel />
+            </TabsContent>
+
 
             {/* Overview Tab */}
             <TabsContent value="overview" className="space-y-6 mt-4">
