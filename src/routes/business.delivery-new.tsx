@@ -199,6 +199,10 @@ function NewDeliveryPage() {
   }, [company]);
 
   // Taxa de entrega definida exclusivamente pela região selecionada no RegionZoneSelector.
+  const { balance: creditBalance } = useCredits();
+  const deliveryFee = Number(f.value || 0);
+  const insufficientCredits = !editId && deliveryFee > 0 && creditBalance < deliveryFee;
+
 
   // Customer search autocomplete query
   useEffect(() => {
