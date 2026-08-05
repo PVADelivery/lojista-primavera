@@ -73,6 +73,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(true);
 
   const { data: company } = useMyCompany();
+  const { balance: creditBalance, isLow: creditsLow } = useCredits();
+
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ["pending-orders", company?.id],
