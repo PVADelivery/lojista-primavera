@@ -461,20 +461,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "company_credit_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_credit_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
         ]
       }
       company_credits: {
@@ -514,20 +500,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: true
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_credits_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "company_credits_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: true
-            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
         ]
@@ -705,20 +677,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "credit_purchase_requests_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_purchase_requests_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
         ]
       }
       credit_transactions: {
@@ -761,20 +719,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "credit_transactions_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -974,20 +918,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deliveries_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "deliveries_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1338,20 +1268,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "merchant_invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "merchant_invoices_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
         ]
       }
       messages: {
@@ -1567,20 +1483,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -1876,20 +1778,6 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "products_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
-            referencedColumns: ["id"]
-          },
         ]
       }
       profiles: {
@@ -2036,20 +1924,6 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "companies_public"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "reviews_company_id_fkey"
-            columns: ["company_id"]
-            isOneToOne: false
-            referencedRelation: "public_companies"
             referencedColumns: ["id"]
           },
           {
@@ -2291,148 +2165,7 @@ export type Database = {
       }
     }
     Views: {
-      companies_public: {
-        Row: {
-          city_id: string | null
-          created_at: string | null
-          id: string | null
-          is_active: boolean | null
-          latitude: number | null
-          logo_url: string | null
-          longitude: number | null
-          name: string | null
-          region_id: string | null
-          show_in_marketplace: boolean | null
-        }
-        Insert: {
-          city_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          latitude?: number | null
-          logo_url?: string | null
-          longitude?: number | null
-          name?: string | null
-          region_id?: string | null
-          show_in_marketplace?: boolean | null
-        }
-        Update: {
-          city_id?: string | null
-          created_at?: string | null
-          id?: string | null
-          is_active?: boolean | null
-          latitude?: number | null
-          logo_url?: string | null
-          longitude?: number | null
-          name?: string | null
-          region_id?: string | null
-          show_in_marketplace?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "companies_region_id_fkey"
-            columns: ["region_id"]
-            isOneToOne: false
-            referencedRelation: "regions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      public_companies: {
-        Row: {
-          banner_url: string | null
-          business_hours: Json | null
-          category: string | null
-          city: string | null
-          city_id: string | null
-          cover_url: string | null
-          created_at: string | null
-          delivery_fee: number | null
-          delivery_mode: string | null
-          description: string | null
-          gallery: Json | null
-          id: string | null
-          is_active: boolean | null
-          is_open: boolean | null
-          latitude: number | null
-          logo_url: string | null
-          longitude: number | null
-          name: string | null
-          opening_hours: Json | null
-          prep_time: number | null
-          prep_time_max: number | null
-          prep_time_min: number | null
-          rating: number | null
-          region_id: string | null
-          show_in_marketplace: boolean | null
-          state: string | null
-        }
-        Insert: {
-          banner_url?: string | null
-          business_hours?: Json | null
-          category?: string | null
-          city?: string | null
-          city_id?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          delivery_fee?: number | null
-          delivery_mode?: string | null
-          description?: string | null
-          gallery?: Json | null
-          id?: string | null
-          is_active?: boolean | null
-          is_open?: boolean | null
-          latitude?: number | null
-          logo_url?: string | null
-          longitude?: number | null
-          name?: string | null
-          opening_hours?: Json | null
-          prep_time?: number | null
-          prep_time_max?: number | null
-          prep_time_min?: number | null
-          rating?: number | null
-          region_id?: string | null
-          show_in_marketplace?: boolean | null
-          state?: string | null
-        }
-        Update: {
-          banner_url?: string | null
-          business_hours?: Json | null
-          category?: string | null
-          city?: string | null
-          city_id?: string | null
-          cover_url?: string | null
-          created_at?: string | null
-          delivery_fee?: number | null
-          delivery_mode?: string | null
-          description?: string | null
-          gallery?: Json | null
-          id?: string | null
-          is_active?: boolean | null
-          is_open?: boolean | null
-          latitude?: number | null
-          logo_url?: string | null
-          longitude?: number | null
-          name?: string | null
-          opening_hours?: Json | null
-          prep_time?: number | null
-          prep_time_max?: number | null
-          prep_time_min?: number | null
-          rating?: number | null
-          region_id?: string | null
-          show_in_marketplace?: boolean | null
-          state?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "companies_region_id_fkey"
-            columns: ["region_id"]
-            isOneToOne: false
-            referencedRelation: "regions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       add_company_credits: {
@@ -2518,6 +2251,30 @@ export type Database = {
         Args: never
         Returns: {
           role: string
+        }[]
+      }
+      get_public_companies: {
+        Args: never
+        Returns: {
+          banner_url: string
+          business_hours: Json
+          category: string
+          city: string
+          city_id: string
+          cover_url: string
+          delivery_fee: number
+          description: string
+          id: string
+          is_open: boolean
+          logo_url: string
+          name: string
+          opening_hours: Json
+          prep_time: number
+          prep_time_max: number
+          prep_time_min: number
+          rating: number
+          region_id: string
+          state: string
         }[]
       }
       get_user_company_ids: { Args: { uid: string }; Returns: string[] }
