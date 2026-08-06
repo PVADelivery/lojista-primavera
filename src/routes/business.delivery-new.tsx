@@ -723,6 +723,7 @@ function NewDeliveryPage() {
         deliveryWrite = await supabase
           .from("deliveries")
           .update({
+            customer_id: custId || null,
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
             customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
@@ -745,6 +746,7 @@ function NewDeliveryPage() {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_delivery_with_credits", {
           p_payload: {
             company_id: company.id,
+            customer_id: custId || null,
             short_id: shortId,
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
@@ -851,6 +853,9 @@ function NewDeliveryPage() {
                       setF({ ...f, customer_name: e.target.value });
                       setCustomerQuery(e.target.value);
                       setShowSuggestions(true);
+                      if (!e.target.value) {
+                        setSelectedCustomerId(null);
+                      }
                     }}
                     onFocus={() => setShowSuggestions(true)}
                     required

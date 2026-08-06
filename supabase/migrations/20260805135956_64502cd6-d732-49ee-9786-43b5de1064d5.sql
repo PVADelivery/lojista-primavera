@@ -183,11 +183,12 @@ BEGIN
   END IF;
 
   INSERT INTO public.deliveries (
-    company_id, short_id, customer_name, customer_phone, customer_cpf, address,
+    company_id, customer_id, short_id, customer_name, customer_phone, customer_cpf, address,
     customer_address_number, customer_neighborhood, customer_address_complement,
     payment_method, order_value, change_for, vehicle_type, region_id, value, notes, status
   ) VALUES (
     v_company_id,
+    NULLIF(p_payload->>'customer_id', '')::uuid,
     p_payload->>'short_id',
     COALESCE(p_payload->>'customer_name', 'Cliente'),
     p_payload->>'customer_phone',
