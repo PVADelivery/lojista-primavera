@@ -122,37 +122,6 @@ function NewDeliveryPage() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
-  // Live Customer Autocomplete Search from Database
-  useEffect(() => {
-    if (!company?.id || !customerQuery.trim()) {
-      setCustomerSuggestions([]);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      const q = customerQuery.trim();
-      const cleanPhone = q.replace(/\D/g, "");
-
-      let queryBuilder = supabase
-        .from("customers")
-        .select("*, addresses(*)")
-        .eq("company_id", company.id)
-        .limit(8);
-
-      if (cleanPhone.length >= 3) {
-        queryBuilder = queryBuilder.or(`name.ilike.%${q}%,phone.ilike.%${cleanPhone}%`);
-      } else {
-        queryBuilder = queryBuilder.ilike("name", `%${q}%`);
-      }
-
-      const { data } = await queryBuilder;
-      if (data) {
-        setCustomerSuggestions(data);
-      }
-    }, 200);
-
-    return () => clearTimeout(timer);
-  }, [customerQuery, company?.id]);
 
   // Map and routing State
   const mapContainerRef = useRef<HTMLDivElement>(null);
@@ -206,14 +175,16 @@ function NewDeliveryPage() {
 
   // Customer search autocomplete query
   useEffect(() => {
-    if (!company?.id || customerQuery.trim().length < 2) {
+    if (!company?.id || customerQuery.trim().length < 1) {
       setCustomerSuggestions([]);
       return;
     }
 
     const delayDebounceFn = setTimeout(async () => {
       const clean = customerQuery.trim();
-      const { data, error } = await supabase
+      const phoneClean = clean.replace(/\D/g, "");
+      
+      let queryBuilder = supabase
         .from("customers")
         .select(`
           id,
@@ -232,13 +203,19 @@ function NewDeliveryPage() {
           )
         `)
         .eq("company_id", company.id)
-        .or(`name.ilike.%${clean}%,phone.ilike.%${clean}%`)
-        .limit(5);
+        .limit(8);
 
+      if (phoneClean.length >= 2) {
+        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${phoneClean}%`);
+      } else {
+        queryBuilder = queryBuilder.ilike("name", `%${clean}%`);
+      }
+
+      const { data, error } = await queryBuilder;
       if (!error && data) {
         setCustomerSuggestions(data);
       }
-    }, 300);
+    }, 150);
 
     return () => clearTimeout(delayDebounceFn);
   }, [customerQuery, company?.id]);
@@ -598,7 +575,7 @@ function NewDeliveryPage() {
     }
   };
 
-  const selectCustomer = (cust: any) => {
+  const selectCustomer = (cust: any, targetAddress?: any) => {
     setSelectedCustomerId(cust.id);
     setF((prev) => ({
       ...prev,
@@ -607,8 +584,8 @@ function NewDeliveryPage() {
       customer_cpf: cust.cpf || "",
     }));
 
-    if (cust.addresses && cust.addresses.length > 0) {
-      const addr = cust.addresses[0];
+    const addr = targetAddress || (cust.addresses && cust.addresses.length > 0 ? cust.addresses[0] : null);
+    if (addr) {
       setF((prev) => ({
         ...prev,
         address: addr.street,
@@ -874,25 +851,36 @@ function NewDeliveryPage() {
                     placeholder="Ex: João da Silva"
                   />
                   {showSuggestions && customerSuggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-popover border border-border rounded-2xl shadow-xl max-h-60 overflow-y-auto divide-y divide-border/20">
+                    <div className="absolute z-30 w-full mt-1 bg-popover border border-border rounded-2xl shadow-xl max-h-72 overflow-y-auto divide-y divide-border/20">
                       {customerSuggestions.map((cust) => (
-                        <button
-                          key={cust.id}
-                          type="button"
-                          onClick={() => selectCustomer(cust)}
-                          className="w-full text-left px-4 py-3 hover:bg-primary/10 transition-colors text-sm flex flex-col group"
-                        >
-                          <div className="flex items-center justify-between">
-                            <span className="font-bold text-foreground group-hover:text-primary transition-colors">{cust.name}</span>
-                            <span className="text-xs font-semibold text-muted-foreground">{cust.phone || "Sem telefone"}</span>
-                          </div>
+                        <div key={cust.id} className="p-2 space-y-1 hover:bg-primary/5 transition-colors">
+                          <button
+                            type="button"
+                            onClick={() => selectCustomer(cust, cust.addresses?.[0])}
+                            className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-primary/10 transition-colors text-sm flex flex-col group"
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-bold text-foreground group-hover:text-primary transition-colors">{cust.name}</span>
+                              <span className="text-xs font-semibold text-muted-foreground">{cust.phone || "Sem telefone"}</span>
+                            </div>
+                          </button>
                           {cust.addresses && cust.addresses.length > 0 && (
-                            <span className="text-[11px] text-muted-foreground/80 mt-0.5 truncate flex items-center gap-1">
-                              <MapPin className="h-3 w-3 text-primary shrink-0" />
-                              {cust.addresses[0].street}{cust.addresses[0].number ? `, ${cust.addresses[0].number}` : ''}{cust.addresses[0].neighborhood ? ` - ${cust.addresses[0].neighborhood}` : ''}
-                            </span>
+                            <div className="pl-3 space-y-1">
+                              {cust.addresses.map((addr: any) => (
+                                <button
+                                  key={addr.id}
+                                  type="button"
+                                  onClick={() => selectCustomer(cust, addr)}
+                                  className="w-full text-left px-2 py-1 rounded-lg hover:bg-primary/20 text-xs text-muted-foreground flex items-center gap-1.5 truncate"
+                                >
+                                  <MapPin className="h-3 w-3 text-primary shrink-0" />
+                                  <span className="font-semibold text-foreground/80">{addr.label || 'Endereço'}:</span>
+                                  <span className="truncate">{addr.street}{addr.number ? `, ${addr.number}` : ''}{addr.neighborhood ? ` - ${addr.neighborhood}` : ''}</span>
+                                </button>
+                              ))}
+                            </div>
                           )}
-                        </button>
+                        </div>
                       ))}
                     </div>
                   )}
