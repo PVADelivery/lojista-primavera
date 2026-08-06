@@ -24,26 +24,29 @@ function BusinessHomePage() {
   const { data: company } = useMyCompany();
   const qc = useQueryClient();
 
-  console.log("HOOK COMPANY:", company);
-  console.log("HOOK COMPANY ID:", company?.id);
-
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id, profile?.user_id],
     enabled: true,
     queryFn: async () => {
-      console.log("QUERY KEY:", ["deliveries", company?.id, profile?.user_id]);
-      
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("AUTH UID:", user?.id);
-      console.log("AUTH EMAIL:", user?.email);
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || "";
+      const projectRef = supabaseUrl?.replace("https://", "")?.split(".")[0];
+      const truncatedKey = anonKey ? `${anonKey.substring(0, 10)}...${anonKey.substring(anonKey.length - 6)}` : "INDISPONIVEL";
 
-      const { data: rlsTest, error: rlsErr } = await supabase
+      console.log("SUPABASE URL:", supabaseUrl);
+      console.log("PROJECT REF:", projectRef);
+      console.log("ANON KEY (TRUNCATED):", truncatedKey);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("USER AUTHENTICATED:", user);
+
+      const { data: deliveriesData, error: deliveriesErr } = await supabase
         .from("deliveries")
         .select("short_id,status,company_id")
         .eq("company_id", "3966ac35-24c5-4408-8f46-2851c80aa056");
 
-      console.log("RESULTADO:", rlsTest);
-      console.log("ERRO:", rlsErr);
+      console.log("DELIVERIES DATA:", deliveriesData);
+      console.log("DELIVERIES ERROR:", deliveriesErr);
 
       let query = supabase.from("deliveries").select("*");
       
