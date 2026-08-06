@@ -28,11 +28,11 @@ function BusinessHomePage() {
     queryKey: ["deliveries", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
-      const { data } = await supabase.from("deliveries").select("*")
+      const { data, error } = await supabase.from("deliveries").select("*")
         .eq("company_id", company!.id)
-        .in("status", ["pending", "broadcasted", "accepted", "collecting", "in_route"])
         .order("created_at", { ascending: false });
-      return data ?? [];
+      if (error) console.error("Error fetching deliveries:", error);
+      return (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
     },
   });
 
