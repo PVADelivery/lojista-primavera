@@ -56,13 +56,6 @@ function BusinessHomePage() {
   const marketplace = deliveries.filter((d: any) => d.order_id);
   const manual = deliveries.filter((d: any) => !d.order_id);
 
-  console.log("[PONTOS 6 & 7] Renderizando Dashboard com:", {
-    deliveriesDoUseQuery: deliveries,
-    statsCalculadas: stats,
-    arrayMarketplace: marketplace,
-    arrayManuais: manual
-  });
-
   const finishDelivery = async (id: string) => {
     await supabase.from("deliveries").update({ status: "delivered" }).eq("id", id);
     toast.success("Entrega finalizada");
