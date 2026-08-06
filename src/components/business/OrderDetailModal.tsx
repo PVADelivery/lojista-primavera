@@ -178,38 +178,38 @@ export default function OrderDetailModal({
       <DialogContent className="sm:max-w-3xl p-0 overflow-hidden rounded-[3rem] border-none shadow-2xl bg-white text-foreground selection:bg-primary/10 flex flex-col max-h-[95vh]">
         <DialogDescription className="sr-only">Detalhes completos do pedido, itens e valores.</DialogDescription>
         
-        {/* Header Ultra-Compacto */}
-        <div className="bg-primary/95 backdrop-blur-3xl px-5 py-4 relative overflow-hidden text-white shrink-0">
-            <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
-                <ShoppingBag className="w-32 h-32 rotate-12" />
+        {/* Header Elegante com Alto Contraste */}
+        <div className="bg-slate-950 px-6 py-5 relative overflow-hidden text-white shrink-0 border-b border-slate-800">
+            <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <ShoppingBag className="w-32 h-32 rotate-12 text-primary" />
             </div>
             
             <DialogHeader className="relative z-10">
                 <div className="flex items-center justify-between gap-4 mb-3">
                     <div className="flex items-center gap-3">
-                        <div className={cn("px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-[0.1em] border-none", status.color)}>
+                        <div className={cn("px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border-none shadow-sm", status.color)}>
                             {status.label}
                         </div>
-                        <span className="text-white/60 text-[10px] font-bold leading-none">
+                        <span className="text-slate-400 text-xs font-bold leading-none">
                           Há {Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)} min
                         </span>
                     </div>
                 </div>
                 
-                <div className="flex flex-wrap items-center justify-between gap-4 text-left bg-white/10 p-3 rounded-2xl border border-white/10">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800 shadow-md">
                     <div className="flex items-center gap-3">
-                        <DialogTitle className="text-lg font-black tracking-tight text-white m-0 leading-none">
+                        <DialogTitle className="text-xl font-black tracking-tight text-amber-400 m-0 leading-none">
                           #{order.id?.slice(-6).toUpperCase() || "..."}
                         </DialogTitle>
-                        <div className="h-4 w-px bg-white/20" />
-                        <div className="text-white/90 font-bold text-xs flex items-center gap-1.5">
-                            <User className="w-3.5 h-3.5 opacity-70" />
+                        <div className="h-5 w-px bg-slate-700" />
+                        <div className="text-slate-100 font-bold text-sm flex items-center gap-1.5">
+                            <User className="w-4 h-4 text-amber-400 shrink-0" />
                             {customerInfo?.name || order.customer?.name || order.customer_name || "Cliente"}
-                            <span className="text-white/50 text-[9px] font-medium ml-1">({customerInfo?.phone || order.customer?.phone || order.customer_phone || "S/N"})</span>
+                            <span className="text-slate-400 text-xs font-medium ml-1">({customerInfo?.phone || order.customer?.phone || order.customer_phone || "S/N"})</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-white/90 max-w-xs">
-                        <MapPin className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                    <div className="flex items-center gap-1.5 text-slate-200 max-w-xs">
+                        <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
                         <p className="text-xs font-bold truncate">
                             {order.customer?.address || order.delivery_address || order.address || "Endereço não informado"}
                         </p>
@@ -240,11 +240,11 @@ export default function OrderDetailModal({
             {/* Items List / Manual Delivery Details */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
-                    <h3 className="font-black text-foreground/40 uppercase tracking-[0.3em] text-[10px] flex items-center gap-2">
+                    <h3 className="font-black text-slate-800 dark:text-slate-200 uppercase tracking-[0.2em] text-xs flex items-center gap-2">
                         <Package className="w-4 h-4 text-primary" /> {order.type === 'manual' || !order.order_items ? "dados do despacho da entrega" : "composição do pedido"}
                     </h3>
-                    <div className="h-px flex-1 mx-6 bg-border/40" />
-                    <span className="font-black text-[10px] text-primary bg-primary/5 px-4 py-2 rounded-full tracking-widest">
+                    <div className="h-px flex-1 mx-6 bg-slate-200 dark:bg-slate-800" />
+                    <span className="font-black text-xs text-primary bg-primary/10 px-4 py-1.5 rounded-full tracking-wider border border-primary/20">
                       {order.type === 'manual' || !order.order_items ? "DESPACHO MANUAL" : `${items.length} ITENS`}
                     </span>
                 </div>
