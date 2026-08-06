@@ -11,6 +11,8 @@ import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
+import OrderDetailModal from "@/components/business/OrderDetailModal";
+
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
 });
@@ -48,6 +50,8 @@ function OrdersPage() {
 
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailOrder, setDetailOrder] = useState<any>(null);
   const [deliveryFee, setDeliveryFee] = useState("0,00");
   const [selectedRegionId, setSelectedRegionId] = useState("");
   const [busyDispatch, setBusyDispatch] = useState(false);
@@ -319,8 +323,14 @@ function OrdersPage() {
                   const isProcessing = processingOrderIds.has(order.id);
 
                   return (
-                    <div key={order.id} className={cn(
-                      "bg-card border border-border/60 rounded-[1.5rem] p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30 group relative overflow-hidden",
+                    <div 
+                      key={order.id} 
+                      onClick={() => {
+                        setDetailOrder(order);
+                        setIsDetailModalOpen(true);
+                      }}
+                      className={cn(
+                      "bg-card border border-border/60 rounded-[1.5rem] p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/30 group relative overflow-hidden cursor-pointer",
                       isPending && "border-warning/40 bg-warning/[0.02]"
                     )}>
                       {isPending && (
@@ -380,7 +390,7 @@ function OrdersPage() {
                           <p className="text-lg font-black text-primary tracking-tighter italic leading-none">{brl(order.total)}</p>
                         </div>
                         
-                        <div className="flex gap-2 mt-1">
+                        <div className="flex gap-2 mt-1" onClick={(e) => e.stopPropagation()}>
                           {isPending && (
                             <button 
                               disabled={isProcessing}
@@ -508,6 +518,14 @@ function OrdersPage() {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Modal de Detalhes do Pedido */}
+      {detailOrder && (
+        <OrderDetailModal
+          order={detailOrder}
+          isOpen={isDetailModalOpen}
+          onClose={() => setIsDetailModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
