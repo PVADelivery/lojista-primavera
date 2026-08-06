@@ -665,7 +665,7 @@ function NewDeliveryPage() {
           existingCust = data;
         }
 
-        const custPayload = {
+        const custPayload: any = {
           company_id: company.id,
           name: f.customer_name.trim(),
           phone: phoneClean || null,
@@ -673,19 +673,21 @@ function NewDeliveryPage() {
         };
 
         if (existingCust) {
-          const { data: updatedCust } = await supabase
+          const { data: updatedCust, error: uErr } = await supabase
             .from("customers")
             .update(custPayload)
             .eq("id", existingCust.id)
-            .select()
-            .single();
+            .select("id")
+            .maybeSingle();
+          if (uErr) console.error("[Update Customer Error]", uErr);
           if (updatedCust) custId = updatedCust.id;
         } else {
-          const { data: insertedCust } = await supabase
+          const { data: insertedCust, error: iErr } = await supabase
             .from("customers")
             .insert([custPayload])
-            .select()
-            .single();
+            .select("id")
+            .maybeSingle();
+          if (iErr) console.error("[Insert Customer Error]", iErr);
           if (insertedCust) custId = insertedCust.id;
         }
       }
