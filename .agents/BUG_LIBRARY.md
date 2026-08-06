@@ -167,5 +167,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
       },
     },
     layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
-  }
-  ```
+   ```
+
+---
+
+### 14. Ganhos do Entregador Sempre R$ 0,00 — Erro Postgres 42703 (Coluna Inexistente)
+* **Sintoma**: Na tela Início e Perfil Financeiro do app do entregador, os ganhos exibiam R$ 0,00 mesmo com entregas concluídas no banco. O console do navegador mostrava `DELIVERIES: null` e `DELIVERIES ERROR: {code: '42703', message: 'column deliveries.delivery_fee does not exist'}` (e também `delivered_at`).
+* **Causa Raiz**: A função `fetchEarnings` em `deliveries.ts` e a consulta financeira em `driver.profile.tsx` referenciavam colunas `delivery_fee` e `delivered_at` no `.select()`, que **não existem** na tabela `deliveries` do Postgres. O PostgREST rejeitava a query inteira com HTTP 400, retornando `null` em vez dos dados.
+* **Solução Padrão**:
+  1. Usar apenas colunas que existem no banco: `.select("value, commission, completed_at, created_at")`.
+  2. Remover fallbacks de data para colunas inexistentes (`r.delivered_at`).
+  3. Calcular a taxa do entregador usando `Number(r.value || 0)` diretamente.
+  4. **Regra**: Antes de referenciar uma coluna no `.select()`, confirmar que ela existe na tabela do Supabase.
