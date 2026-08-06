@@ -25,13 +25,17 @@ function BusinessHomePage() {
   const qc = useQueryClient();
 
   const { data: deliveries = [] } = useQuery({
-    queryKey: ["deliveries", company?.id],
-    enabled: !!company?.id,
+    queryKey: ["deliveries", company?.id, profile?.user_id],
     queryFn: async () => {
-      const { data, error } = await supabase.from("deliveries").select("*")
-        .eq("company_id", company!.id)
-        .order("created_at", { ascending: false });
-      if (error) console.error("Error fetching deliveries:", error);
+      let query = supabase.from("deliveries").select("*");
+      if (company?.id) {
+        query = query.eq("company_id", company.id);
+      }
+      const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
+      if (error) {
+        console.error("Error fetching deliveries:", error);
+        return [];
+      }
       return (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
     },
   });
