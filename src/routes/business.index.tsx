@@ -24,16 +24,15 @@ function BusinessHomePage() {
   const { data: company } = useMyCompany();
   const qc = useQueryClient();
 
+  console.log("[PONTOS 1 & 2] company:", company);
+  console.log("[PONTOS 1 & 2] company.id:", company?.id);
+
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id, profile?.user_id],
     enabled: true,
     queryFn: async () => {
-      console.log("[Dashboard Debug] Iniciando busca de entregas...", {
-        companyId: company?.id,
-        userProfileId: profile?.user_id,
-        userAuthId: profile?.id
-      });
-
+      console.log("[PONTO 3] Executando query");
+      
       let query = supabase.from("deliveries").select("*");
       
       if (company?.id) {
@@ -43,21 +42,15 @@ function BusinessHomePage() {
       const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
       
       if (error) {
-        console.error("[Dashboard Debug] Erro ao consultar tabela deliveries:", error);
+        console.error("[ERRO SUPABASE]", error);
         return [];
       }
 
-      console.log("[Dashboard Debug] Resultado retornado do banco:", {
-        totalRetornadoBanco: data?.length || 0,
-        registros: data
-      });
+      console.log("[PONTO 4] Supabase retornou (data):", data);
 
       const active = (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
 
-      console.log("[Dashboard Debug] Entregas ativas filtradas:", {
-        quantidadeAtiva: active.length,
-        entregasAtivas: active
-      });
+      console.log("[PONTO 5] Entregas ativas apos filtro (active):", active);
 
       return active;
     },
@@ -73,6 +66,13 @@ function BusinessHomePage() {
 
   const marketplace = deliveries.filter((d: any) => d.order_id);
   const manual = deliveries.filter((d: any) => !d.order_id);
+
+  console.log("[PONTOS 6 & 7] Renderizando Dashboard com:", {
+    deliveriesDoUseQuery: deliveries,
+    statsCalculadas: stats,
+    arrayMarketplace: marketplace,
+    arrayManuais: manual
+  });
 
   const finishDelivery = async (id: string) => {
     await supabase.from("deliveries").update({ status: "delivered" }).eq("id", id);
