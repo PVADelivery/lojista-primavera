@@ -123,7 +123,7 @@ function BusinessHomePage() {
               </div>
               <div className="flex flex-col leading-tight">
                 <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Saldo de Créditos</span>
-                <span className="text-base font-black text-primary">{Number(creditBalance ?? 0).toFixed(2).replace('.', ',')}</span>
+                <span className="text-base font-black text-primary">{Math.floor(Number(creditBalance ?? 0))} créditos</span>
               </div>
             </Link>
 
