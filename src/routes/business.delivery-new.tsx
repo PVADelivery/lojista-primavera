@@ -760,6 +760,13 @@ function NewDeliveryPage() {
             region_id: f.region_id === "none" ? null : f.region_id,
             value: Number(f.value || 0),
             notes: f.notes,
+            latitude: dropoffCoords ? dropoffCoords[1] : null,
+            longitude: dropoffCoords ? dropoffCoords[0] : null,
+            dropoff_latitude: dropoffCoords ? dropoffCoords[1] : null,
+            dropoff_longitude: dropoffCoords ? dropoffCoords[0] : null,
+            pickup_latitude: pickupCoords ? pickupCoords[1] : null,
+            pickup_longitude: pickupCoords ? pickupCoords[0] : null,
+            status: "pending",
           },
         });
 
