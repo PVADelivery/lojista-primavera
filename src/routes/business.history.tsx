@@ -142,6 +142,11 @@ function BusinessHistoryPage() {
         
         console.log("[HistoryPage] Total carregado:", unifiedHistory.length);
         setHistory(unifiedHistory);
+
+        // Se a aba marketplace estiver vazia mas houver entregas manuais, seleciona a aba entregas
+        if (ordersRes.data?.length === 0 && (deliveriesRes.data?.length || 0) > 0) {
+          setActiveTab("entregas");
+        }
       } catch (err) {
         console.error("[HistoryPage] Erro fatal:", err);
       } finally {
@@ -206,7 +211,7 @@ function BusinessHistoryPage() {
   const filteredHistory = history.filter(o => {
     const matchesSearch = o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           o.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === "marketplace" ? o.type === 'marketplace' : o.type === 'manual';
+    const matchesTab = activeTab === "marketplace" ? o.type === 'marketplace' : (o.type === 'manual' || o.type === 'entregas');
     return matchesSearch && matchesTab;
   });
 
