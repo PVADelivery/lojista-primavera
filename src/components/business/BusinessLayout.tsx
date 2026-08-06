@@ -286,7 +286,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               >
                 <Wallet className="h-4 w-4" />
                 <div className="flex flex-col text-left leading-none">
-                  <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Créditos p/ Pedidos</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Saldo de Créditos</span>
                   <span className="text-xs font-black">{brl(creditBalance)}</span>
                 </div>
               </Link>
