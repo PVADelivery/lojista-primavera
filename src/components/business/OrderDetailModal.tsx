@@ -178,10 +178,10 @@ export default function OrderDetailModal({
       <DialogContent className="sm:max-w-3xl p-0 overflow-hidden rounded-[3rem] border-none shadow-2xl bg-white text-foreground selection:bg-primary/10 flex flex-col max-h-[95vh]">
         <DialogDescription className="sr-only">Detalhes completos do pedido, itens e valores.</DialogDescription>
         
-        {/* Header Elegante com Alto Contraste */}
-        <div className="bg-slate-950 px-6 py-5 relative overflow-hidden text-white shrink-0 border-b border-slate-800">
+        {/* Header Elegante com Alto Contraste (Fundo Preto com Texto Branco/Amarelo) */}
+        <div className="bg-slate-900 px-6 py-5 relative overflow-hidden text-white shrink-0 border-b border-slate-800" style={{ backgroundColor: "#0f172a", color: "#ffffff" }}>
             <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <ShoppingBag className="w-32 h-32 rotate-12 text-primary" />
+                <ShoppingBag className="w-32 h-32 rotate-12 text-amber-400" />
             </div>
             
             <DialogHeader className="relative z-10">
@@ -190,27 +190,27 @@ export default function OrderDetailModal({
                         <div className={cn("px-3.5 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border-none shadow-sm", status.color)}>
                             {status.label}
                         </div>
-                        <span className="text-slate-400 text-xs font-bold leading-none">
+                        <span className="text-slate-300 text-xs font-bold leading-none">
                           Há {Math.floor((Date.now() - new Date(order.created_at).getTime()) / 60000)} min
                         </span>
                     </div>
                 </div>
                 
-                <div className="flex flex-wrap items-center justify-between gap-4 text-left bg-slate-900/90 p-4 rounded-2xl border border-slate-800 shadow-md">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-left bg-slate-800/90 p-4 rounded-2xl border border-slate-700 shadow-md">
                     <div className="flex items-center gap-3">
                         <DialogTitle className="text-xl font-black tracking-tight text-amber-400 m-0 leading-none">
                           #{order.id?.slice(-6).toUpperCase() || "..."}
                         </DialogTitle>
-                        <div className="h-5 w-px bg-slate-700" />
-                        <div className="text-slate-100 font-bold text-sm flex items-center gap-1.5">
+                        <div className="h-5 w-px bg-slate-600" />
+                        <div className="text-white font-black text-sm flex items-center gap-1.5">
                             <User className="w-4 h-4 text-amber-400 shrink-0" />
-                            {customerInfo?.name || order.customer?.name || order.customer_name || "Cliente"}
-                            <span className="text-slate-400 text-xs font-medium ml-1">({customerInfo?.phone || order.customer?.phone || order.customer_phone || "S/N"})</span>
+                            <span className="text-white font-black">{customerInfo?.name || order.customer?.name || order.customer_name || "Cliente"}</span>
+                            <span className="text-slate-300 text-xs font-bold ml-1">({customerInfo?.phone || order.customer?.phone || order.customer_phone || "S/N"})</span>
                         </div>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-200 max-w-xs">
+                    <div className="flex items-center gap-1.5 text-slate-100 max-w-xs">
                         <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
-                        <p className="text-xs font-bold truncate">
+                        <p className="text-xs font-bold truncate text-slate-100">
                             {order.customer?.address || order.delivery_address || order.address || "Endereço não informado"}
                         </p>
                     </div>
