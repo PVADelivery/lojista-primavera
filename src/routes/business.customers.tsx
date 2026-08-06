@@ -127,47 +127,27 @@ function BusinessCustomersPage() {
     };
 
     try {
-      // A tabela customers NÃO possui company_id. A relação correta do lojista é via orders/deliveries.company_id.
-      const ordersPromise = supabase
-        .from("orders")
-        .select(`
-          id,
-          customer_id,
-          created_at,
-          delivery_address,
-          customers (id, name, phone, cpf)
-        `)
-        .eq("company_id", companyId) as any;
-      const deliveriesPromise = supabase
-        .from("deliveries")
-        .select("id, order_id, customer_name, customer_phone, customer_cpf, address, created_at")
-        .eq("company_id", companyId) as any;
-      const [{ data: orderData, error: orderError }, { data: deliveryData, error: deliveryError }] = await Promise.all([ordersPromise, deliveriesPromise]);
+      // Busca clientes diretamente da tabela customers filtrados pela empresa
+      const { data: dbCustomers, error: custErr } = await supabase
+        .from("customers")
+        .select("*, addresses(*)")
+        .eq("company_id", companyId);
 
-      if (orderError) throw orderError;
-      if (deliveryError) throw deliveryError;
+      if (custErr) throw custErr;
 
-      (orderData || []).forEach((o: any) => {
-        const c = Array.isArray(o.customers) ? o.customers[0] : o.customers;
-        upsertCustomer({
-          id: c?.id || o.customer_id || o.id,
-          customer_id: o.customer_id,
-          name: c?.name,
-          phone: c?.phone,
-          cpf: c?.cpf,
-          address: o.delivery_address,
-          created_at: o.created_at
-        });
-      });
-
-      (deliveryData || []).filter((d: any) => !d.order_id).forEach((d: any) => {
-        upsertCustomer({
-          id: d.customer_phone || `${d.customer_name || "cliente"}-${d.id}`,
-          name: d.customer_name,
-          phone: d.customer_phone,
-          cpf: d.customer_cpf,
-          address: d.address,
-          created_at: d.created_at
+      (dbCustomers || []).forEach((c: any) => {
+        const addrList = (c.addresses || []).map((a: any) => 
+          `${a.street}${a.number ? `, ${a.number}` : ''}${a.neighborhood ? ` - ${a.neighborhood}` : ''}`
+        );
+        customerMap.set(c.id, {
+          id: c.id,
+          name: c.name || "Cliente sem nome",
+          phone: c.phone || "",
+          cpf: c.cpf || "",
+          total_orders: 1,
+          last_order_at: c.created_at,
+          addresses: addrList,
+          phones: c.phone ? [c.phone] : [],
         });
       });
 
