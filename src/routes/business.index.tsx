@@ -30,6 +30,8 @@ function BusinessHomePage() {
       let query = supabase.from("deliveries").select("*");
       if (company?.id) {
         query = query.eq("company_id", company.id);
+      } else if (profile?.user_id) {
+        query = query.eq("user_id", profile.user_id);
       }
       const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
       if (error) {
