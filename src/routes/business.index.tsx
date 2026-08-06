@@ -112,18 +112,18 @@ function BusinessHomePage() {
             {/* Cartão de Crédito de Entregas */}
             <Link
               to="/business/finance"
-              className={`flex items-center gap-3 px-5 h-12 rounded-2xl transition-all shadow-md ${
+              className={`flex items-center gap-3.5 px-6 py-2.5 min-h-[52px] rounded-2xl transition-all shadow-md ${
                 creditsLow
                   ? "bg-destructive/15 border border-destructive/30 text-destructive animate-pulse"
-                  : "bg-white/90 dark:bg-card/90 backdrop-blur border border-amber-500/30 text-foreground hover:border-amber-500 hover:shadow-lg"
+                  : "bg-card border border-border/80 text-foreground hover:border-primary/40 hover:shadow-lg"
               }`}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
                 <Wallet className="h-4 w-4" />
               </div>
-              <div className="flex flex-col text-left leading-none">
+              <div className="flex flex-col text-left leading-tight py-0.5 whitespace-nowrap">
                 <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Saldo de Créditos</span>
-                <span className="mt-1 font-display text-lg font-black tracking-tight text-amber-600 dark:text-amber-400">
+                <span className="mt-0.5 font-display text-lg font-black tracking-tight text-foreground">
                   {Math.floor(Number(creditBalance ?? 0))}
                 </span>
               </div>
