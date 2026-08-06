@@ -277,17 +277,19 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               {/* Credit balance chip */}
               <Link
                 to="/business/finance"
-                className={`flex items-center gap-2 px-3.5 h-10 rounded-xl font-bold border transition-all ${
+                className={`flex items-center gap-2.5 px-3.5 h-10 rounded-full font-bold transition-all shadow-sm ${
                   creditsLow 
-                    ? "bg-destructive/10 border-destructive/30 text-destructive shadow-sm animate-pulse" 
-                    : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 shadow-sm"
+                    ? "bg-destructive/15 text-destructive ring-1 ring-destructive/30 animate-pulse" 
+                    : "bg-amber-500/10 text-amber-700 dark:text-amber-300 ring-1 ring-amber-500/25 hover:bg-amber-500/20"
                 }`}
                 title="Clique para gerenciar ou recarregar seus créditos de entrega"
               >
-                <Wallet className="h-4 w-4" />
-                <div className="flex flex-col text-left leading-none">
-                  <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Saldo de Créditos</span>
-                  <span className="text-xs font-black">{Math.floor(Number(creditBalance ?? 0))}</span>
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                  <Wallet className="h-3.5 w-3.5" />
+                </div>
+                <div className="flex items-center gap-1.5 leading-none">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Saldo:</span>
+                  <span className="text-sm font-black tracking-tight">{Math.floor(Number(creditBalance ?? 0))}</span>
                 </div>
               </Link>
 
