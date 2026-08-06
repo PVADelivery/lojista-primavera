@@ -115,9 +115,6 @@ function BusinessHomePage() {
             >
               <Plus className="h-4 w-4 mr-2" />Nova Solicitação
             </Link>
-            <button className="h-12 px-6 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/10 font-black text-sm uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]">
-              Acompanhar rota
-            </button>
           </div>
         </div>
       </section>
