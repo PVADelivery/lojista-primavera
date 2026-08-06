@@ -153,20 +153,17 @@ function BusinessCustomersPage() {
       // 3. Busca lista geral de cadastros na tabela customers
       const { data: dbCustomers } = await supabase
         .from("customers")
-        .select("*, addresses(*)")
+        .select("*")
         .limit(100);
 
       (dbCustomers || []).forEach((c: any) => {
-        const addrList = (c.addresses || []).map((a: any) => 
-          `${a.street}${a.number ? `, ${a.number}` : ''}${a.neighborhood ? ` - ${a.neighborhood}` : ''}`
-        );
         upsertCustomer({
           id: c.id,
           name: c.name,
           phone: c.phone,
           cpf: c.cpf,
           created_at: c.created_at,
-          address: addrList[0] || "",
+          address: "",
         });
       });
 
