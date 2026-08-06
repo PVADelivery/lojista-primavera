@@ -180,69 +180,127 @@ function BusinessCustomersPage() {
     if (companyId) fetchCustomers();
   }, [companyId]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
+
+  const openNewModal = () => {
+    setEditingCustomer(null);
+    setForm({ name: "", phone: "", cpf: "" });
+    setAddressEntries([{ label: "Casa", address: "", reference: "" }]);
+    setShowNewModal(true);
+  };
+
+  const openEditModal = (cust: CustomerRecord) => {
+    setEditingCustomer(cust);
+    setForm({
+      name: cust.name || "",
+      phone: cust.phone || "",
+      cpf: cust.cpf || "",
+    });
+    setAddressEntries(
+      cust.addresses.length > 0
+        ? cust.addresses.map(a => ({ label: "Casa", address: a, reference: "" }))
+        : [{ label: "Casa", address: "", reference: "" }]
+    );
+    setShowNewModal(true);
+  };
+
+  const handleDelete = async (cust: CustomerRecord) => {
+    if (!confirm(`Deseja realmente remover o cliente "${cust.name}"?`)) return;
+
+    try {
+      if (cust.id && !cust.id.startsWith("0") && cust.id.includes("-")) {
+        const { error } = await supabase.from("customers").delete().eq("id", cust.id);
+        if (error) console.warn("Erro ao deletar da tabela de clientes:", error.message);
+      }
+
+      setCustomers(prev => prev.filter(c => c.id !== cust.id));
+      if (selectedCustomer?.id === cust.id) setSelectedCustomer(null);
+      toast.success("Cliente removido com sucesso!");
+    } catch (err: any) {
+      toast.error(err?.message || "Erro ao excluir cliente");
+    }
+  };
+
+  const handleSaveCustomer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
       toast.error("Informe o nome do cliente");
       return;
     }
-    if (!companyId) {
-      toast.error("Erro: Empresa não identificada.");
-      return;
-    }
     setSaving(true);
+
     try {
-      const { data: customer, error } = await supabase
-        .from("customers")
-        .insert({
-          name: form.name.trim(),
-          phone: form.phone.trim() || null,
-          cpf: form.cpf.trim() || null,
-        })
-        .select()
-        .single();
+      if (editingCustomer && editingCustomer.id.includes("-")) {
+        const { error } = await supabase
+          .from("customers")
+          .update({
+            name: form.name.trim(),
+            phone: form.phone.trim() || null,
+            cpf: form.cpf.trim() || null,
+          })
+          .eq("id", editingCustomer.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const validAddresses = addressEntries.filter((a) => a.address.trim());
-      const savedAddressStrings: string[] = [];
+        setCustomers(prev =>
+          prev.map(c =>
+            c.id === editingCustomer.id
+              ? {
+                  ...c,
+                  name: form.name.trim(),
+                  phone: form.phone.trim() || undefined,
+                  cpf: form.cpf.trim() || undefined,
+                  addresses: addressEntries.filter(a => a.address.trim()).map(a => a.address.trim()),
+                }
+              : c
+          )
+        );
+        toast.success("Cliente atualizado com sucesso!");
+      } else {
+        const { data: customer, error } = await supabase
+          .from("customers")
+          .insert({
+            name: form.name.trim(),
+            phone: form.phone.trim() || null,
+            cpf: form.cpf.trim() || null,
+          })
+          .select()
+          .single();
 
-      if (validAddresses.length && customer?.id) {
-        // Try to persist addresses linked to the customer id.
-        const rows = validAddresses.map((a) => ({
-          user_id: customer.id,
-          label: a.label,
-          street: a.address.trim(),
-          reference: a.reference.trim() || null,
-        }));
-        const { error: addrError } = await supabase.from("addresses").insert(rows);
-        if (addrError) {
-          console.warn("Não foi possível salvar endereços vinculados:", addrError.message);
-          toast.warning("Cliente criado, mas os endereços só serão lembrados após o primeiro pedido.");
+        if (error) throw error;
+
+        const validAddresses = addressEntries.filter((a) => a.address.trim());
+        const savedAddressStrings: string[] = validAddresses.map((a) => a.address.trim());
+
+        if (validAddresses.length && customer?.id) {
+          const rows = validAddresses.map((a) => ({
+            customer_id: customer.id,
+            street: a.address.trim(),
+            label: a.label,
+          }));
+          await supabase.from("addresses").insert(rows).catch(() => {});
         }
-        validAddresses.forEach((a) => savedAddressStrings.push(`[${a.label}] ${a.address.trim()}`));
+
+        toast.success("Cliente cadastrado com sucesso!");
+        setCustomers((prev) => [
+          {
+            id: customer?.id || crypto.randomUUID(),
+            name: form.name.trim(),
+            phone: form.phone.trim() || undefined,
+            cpf: form.cpf.trim() || undefined,
+            total_orders: 0,
+            last_order_at: undefined,
+            addresses: savedAddressStrings,
+            phones: form.phone.trim() ? [form.phone.trim()] : [],
+          },
+          ...prev,
+        ]);
       }
 
-      toast.success("Cliente cadastrado com sucesso!");
-      setCustomers((prev) => [
-        {
-          id: customer?.id || crypto.randomUUID(),
-          name: form.name.trim(),
-          phone: form.phone.trim() || undefined,
-          cpf: form.cpf.trim() || undefined,
-          total_orders: 0,
-          last_order_at: undefined,
-          addresses: savedAddressStrings,
-          phones: form.phone.trim() ? [form.phone.trim()] : [],
-        },
-        ...prev,
-      ]);
-      setForm({ name: "", phone: "", cpf: "" });
-      setAddressEntries([{ label: "Casa", address: "", reference: "" }]);
       setShowNewModal(false);
     } catch (err: any) {
       console.error(err);
-      toast.error(err?.message || "Erro ao cadastrar cliente");
+      toast.error(err?.message || "Erro ao salvar cliente");
     } finally {
       setSaving(false);
     }
@@ -250,7 +308,8 @@ function BusinessCustomersPage() {
 
   const filteredCustomers = customers.filter(c =>
     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (c.phone && c.phone.includes(searchTerm))
+    (c.phone && c.phone.includes(searchTerm)) ||
+    (c.cpf && c.cpf.includes(searchTerm))
   );
 
   if (loading) return (
@@ -258,25 +317,27 @@ function BusinessCustomersPage() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl">
+    <div className="space-y-6 animate-in fade-in duration-500 max-w-7xl">
       <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center">
         <div>
           <h2 className="text-2xl font-black text-foreground">Sua Freguesia</h2>
-          <p className="text-muted-foreground text-sm font-medium">Clientes que já realizaram pedidos no seu estabelecimento.</p>
+          <p className="text-muted-foreground text-sm font-medium">
+            Gerencie sua carteira de clientes ({customers.length} cadastrados).
+          </p>
         </div>
         <div className="flex gap-2 w-full md:w-auto">
           <div className="relative flex-1 md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Buscar por nome ou fone..."
+              placeholder="Buscar por nome, fone ou CPF..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-2 rounded-xl border border-border bg-card text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
             />
           </div>
           <button
-            onClick={() => setShowNewModal(true)}
+            onClick={openNewModal}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-all shadow-card whitespace-nowrap"
           >
             <Plus className="h-4 w-4" /> Novo Cliente
@@ -284,71 +345,100 @@ function BusinessCustomersPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCustomers.length === 0 ? (
-          <div className="col-span-full py-24 text-center bg-card border border-dashed border-border rounded-[2.5rem]">
-            <Users className="h-16 w-16 text-muted-foreground/20 mx-auto mb-4" />
-            <h3 className="text-lg font-bold text-foreground">Nenhum cliente encontrado</h3>
-            <p className="text-muted-foreground mb-6">Cadastre seu primeiro cliente ou aguarde novos pedidos.</p>
-            <button
-              onClick={() => setShowNewModal(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-all"
-            >
-              <Plus className="h-4 w-4" /> Cadastrar Cliente
-            </button>
-          </div>
-        ) : (
-          filteredCustomers.map((customer) => (
-            <div key={customer.id} className="bg-card border border-border rounded-3xl p-6 shadow-card hover:border-primary/20 transition-all group flex flex-col h-full">
-              <div className="flex items-start gap-4 mb-5">
-                <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
-                  <User className="h-6 w-6 text-primary" />
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-foreground group-hover:text-primary transition-colors truncate">{customer.name}</h3>
-                  <p className="text-xs text-muted-foreground font-medium flex items-center gap-1 mt-0.5">
-                    <Phone className="h-3 w-3" /> {customer.phone || "Sem telefone"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3 flex-1 mb-6">
-                {customer.addresses.length > 0 && (
-                  <div className="flex gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
-                    <p className="line-clamp-2 leading-relaxed">{customer.addresses[0]}</p>
-                  </div>
-                )}
-                {customer.addresses.length > 1 && (
-                  <p className="text-[10px] font-bold text-primary ml-5">+ {customer.addresses.length - 1} endereços conhecidos</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-3 mt-auto">
-                <div className="bg-muted/30 rounded-2xl p-3 text-center">
-                  <p className="text-xl font-black text-foreground">{customer.total_orders}</p>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase opacity-60">Pedidos</p>
-                </div>
-                <div className="bg-muted/30 rounded-2xl p-3 text-center">
-                  <p className="text-xs font-black text-foreground">
-                    {customer.last_order_at ? new Date(customer.last_order_at).toLocaleDateString() : "---"}
-                  </p>
-                  <p className="text-[10px] font-black text-muted-foreground uppercase opacity-60">Último</p>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => setSelectedCustomer(customer)}
-                className="w-full mt-4 py-3 rounded-2xl bg-foreground text-background hover:bg-foreground/90 text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2"
-              >
-                <ShoppingBag className="h-3.5 w-3.5" /> Ver Detalhes
-              </button>
-            </div>
-          ))
-        )}
+      <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-card">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-border bg-muted/40 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
+                <th className="py-3.5 px-5">Cliente</th>
+                <th className="py-3.5 px-4">Telefone / CPF</th>
+                <th className="py-3.5 px-4">Endereço Principal</th>
+                <th className="py-3.5 px-4 text-center">Pedidos</th>
+                <th className="py-3.5 px-4">Último Pedido</th>
+                <th className="py-3.5 px-5 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/60 font-medium">
+              {filteredCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-16 text-center text-muted-foreground">
+                    <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="font-bold text-foreground">Nenhum cliente encontrado</p>
+                    <p className="text-xs mt-1">Tente buscar por outro termo ou cadastre um novo cliente.</p>
+                  </td>
+                </tr>
+              ) : (
+                filteredCustomers.map((customer) => (
+                  <tr key={customer.id} className="hover:bg-muted/30 transition-colors group">
+                    <td className="py-3.5 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold shrink-0">
+                          {customer.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="font-bold text-foreground group-hover:text-primary transition-colors">
+                          {customer.name}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col leading-tight">
+                        <span className="text-foreground font-semibold flex items-center gap-1">
+                          <Phone className="h-3 w-3 text-muted-foreground" /> {customer.phone || "---"}
+                        </span>
+                        {customer.cpf && <span className="text-[11px] text-muted-foreground">CPF: {customer.cpf}</span>}
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 max-w-xs truncate">
+                      {customer.addresses.length > 0 ? (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 text-primary shrink-0" />
+                          <span className="truncate">{customer.addresses[0]}</span>
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground/60">Sem endereço registrado</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-center">
+                      <span className="inline-flex items-center justify-center px-2.5 py-1 rounded-full bg-primary/10 text-primary font-black text-xs">
+                        {customer.total_orders}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 whitespace-nowrap text-xs text-muted-foreground font-medium">
+                      {customer.last_order_at ? new Date(customer.last_order_at).toLocaleDateString() : "---"}
+                    </td>
+                    <td className="py-3.5 px-5 text-right whitespace-nowrap">
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="p-2 rounded-xl bg-secondary hover:bg-primary/10 hover:text-primary transition-all"
+                          title="Ver Detalhes"
+                        >
+                          <ShoppingBag className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => openEditModal(customer)}
+                          className="p-2 rounded-xl bg-secondary hover:bg-amber-500/10 hover:text-amber-600 transition-all"
+                          title="Editar Cliente"
+                        >
+                          <User className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(customer)}
+                          className="p-2 rounded-xl bg-secondary hover:bg-destructive/10 hover:text-destructive transition-all"
+                          title="Excluir Cliente"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      {/* Modal Novo Cliente */}
       {showNewModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
@@ -360,8 +450,12 @@ function BusinessCustomersPage() {
           >
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="text-xl font-black text-foreground">Novo Cliente</h3>
-                <p className="text-xs text-muted-foreground font-medium mt-1">Cadastre um cliente manualmente.</p>
+                <h3 className="text-xl font-black text-foreground">
+                  {editingCustomer ? "Editar Cliente" : "Novo Cliente"}
+                </h3>
+                <p className="text-xs text-muted-foreground font-medium mt-1">
+                  {editingCustomer ? "Altere as informações abaixo." : "Cadastre um cliente manualmente."}
+                </p>
               </div>
               <button
                 onClick={() => !saving && setShowNewModal(false)}
@@ -372,7 +466,7 @@ function BusinessCustomersPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
+            <form onSubmit={handleSaveCustomer} className="space-y-4">
               <div>
                 <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Nome *</label>
                 <input
@@ -383,7 +477,6 @@ function BusinessCustomersPage() {
                   className="mt-1.5 w-full px-4 py-2.5 rounded-xl border border-border bg-background text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 outline-none transition-all"
                   required
                   maxLength={100}
-                  autoFocus
                 />
               </div>
 
@@ -411,61 +504,15 @@ function BusinessCustomersPage() {
                 />
               </div>
 
-              {/* Endereços */}
               <div className="space-y-3 pt-2 border-t border-border">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
-                    Endereços ({addressEntries.length})
+                    Endereço Principal
                   </label>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setAddressEntries((prev) => [...prev, { label: "Outro", address: "", reference: "" }])
-                    }
-                    className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="h-3 w-3" /> Adicionar
-                  </button>
                 </div>
 
                 {addressEntries.map((entry, idx) => (
                   <div key={idx} className="p-3 rounded-2xl border border-border bg-muted/20 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex gap-1.5 flex-wrap">
-                        {ADDRESS_LABELS.map((t) => {
-                          const Icon = t.icon;
-                          const selected = entry.label === t.id;
-                          return (
-                            <button
-                              key={t.id}
-                              type="button"
-                              onClick={() =>
-                                setAddressEntries((prev) =>
-                                  prev.map((a, i) => (i === idx ? { ...a, label: t.id } : a))
-                                )
-                              }
-                              className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold transition-all border ${
-                                selected
-                                  ? "bg-primary/10 text-primary border-primary/20"
-                                  : "bg-background text-muted-foreground border-border hover:bg-muted/50"
-                              }`}
-                            >
-                              <Icon className="h-2.5 w-2.5" />
-                              {t.id}
-                            </button>
-                          );
-                        })}
-                      </div>
-                      {addressEntries.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => setAddressEntries((prev) => prev.filter((_, i) => i !== idx))}
-                          className="text-destructive/70 hover:text-destructive p-1"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
                     <input
                       type="text"
                       value={entry.address}
@@ -474,25 +521,14 @@ function BusinessCustomersPage() {
                           prev.map((a, i) => (i === idx ? { ...a, address: e.target.value } : a))
                         )
                       }
-                      placeholder="Rua, número, bairro..."
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-sm focus:border-primary outline-none"
-                    />
-                    <input
-                      type="text"
-                      value={entry.reference}
-                      onChange={(e) =>
-                        setAddressEntries((prev) =>
-                          prev.map((a, i) => (i === idx ? { ...a, reference: e.target.value } : a))
-                        )
-                      }
-                      placeholder="Ponto de referência (opcional)"
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background text-xs focus:border-primary outline-none"
+                      placeholder="Rua, Número - Bairro"
+                      className="w-full px-3 py-2 rounded-xl border border-border bg-background text-xs focus:border-primary outline-none"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-3 pt-4 border-t border-border">
                 <button
                   type="button"
                   onClick={() => setShowNewModal(false)}
@@ -506,7 +542,7 @@ function BusinessCustomersPage() {
                   disabled={saving || !form.name.trim()}
                   className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : "Cadastrar"}
+                  {saving ? <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</> : "Salvar"}
                 </button>
               </div>
             </form>
@@ -514,7 +550,6 @@ function BusinessCustomersPage() {
         </div>
       )}
 
-      {/* Detalhes do Cliente */}
       {selectedCustomer && (
         <div 
           className="fixed inset-0 z-50 flex items-center justify-end bg-black/50 backdrop-blur-sm animate-in fade-in duration-300"
@@ -549,7 +584,6 @@ function BusinessCustomersPage() {
               </div>
 
               <div className="space-y-8">
-                {/* Contatos */}
                 <section>
                   <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Informações de Contato</h4>
                   <div className="space-y-3">
@@ -568,9 +602,8 @@ function BusinessCustomersPage() {
                   </div>
                 </section>
 
-                {/* Endereços */}
                 <section>
-                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Endereços de Entrega ({selectedCustomer.addresses.length})</h4>
+                  <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Endereços de Entrega</h4>
                   <div className="space-y-3">
                     {selectedCustomer.addresses.map((addr, i) => (
                       <div key={i} className="flex items-start gap-3 p-4 rounded-2xl bg-card border border-border">
@@ -581,7 +614,6 @@ function BusinessCustomersPage() {
                   </div>
                 </section>
 
-                {/* Histórico rápido */}
                 <section>
                   <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-4">Última Atividade</h4>
                   <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center justify-between">
@@ -596,12 +628,18 @@ function BusinessCustomersPage() {
                 </section>
               </div>
 
-              <div className="mt-12 pt-8 border-t border-border">
+              <div className="mt-12 pt-8 border-t border-border flex gap-3">
                 <button 
-                  onClick={() => toast.info("Relatório detalhado do cliente em desenvolvimento.")}
-                  className="w-full py-4 rounded-2xl bg-foreground text-background font-black text-xs uppercase tracking-widest hover:bg-foreground/90 transition-all shadow-xl"
+                  onClick={() => openEditModal(selectedCustomer)}
+                  className="flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-black text-xs uppercase tracking-widest hover:bg-primary/90 transition-all shadow-lg"
                 >
-                  Gerar Relatório Completo
+                  Editar Cliente
+                </button>
+                <button 
+                  onClick={() => handleDelete(selectedCustomer)}
+                  className="px-6 py-4 rounded-2xl bg-destructive/10 text-destructive font-black text-xs uppercase tracking-widest hover:bg-destructive/20 transition-all"
+                >
+                  Excluir
                 </button>
               </div>
             </div>
