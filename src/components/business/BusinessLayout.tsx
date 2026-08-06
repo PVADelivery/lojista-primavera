@@ -277,13 +277,18 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               {/* Credit balance chip */}
               <Link
                 to="/business/finance"
-                className={`hidden sm:flex items-center gap-2 px-3 h-10 rounded-full transition ${
-                  creditsLow ? "bg-destructive/15 text-destructive" : "bg-secondary hover:bg-accent/10"
+                className={`flex items-center gap-2 px-3.5 h-10 rounded-xl font-bold border transition-all ${
+                  creditsLow 
+                    ? "bg-destructive/10 border-destructive/30 text-destructive shadow-sm animate-pulse" 
+                    : "bg-primary/10 border-primary/20 text-primary hover:bg-primary/20 shadow-sm"
                 }`}
-                title="Saldo de créditos"
+                title="Clique para gerenciar ou recarregar seus créditos de entrega"
               >
                 <Wallet className="h-4 w-4" />
-                <span className="text-xs font-black">{brl(creditBalance)}</span>
+                <div className="flex flex-col text-left leading-none">
+                  <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Créditos p/ Pedidos</span>
+                  <span className="text-xs font-black">{brl(creditBalance)}</span>
+                </div>
               </Link>
 
               {/* Search */}

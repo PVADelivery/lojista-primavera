@@ -2,6 +2,7 @@ import { Link, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
+import { useCredits } from "@/services/credits";
 import { useAuth } from "@/contexts/AuthContext";
 import { brl } from "@/lib/format";
 import {
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/business/")({
 function BusinessHomePage() {
   const { profile } = useAuth();
   const { data: company } = useMyCompany();
+  const { balance: creditBalance, isLow: creditsLow } = useCredits();
   const qc = useQueryClient();
 
   const { data: deliveries = [] } = useQuery({
@@ -106,11 +108,28 @@ function BusinessHomePage() {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            {/* Cartão de Crédito de Entregas */}
+            <Link
+              to="/business/finance"
+              className={`flex items-center gap-3 px-5 h-12 rounded-2xl border transition-all ${
+                creditsLow
+                  ? "bg-destructive/15 border-destructive/30 text-destructive shadow-md animate-pulse"
+                  : "bg-card/80 backdrop-blur border-border/80 text-foreground hover:bg-card hover:border-primary/40 shadow-sm"
+              }`}
+            >
+              <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                <Wallet className="h-4 w-4" />
+              </div>
+              <div className="flex flex-col leading-tight">
+                <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Saldo de Créditos</span>
+                <span className="text-base font-black text-primary">{brl(creditBalance)}</span>
+              </div>
+            </Link>
+
             <Link
               to="/business/delivery-new"
               search={{ edit: undefined }}
-
               className="inline-flex items-center justify-center whitespace-nowrap ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-12 px-6 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
             >
               <Plus className="h-4 w-4 mr-2" />Nova Solicitação
