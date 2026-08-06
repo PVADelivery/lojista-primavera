@@ -127,27 +127,46 @@ function BusinessCustomersPage() {
     };
 
     try {
-      // Busca clientes diretamente da tabela customers filtrados pela empresa
-      const { data: dbCustomers, error: custErr } = await supabase
+      // 1. Busca entregas da empresa para extrair clientes reais
+      const { data: dbDeliveries } = await supabase
+        .from("deliveries")
+        .select("id, customer_id, customer_name, customer_phone, customer_cpf, address, created_at")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+
+      (dbDeliveries || []).forEach((d: any) => upsertCustomer(d));
+
+      // 2. Busca pedidos (orders) da empresa para extrair clientes
+      const { data: dbOrders } = await supabase
+        .from("orders")
+        .select("id, customer_name, customer_phone, delivery_address, created_at")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false });
+
+      (dbOrders || []).forEach((o: any) => {
+        upsertCustomer({
+          ...o,
+          address: typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || ""
+        });
+      });
+
+      // 3. Busca lista geral de cadastros na tabela customers
+      const { data: dbCustomers } = await supabase
         .from("customers")
         .select("*, addresses(*)")
-        .eq("company_id", companyId);
-
-      if (custErr) throw custErr;
+        .limit(100);
 
       (dbCustomers || []).forEach((c: any) => {
         const addrList = (c.addresses || []).map((a: any) => 
           `${a.street}${a.number ? `, ${a.number}` : ''}${a.neighborhood ? ` - ${a.neighborhood}` : ''}`
         );
-        customerMap.set(c.id, {
+        upsertCustomer({
           id: c.id,
-          name: c.name || "Cliente sem nome",
-          phone: c.phone || "",
-          cpf: c.cpf || "",
-          total_orders: 1,
-          last_order_at: c.created_at,
-          addresses: addrList,
-          phones: c.phone ? [c.phone] : [],
+          name: c.name,
+          phone: c.phone,
+          cpf: c.cpf,
+          created_at: c.created_at,
+          address: addrList[0] || "",
         });
       });
 
@@ -179,7 +198,6 @@ function BusinessCustomersPage() {
       const { data: customer, error } = await supabase
         .from("customers")
         .insert({
-          company_id: companyId,
           name: form.name.trim(),
           phone: form.phone.trim() || null,
           cpf: form.cpf.trim() || null,
