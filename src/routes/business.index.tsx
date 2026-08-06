@@ -24,15 +24,26 @@ function BusinessHomePage() {
   const { data: company } = useMyCompany();
   const qc = useQueryClient();
 
-  console.log("[PONTOS 1 & 2] company:", company);
+  console.log("[PONTOS 1 & 2] company (JSON):", JSON.stringify(company, null, 2));
   console.log("[PONTOS 1 & 2] company.id:", company?.id);
 
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id, profile?.user_id],
     enabled: true,
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[AUTH] user:", user);
       console.log("[PONTO 3] Executando query");
       
+      // Teste definitivo de RLS com company_id fixo informado
+      const { data: rlsTest, error: rlsErr } = await supabase
+        .from("deliveries")
+        .select("short_id,status,company_id")
+        .eq("company_id", "3966ac35-24c5-4408-8f46-2851c80aa056");
+
+      console.log("[TESTE RLS FIXO 3966ac...] data:", rlsTest);
+      console.log("[TESTE RLS FIXO 3966ac...] error:", rlsErr);
+
       let query = supabase.from("deliveries").select("*");
       
       if (company?.id) {
