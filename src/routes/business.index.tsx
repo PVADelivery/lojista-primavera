@@ -26,17 +26,40 @@ function BusinessHomePage() {
 
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id, profile?.user_id],
+    enabled: true,
     queryFn: async () => {
+      console.log("[Dashboard Debug] Iniciando busca de entregas...", {
+        companyId: company?.id,
+        userProfileId: profile?.user_id,
+        userAuthId: profile?.id
+      });
+
       let query = supabase.from("deliveries").select("*");
+      
       if (company?.id) {
         query = query.eq("company_id", company.id);
       }
+
       const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
+      
       if (error) {
-        console.error("Error fetching deliveries:", error);
+        console.error("[Dashboard Debug] Erro ao consultar tabela deliveries:", error);
         return [];
       }
-      return (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
+
+      console.log("[Dashboard Debug] Resultado retornado do banco:", {
+        totalRetornadoBanco: data?.length || 0,
+        registros: data
+      });
+
+      const active = (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
+
+      console.log("[Dashboard Debug] Entregas ativas filtradas:", {
+        quantidadeAtiva: active.length,
+        entregasAtivas: active
+      });
+
+      return active;
     },
   });
 
