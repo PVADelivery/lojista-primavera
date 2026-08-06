@@ -237,22 +237,55 @@ export default function OrderDetailModal({
               </div>
             )}
 
-            {/* Items List */}
+            {/* Items List / Manual Delivery Details */}
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <h3 className="font-black text-foreground/40 uppercase tracking-[0.3em] text-[10px] flex items-center gap-2">
-                        <Package className="w-4 h-4 text-primary" /> composição do pedido
+                        <Package className="w-4 h-4 text-primary" /> {order.type === 'manual' || !order.order_items ? "dados do despacho da entrega" : "composição do pedido"}
                     </h3>
                     <div className="h-px flex-1 mx-6 bg-border/40" />
                     <span className="font-black text-[10px] text-primary bg-primary/5 px-4 py-2 rounded-full tracking-widest">
-                      {items.length} ITENS
+                      {order.type === 'manual' || !order.order_items ? "DESPACHO MANUAL" : `${items.length} ITENS`}
                     </span>
                 </div>
 
                 {loading ? (
                     <div className="py-20 flex flex-col items-center gap-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Carregando itens...</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground animate-pulse">Carregando dados...</p>
+                    </div>
+                ) : (order.type === 'manual' || (!items.length && order.pickup_address || order.address || order.customer_name)) ? (
+                    <div className="p-6 rounded-[2rem] bg-gradient-to-br from-primary/5 to-secondary/30 border border-primary/20 space-y-4">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary font-bold">
+                              <Truck className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-foreground text-sm">Solicitação Direta de Entrega (Manual)</p>
+                              <p className="text-xs text-muted-foreground">Despacho criado via Painel do Lojista</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-border/40 text-xs">
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Cliente / Destinatário</span>
+                              <p className="font-bold text-foreground">{customerInfo?.name || order.customer_name || order.customer?.name || "Cliente"}</p>
+                              <p className="text-muted-foreground flex items-center gap-1"><Phone className="h-3 w-3" /> {order.customer_phone || order.customer?.phone || "S/N"}</p>
+                            </div>
+                            <div className="space-y-1">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Endereço de Entrega</span>
+                              <p className="font-bold text-foreground flex items-start gap-1">
+                                <MapPin className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+                                {order.address || order.delivery_address || order.customer?.address || "Endereço não informado"}
+                              </p>
+                            </div>
+                        </div>
+
+                        {order.notes && (
+                          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-900 dark:text-amber-300 text-xs">
+                            <span className="font-bold">Observações / Cuidados:</span> {order.notes}
+                          </div>
+                        )}
                     </div>
                 ) : items.length === 0 ? (
                     <div className="py-20 flex flex-col items-center gap-6 bg-muted/20 rounded-[3rem] border-2 border-dashed border-border/60">
