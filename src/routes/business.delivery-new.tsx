@@ -1115,7 +1115,7 @@ function NewDeliveryPage() {
                     Saldo de créditos
                   </p>
                   <p className={`text-lg font-black ${insufficientCredits ? "text-destructive" : "text-foreground"}`}>
-                    {brl(creditBalance)}
+                    {Number(creditBalance ?? 0).toFixed(2).replace('.', ',')}
                   </p>
                 </div>
                 <div className="text-right">

@@ -287,7 +287,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                 <Wallet className="h-4 w-4" />
                 <div className="flex flex-col text-left leading-none">
                   <span className="text-[9px] font-black uppercase tracking-wider opacity-70">Saldo de Créditos</span>
-                  <span className="text-xs font-black">{brl(creditBalance)}</span>
+                  <span className="text-xs font-black">{Number(creditBalance ?? 0).toFixed(2).replace('.', ',')}</span>
                 </div>
               </Link>
 
@@ -385,7 +385,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           {creditsLow && (
             <div className="mx-4 mt-4 lg:mx-8 flex items-center justify-between gap-3 rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3">
               <p className="text-xs sm:text-sm font-bold text-destructive">
-                Saldo de créditos baixo: {brl(creditBalance)}. Solicite uma recarga para continuar solicitando entregas.
+                Saldo de créditos baixo: {Number(creditBalance ?? 0).toFixed(2).replace('.', ',')}. Solicite uma recarga para continuar solicitando entregas.
               </p>
               <Link to="/business/finance" className="text-xs font-black underline whitespace-nowrap">
                 Recarregar
