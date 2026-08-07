@@ -826,6 +826,8 @@ function NewDeliveryPage() {
         deliveryWrite = await supabase
           .from("deliveries")
           .update({
+            company_name: company.name,
+            pickup_address: company.address,
             customer_id: custId || null,
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
@@ -848,6 +850,8 @@ function NewDeliveryPage() {
       } else {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_delivery_with_credits", {
           p_payload: {
+            company_name: company.name || "Loja Parceira",
+            pickup_address: company.address || null,
             company_id: company.id,
             customer_id: custId || null,
             short_id: shortId,
