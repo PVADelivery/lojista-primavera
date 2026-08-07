@@ -826,8 +826,7 @@ function NewDeliveryPage() {
         deliveryWrite = await supabase
           .from("deliveries")
           .update({
-            company_name: company.name,
-            pickup_address: company.address,
+            company_id: company.id,
             customer_id: custId || null,
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
