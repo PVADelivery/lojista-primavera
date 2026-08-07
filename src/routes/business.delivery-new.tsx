@@ -173,7 +173,7 @@ function NewDeliveryPage() {
   const insufficientCredits = !editId && deliveryFee > 0 && creditBalance < deliveryFee;
 
 
-  // Customer search autocomplete query
+  // Customer search autocomplete query consolidado (deliveries, orders e customers)
   useEffect(() => {
     if (customerQuery.trim().length < 1) {
       setCustomerSuggestions([]);
@@ -183,54 +183,142 @@ function NewDeliveryPage() {
     const delayDebounceFn = setTimeout(async () => {
       const clean = customerQuery.trim();
       const phoneOrCpfClean = clean.replace(/\D/g, "");
-      
-      let queryBuilder = supabase
-        .from("customers")
-        .select(`
-          id,
-          name,
-          phone,
-          cpf,
-          addresses (
-            id,
-            street,
-            number,
-            complement,
-            neighborhood,
-            region_id,
-            latitude,
-            longitude
-          )
-        `)
-        .limit(10);
+      const combinedMap = new Map<string, any>();
 
-      // Se a empresa do lojista estiver definida, prioriza clientes da empresa mas não bloqueia outros
-      if (company?.id) {
-        queryBuilder = queryBuilder.or(`company_id.eq.${company.id},company_id.is.null`);
+      // 1. Busca na tabela deliveries (Histórico de entregas da loja e geral)
+      try {
+        let delQuery = supabase
+          .from("deliveries")
+          .select("customer_id, customer_name, customer_phone, customer_cpf, address, customer_address_number, customer_neighborhood, customer_address_complement, region_id")
+          .order("created_at", { ascending: false })
+          .limit(15);
+
+        if (phoneOrCpfClean.length >= 2) {
+          delQuery = delQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%,customer_cpf.ilike.%${phoneOrCpfClean}%`);
+        } else {
+          delQuery = delQuery.ilike("customer_name", `%${clean}%`);
+        }
+
+        const { data: delData } = await delQuery;
+        if (delData) {
+          delData.forEach((d: any) => {
+            const key = (d.customer_name || "").toLowerCase().trim() || d.customer_phone;
+            if (key && !combinedMap.has(key)) {
+              combinedMap.set(key, {
+                id: d.customer_id || key,
+                name: d.customer_name,
+                phone: d.customer_phone,
+                cpf: d.customer_cpf,
+                addresses: d.address ? [{
+                  id: "del-addr",
+                  street: d.address,
+                  number: d.customer_address_number || "",
+                  neighborhood: d.customer_neighborhood || "",
+                  complement: d.customer_address_complement || "",
+                  region_id: d.region_id || "none"
+                }] : []
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar deliveries em autocomplete:", e);
       }
 
-      if (phoneOrCpfClean.length >= 2) {
-        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%,cpf.ilike.%${phoneOrCpfClean}%`);
-      } else {
-        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${clean}%,cpf.ilike.%${clean}%`);
+      // 2. Busca na tabela orders (Pedidos Marketplace e Painel)
+      try {
+        let ordQuery = supabase
+          .from("orders")
+          .select("customer_name, customer_phone, delivery_address")
+          .order("created_at", { ascending: false })
+          .limit(15);
+
+        if (phoneOrCpfClean.length >= 2) {
+          ordQuery = ordQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
+        } else {
+          ordQuery = ordQuery.ilike("customer_name", `%${clean}%`);
+        }
+
+        const { data: ordData } = await ordQuery;
+        if (ordData) {
+          ordData.forEach((o: any) => {
+            const key = (o.customer_name || "").toLowerCase().trim() || o.customer_phone;
+            if (key && !combinedMap.has(key)) {
+              const streetStr = typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || "";
+              combinedMap.set(key, {
+                id: key,
+                name: o.customer_name,
+                phone: o.customer_phone,
+                cpf: "",
+                addresses: streetStr ? [{
+                  id: "ord-addr",
+                  street: streetStr,
+                  number: o.delivery_address?.number || "",
+                  neighborhood: o.delivery_address?.neighborhood || "",
+                  complement: o.delivery_address?.complement || ""
+                }] : []
+              });
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar orders em autocomplete:", e);
       }
 
-      const { data, error } = await queryBuilder;
-      if (!error && data) {
-        setCustomerSuggestions(data);
-      } else {
-        // Fallback: se a query or com company_id falhar, busca simples em todos os clientes por Nome/Telefone/CPF
-        const { data: fallbackData } = await supabase
+      // 3. Busca na tabela customers (Freguesia / Clientes Salvos com Endereços)
+      try {
+        let custQuery = supabase
           .from("customers")
-          .select("id, name, phone, cpf, addresses(*)")
-          .or(`name.ilike.%${clean}%,phone.ilike.%${clean}%,cpf.ilike.%${clean}%`)
-          .limit(10);
-        if (fallbackData) setCustomerSuggestions(fallbackData);
+          .select(`
+            id,
+            name,
+            phone,
+            cpf,
+            addresses (
+              id,
+              street,
+              number,
+              complement,
+              neighborhood,
+              region_id,
+              latitude,
+              longitude
+            )
+          `)
+          .limit(15);
+
+        if (phoneOrCpfClean.length >= 2) {
+          custQuery = custQuery.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%,cpf.ilike.%${phoneOrCpfClean}%`);
+        } else {
+          custQuery = custQuery.ilike("name", `%${clean}%`);
+        }
+
+        const { data: custData } = await custQuery;
+        if (custData) {
+          custData.forEach((c: any) => {
+            const key = (c.name || "").toLowerCase().trim() || c.phone;
+            if (key) {
+              const existing = combinedMap.get(key);
+              if (existing) {
+                // Atualiza/complementa com os endereços completos da tabela customers
+                if (c.addresses && c.addresses.length > 0) existing.addresses = c.addresses;
+                if (c.cpf && !existing.cpf) existing.cpf = c.cpf;
+                if (c.phone && !existing.phone) existing.phone = c.phone;
+              } else {
+                combinedMap.set(key, c);
+              }
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Erro ao buscar customers em autocomplete:", e);
       }
+
+      setCustomerSuggestions(Array.from(combinedMap.values()));
     }, 150);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [customerQuery, company?.id]);
+  }, [customerQuery]);
 
   // Load MapLibre GL - Small Map (Disabled interaction, just shows the route/markers)
   useEffect(() => {
