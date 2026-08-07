@@ -2255,6 +2255,15 @@ export type Database = {
         }
         Returns: Json
       }
+      get_business_directory_contacts: {
+        Args: never
+        Returns: {
+          address: string
+          id: string
+          phone: string
+          whatsapp: string
+        }[]
+      }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
       get_my_roles: {
