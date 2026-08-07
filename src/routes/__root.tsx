@@ -13,6 +13,9 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 
 import appCss from "../styles.css?url";
 
+import { initializeGlobalErrorHandlers, reportErrorToTelegram } from "@/services/logger";
+import { useEffect } from "react";
+
 function NotFoundComponent() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -38,6 +41,14 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error("Route Error:", error);
   const router = useRouter();
+
+  useEffect(() => {
+    reportErrorToTelegram({
+      error_message: error?.message || "Erro na rota",
+      stack_trace: error?.stack || "",
+      url: window.location.href,
+    }, "Painel do Lojista");
+  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -124,6 +135,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  useEffect(() => {
+    initializeGlobalErrorHandlers("Painel do Lojista");
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
