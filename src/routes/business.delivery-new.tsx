@@ -740,7 +740,8 @@ function NewDeliveryPage() {
 
     try {
       // 1. Auto-save / Auto-update Customer in the database
-      let custId = selectedCustomerId;
+      const isUuid = (val: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+      let custId = isUuid(selectedCustomerId) ? selectedCustomerId : null;
       const phoneClean = f.customer_phone.replace(/\D/g, "");
 
       if (f.customer_name.trim()) {
