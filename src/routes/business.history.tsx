@@ -211,7 +211,8 @@ function BusinessHistoryPage() {
   const filteredHistory = history.filter(o => {
     const matchesSearch = o.id.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           o.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesTab = activeTab === "marketplace" ? o.type === 'marketplace' : (o.type === 'manual' || o.type === 'entregas');
+    const oType = o.type as string | undefined;
+    const matchesTab = activeTab === "marketplace" ? oType === 'marketplace' : (oType === 'manual' || oType === 'entregas');
     return matchesSearch && matchesTab;
   });
 
