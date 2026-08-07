@@ -49,9 +49,9 @@ Deno.serve(async (req) => {
       additional_info = {},
     } = body ?? {};
 
-    // Credentials from env with default bot token fallback
+    // Credentials from env with default bot token and chat ID fallback
     const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8408781765:AAEoxY7J9VrNeagGNFu1yHpW3HQlq103gmM";
-    const chatId = Deno.env.get("TELEGRAM_CHAT_ID");
+    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-5333281601";
     if (!botToken || !chatId) {
       return new Response(JSON.stringify({ error: "Telegram not configured" }), {
         status: 500,
