@@ -101,8 +101,8 @@ function NewDeliveryPage() {
         customer_address_complement: editingDelivery.customer_address_complement || "",
         payment_method: editingDelivery.payment_method === "pago" ? "dinheiro" : editingDelivery.payment_method || "dinheiro",
         is_paid: editingDelivery.payment_method === "pago",
-        order_value: editingDelivery.order_value ? String(editingDelivery.order_value) : "",
-        change_for: editingDelivery.change_for ? String(editingDelivery.change_for) : "",
+        order_value: editingDelivery.order_value ? Number(editingDelivery.order_value).toFixed(2) : "",
+        change_for: editingDelivery.change_for ? Number(editingDelivery.change_for).toFixed(2) : "",
         vehicle_type: editingDelivery.vehicle_type || "moto",
         region_id: editingDelivery.region_id || "none",
         value: editingDelivery.value ? String(editingDelivery.value) : "",
@@ -1190,17 +1190,19 @@ function NewDeliveryPage() {
                       </Select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-emerald-700 dark:text-emerald-400">Valor a Cobrar do Cliente (R$)</Label>
+                      <Label className="text-emerald-700 dark:text-emerald-400 font-bold">Valor a Cobrar do Cliente</Label>
                       <div className="relative">
-                        <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-emerald-500" />
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                          R$
+                        </div>
                         <Input
                           type="text"
                           inputMode="numeric"
                           value={f.order_value}
                           onChange={(e) => handleMoneyChange("order_value", e.target.value)}
                           required
-                          className="rounded-xl h-11 pl-9 bg-background border-emerald-500/30 font-bold"
-                          placeholder="0.00"
+                          className="rounded-xl h-11 pl-10 bg-background border-emerald-500/40 font-black text-base text-emerald-900 dark:text-emerald-200"
+                          placeholder="0,00"
                         />
                       </div>
                     </div>
@@ -1208,17 +1210,22 @@ function NewDeliveryPage() {
 
                   {f.payment_method === "dinheiro" && (
                     <div className="space-y-1.5 pt-2">
-                      <Label className="text-emerald-700 dark:text-emerald-400">
-                        Troco para (R$) - Deixe 0 se não precisar
+                      <Label className="text-emerald-700 dark:text-emerald-400 font-bold">
+                        Troco para (R$) - Deixe 0,00 se não precisar
                       </Label>
-                      <Input
-                        type="text"
-                        inputMode="numeric"
-                        value={f.change_for}
-                        onChange={(e) => handleMoneyChange("change_for", e.target.value)}
-                        className="rounded-xl h-11 bg-background border-emerald-500/30"
-                        placeholder="0.00"
-                      />
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-black text-emerald-600 dark:text-emerald-400">
+                          R$
+                        </div>
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={f.change_for}
+                          onChange={(e) => handleMoneyChange("change_for", e.target.value)}
+                          className="rounded-xl h-11 pl-10 bg-background border-emerald-500/40 font-bold text-base"
+                          placeholder="0,00"
+                        />
+                      </div>
                     </div>
                   )}
                 </>
