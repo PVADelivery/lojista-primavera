@@ -780,6 +780,7 @@ export type Database = {
           customer_address_complement: string | null
           customer_address_number: string | null
           customer_cpf: string | null
+          customer_id: string | null
           customer_name: string
           customer_neighborhood: string | null
           customer_phone: string | null
@@ -827,6 +828,7 @@ export type Database = {
           customer_address_complement?: string | null
           customer_address_number?: string | null
           customer_cpf?: string | null
+          customer_id?: string | null
           customer_name: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
@@ -874,6 +876,7 @@ export type Database = {
           customer_address_complement?: string | null
           customer_address_number?: string | null
           customer_cpf?: string | null
+          customer_id?: string | null
           customer_name?: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
@@ -918,6 +921,13 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
           {
@@ -2244,6 +2254,15 @@ export type Database = {
           p_payment_method: string
         }
         Returns: Json
+      }
+      get_business_directory_contacts: {
+        Args: never
+        Returns: {
+          address: string
+          id: string
+          phone: string
+          whatsapp: string
+        }[]
       }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
