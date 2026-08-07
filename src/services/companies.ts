@@ -46,7 +46,7 @@ export async function fetchCompanyByUserId(userId: string) {
     return null;
   }
   
-  return data.find(c => !c.name.toLowerCase().includes("teste")) || data[0];
+  return data[0];
 }
 
 export function useCompany(userId?: string) {
