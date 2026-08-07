@@ -175,14 +175,14 @@ function NewDeliveryPage() {
 
   // Customer search autocomplete query
   useEffect(() => {
-    if (!company?.id || customerQuery.trim().length < 1) {
+    if (customerQuery.trim().length < 1) {
       setCustomerSuggestions([]);
       return;
     }
 
     const delayDebounceFn = setTimeout(async () => {
       const clean = customerQuery.trim();
-      const phoneClean = clean.replace(/\D/g, "");
+      const phoneOrCpfClean = clean.replace(/\D/g, "");
       
       let queryBuilder = supabase
         .from("customers")
@@ -202,18 +202,30 @@ function NewDeliveryPage() {
             longitude
           )
         `)
-        .eq("company_id", company.id)
-        .limit(8);
+        .limit(10);
 
-      if (phoneClean.length >= 2) {
-        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${phoneClean}%`);
+      // Se a empresa do lojista estiver definida, prioriza clientes da empresa mas não bloqueia outros
+      if (company?.id) {
+        queryBuilder = queryBuilder.or(`company_id.eq.${company.id},company_id.is.null`);
+      }
+
+      if (phoneOrCpfClean.length >= 2) {
+        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%,cpf.ilike.%${phoneOrCpfClean}%`);
       } else {
-        queryBuilder = queryBuilder.ilike("name", `%${clean}%`);
+        queryBuilder = queryBuilder.or(`name.ilike.%${clean}%,phone.ilike.%${clean}%,cpf.ilike.%${clean}%`);
       }
 
       const { data, error } = await queryBuilder;
       if (!error && data) {
         setCustomerSuggestions(data);
+      } else {
+        // Fallback: se a query or com company_id falhar, busca simples em todos os clientes por Nome/Telefone/CPF
+        const { data: fallbackData } = await supabase
+          .from("customers")
+          .select("id, name, phone, cpf, addresses(*)")
+          .or(`name.ilike.%${clean}%,phone.ilike.%${clean}%,cpf.ilike.%${clean}%`)
+          .limit(10);
+        if (fallbackData) setCustomerSuggestions(fallbackData);
       }
     }, 150);
 
@@ -859,7 +871,10 @@ function NewDeliveryPage() {
                         setSelectedCustomerId(null);
                       }
                     }}
-                    onFocus={() => setShowSuggestions(true)}
+                    onFocus={() => {
+                      if (f.customer_name) setCustomerQuery(f.customer_name);
+                      setShowSuggestions(true);
+                    }}
                     required
                     className="rounded-xl h-11 bg-secondary/30"
                     placeholder="Ex: João da Silva"
@@ -870,13 +885,17 @@ function NewDeliveryPage() {
                         <div key={cust.id} className="p-2 space-y-1 hover:bg-primary/5 transition-colors">
                           <button
                             type="button"
-                            onClick={() => selectCustomer(cust, cust.addresses?.[0])}
+                            onClick={() => {
+                              selectCustomer(cust, cust.addresses?.[0]);
+                              setShowSuggestions(false);
+                            }}
                             className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-primary/10 transition-colors text-sm flex flex-col group"
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-foreground group-hover:text-primary transition-colors">{cust.name}</span>
                               <span className="text-xs font-semibold text-muted-foreground">{cust.phone || "Sem telefone"}</span>
                             </div>
+                            {cust.cpf && <span className="text-[10px] text-muted-foreground font-mono">CPF: {cust.cpf}</span>}
                           </button>
                           {cust.addresses && cust.addresses.length > 0 && (
                             <div className="pl-3 space-y-1">
@@ -884,7 +903,10 @@ function NewDeliveryPage() {
                                 <button
                                   key={addr.id}
                                   type="button"
-                                  onClick={() => selectCustomer(cust, addr)}
+                                  onClick={() => {
+                                    selectCustomer(cust, addr);
+                                    setShowSuggestions(false);
+                                  }}
                                   className="w-full text-left px-2 py-1 rounded-lg hover:bg-primary/20 text-xs text-muted-foreground flex items-center gap-1.5 truncate"
                                 >
                                   <MapPin className="h-3 w-3 text-primary shrink-0" />
@@ -911,7 +933,10 @@ function NewDeliveryPage() {
                       setCustomerQuery(e.target.value);
                       setShowSuggestions(true);
                     }}
-                    onFocus={() => setShowSuggestions(true)}
+                    onFocus={() => {
+                      if (f.customer_phone) setCustomerQuery(f.customer_phone);
+                      setShowSuggestions(true);
+                    }}
                     className="rounded-xl h-11 pl-9 bg-secondary/30"
                     placeholder="(00) 00000-0000"
                   />
@@ -923,7 +948,15 @@ function NewDeliveryPage() {
                 <Label>CPF do Cliente (Opcional)</Label>
                 <Input
                   value={f.customer_cpf}
-                  onChange={(e) => setF({ ...f, customer_cpf: e.target.value })}
+                  onChange={(e) => {
+                    setF({ ...f, customer_cpf: e.target.value });
+                    setCustomerQuery(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => {
+                    if (f.customer_cpf) setCustomerQuery(f.customer_cpf);
+                    setShowSuggestions(true);
+                  }}
                   className="rounded-xl h-11 bg-secondary/30"
                   placeholder="000.000.000-00"
                 />
