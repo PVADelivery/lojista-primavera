@@ -111,6 +111,39 @@ export async function calculateDeliveryFee(
 }
 
 /**
+ * Busca frete e região diretamente pelo nome do bairro cadastrado pelo Admin na tabela region_neighborhoods.
+ */
+export async function calculateDeliveryFeeByNeighborhood(
+  neighborhoodName: string,
+  supabase: any
+): Promise<FreightResult> {
+  if (!neighborhoodName || !neighborhoodName.trim()) {
+    return { fee: null, regionId: null, regionName: null, isOutOfRange: false };
+  }
+  try {
+    const { data: hoods } = await supabase
+      .from('region_neighborhoods')
+      .select('region_id, name, regions(id, name, price, delivery_fee)')
+      .ilike('name', `%${neighborhoodName.trim()}%`)
+      .limit(1);
+
+    if (hoods && hoods.length > 0 && hoods[0].regions) {
+      const r: any = hoods[0].regions;
+      const fee = Number(r.price ?? r.delivery_fee ?? 0);
+      return {
+        fee,
+        regionId: r.id,
+        regionName: r.name,
+        isOutOfRange: false,
+      };
+    }
+  } catch (err: any) {
+    console.error('[freight] Erro ao buscar por bairro:', err?.message);
+  }
+  return { fee: null, regionId: null, regionName: null, isOutOfRange: false };
+}
+
+/**
  * Geocodifica um endereço textual para coordenadas lat/lng
  * usando a API gratuita do OpenStreetMap (Nominatim).
  */
