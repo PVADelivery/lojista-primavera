@@ -94,24 +94,30 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
   const loadData = async () => {
     try {
       const [regionsRes, hoodsRes] = await Promise.all([
-        supabase
-          .from("regions")
-          .select("*")
-          .order("sort_order", { ascending: true })
-          .order("price", { ascending: true }),
-        supabase
-          .from("region_neighborhoods")
-          .select("*")
-          .order("sort_order", { ascending: true })
-          .order("name", { ascending: true }),
+        supabase.from("regions").select("*"),
+        supabase.from("region_neighborhoods").select("*"),
       ]);
+
+      if (regionsRes.error) {
+        console.error("[RegionZoneSelector] Erro ao buscar regions do banco:", regionsRes.error);
+      }
 
       if (regionsRes.data && regionsRes.data.length > 0) {
         const filtered = regionsRes.data.filter((r: any) => r.is_active !== false);
+        // Ordena em memória por sort_order, price ou nome
+        filtered.sort((a: any, b: any) => {
+          const ordA = a.sort_order != null ? Number(a.sort_order) : (Number(a.price ?? a.delivery_fee ?? 0));
+          const ordB = b.sort_order != null ? Number(b.sort_order) : (Number(b.price ?? b.delivery_fee ?? 0));
+          return ordA - ordB;
+        });
         setDbRegions(filtered);
       }
-      if (hoodsRes.data) {
-        setDbHoods(hoodsRes.data);
+
+      if (hoodsRes.data && hoodsRes.data.length > 0) {
+        const sortedHoods = [...hoodsRes.data].sort((a: any, b: any) => {
+          return (a.name || "").localeCompare(b.name || "", "pt-BR");
+        });
+        setDbHoods(sortedHoods);
       }
     } catch (err) {
       console.warn("[RegionZoneSelector] Erro ao carregar regiões:", err);
