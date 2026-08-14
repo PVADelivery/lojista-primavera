@@ -215,4 +215,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Utilizar apenas valores válidos do enum do Postgres no filtro de pedidos ativos: `.in("status", ["pending", "preparing", "ready", "in_route"])`.
   2. Mapear `"in_route"` nas rotas de listagem e detalhes do pedido (`marketplace.orders.tsx` e `marketplace.orders.$orderId.tsx`).
 
+---
+
+### 18. Erro 'Could not find vehicle_type column of delivery_drivers' e Dados em Branco no Cadastro de Entregador
+* **Sintoma**: Ao tentar salvar a edição de um entregador no Painel Admin (`/admin/drivers`), o sistema acusava o erro: `Could not find the 'vehicle_type' column of 'delivery_drivers' in the schema cache` e os campos de telefone/documento/placa apareciam com traço (`—`).
+* **Causa Raiz**:
+  1. A tabela `delivery_drivers` possui as colunas `vehicle` e `license_plate` (e não `vehicle_type` e `vehicle_plate`). O `EditDriverDialog.tsx` estava tentando atualizar a coluna inexistente `vehicle_type`.
+  2. A Edge Function `accept-invitation` ao registrar um entregador por convite inseria apenas `full_name` e `phone` em `delivery_drivers`, omitindo `vehicle`, `license_plate` e `cpf`.
+  3. No diálogo de edição, erros não eram reportados com prioridade ao `reportErrorToTelegram`.
+* **Solução Padrão**:
+  1. Corrigir o payload de atualização em `EditDriverDialog.tsx` para gravar em `vehicle` e `license_plate`, associando tanto por `id` quanto por `user_id`.
+  2. Atualizar a Edge Function `accept-invitation` para salvar `vehicle`, `license_plate` e `cpf` em `delivery_drivers` e `profiles`.
+  3. Integrar `reportErrorToTelegram` em todos os blocos `catch` de formulários e diálogos do admin.
+
+
 

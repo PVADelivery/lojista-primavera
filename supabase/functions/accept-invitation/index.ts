@@ -61,13 +61,20 @@ Deno.serve(async (req) => {
     if (createErr) throw createErr;
     const userId = created.user!.id;
 
+    const rawVehicle = body.vehicle || body.vehicle_type || "moto";
+    const rawPlate = body.license_plate || body.licensePlate || body.vehicle_plate || null;
+    const rawDoc = document || body.document || body.cpf || null;
+
     // Update profile
-    await admin.from("profiles").update({
+    await admin.from("profiles").upsert({
+      id: userId,
+      user_id: userId,
       full_name: fullName,
       phone: phone ?? null,
-      document: document ?? null,
+      document: rawDoc,
+      cpf: rawDoc,
       role: invitation.role,
-    }).eq("user_id", userId);
+    });
 
     // Assign role safely
     const { data: existingRoles } = await admin.from("user_roles").select("role").eq("user_id", userId).eq("role", invitation.role);
@@ -77,19 +84,21 @@ Deno.serve(async (req) => {
 
     if (invitation.role === "driver") {
       const { data: existingDriver } = await admin.from("delivery_drivers").select("id").eq("user_id", userId).maybeSingle();
+      const driverData = {
+        user_id: userId,
+        full_name: fullName,
+        phone: phone || null,
+        cpf: rawDoc,
+        vehicle: rawVehicle,
+        license_plate: rawPlate ? String(rawPlate).toUpperCase() : null,
+        is_active: true,
+        created_by_admin_id: invitation.invited_by || null,
+      };
+
       if (!existingDriver) {
-         await admin.from("delivery_drivers").insert({ 
-           user_id: userId, 
-           full_name: fullName, 
-           phone: phone || null,
-           created_by_admin_id: invitation.invited_by || null,
-         });
+         await admin.from("delivery_drivers").insert(driverData);
       } else {
-         await admin.from("delivery_drivers").update({ 
-           full_name: fullName, 
-           phone: phone || null,
-           created_by_admin_id: invitation.invited_by || null,
-         }).eq("user_id", userId);
+         await admin.from("delivery_drivers").update(driverData).eq("user_id", userId);
       }
     }
     if (invitation.role === "company") {
