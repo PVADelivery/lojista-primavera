@@ -133,8 +133,11 @@ function RootShell({ children }: { children: React.ReactNode }) {
   );
 }
 
+import { useStoreNotifications } from "@/hooks/useStoreNotifications";
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useStoreNotifications();
 
   useEffect(() => {
     initializeGlobalErrorHandlers("Painel do Lojista");
