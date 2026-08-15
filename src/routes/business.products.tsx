@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -8,7 +8,7 @@ import { useMyCompany } from "@/services/companies";
 import {
   Plus, Trash2, Edit3, Loader2, ImagePlus, Package,
   DollarSign, X, Check, Eye, EyeOff, ArrowLeft, Layers, ShoppingCart,
-  GripVertical, ListPlus,
+  GripVertical, ListPlus, Plug,
 } from "lucide-react";
 import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
 import { BulkImportModal } from "@/components/business/BulkImportModal";
@@ -241,11 +241,18 @@ function BusinessProductsPage() {
             Arraste os cards para reordenar dentro de cada categoria
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-wrap">
+          <Link
+            to="/business/integrations"
+            className="px-5 py-4 rounded-[2rem] bg-rose-500/10 text-rose-500 hover:bg-rose-500/20 border border-rose-500/20 font-black flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all text-sm"
+          >
+            <span className="font-black">iF</span>
+            Integração iFood
+          </Link>
           <button
             onClick={() => setShowBulkImport(true)}
             disabled={!companyId}
-            className="px-6 py-4 rounded-[2rem] bg-secondary text-secondary-foreground font-black flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            className="px-6 py-4 rounded-[2rem] bg-secondary text-secondary-foreground font-black flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 text-sm"
           >
             <ListPlus className="h-5 w-5" />
             Importar em Lote
@@ -253,7 +260,7 @@ function BusinessProductsPage() {
           <button
             onClick={() => setShowForm(true)}
             disabled={!companyId}
-            className="px-8 py-4 rounded-[2rem] bg-primary text-primary-foreground font-black flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
+            className="px-8 py-4 rounded-[2rem] bg-primary text-primary-foreground font-black flex items-center justify-center gap-3 shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 text-sm"
           >
             <Plus className="h-6 w-6" />
             Novo Item

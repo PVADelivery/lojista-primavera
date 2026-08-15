@@ -20,6 +20,7 @@ import { Route as BusinessSettingsRouteImport } from './routes/business.settings
 import { Route as BusinessProductsRouteImport } from './routes/business.products'
 import { Route as BusinessOrdersRouteImport } from './routes/business.orders'
 import { Route as BusinessMapRouteImport } from './routes/business.map'
+import { Route as BusinessIntegrationsRouteImport } from './routes/business.integrations'
 import { Route as BusinessHistoryRouteImport } from './routes/business.history'
 import { Route as BusinessFinanceRouteImport } from './routes/business.finance'
 import { Route as BusinessDeliveryNewRouteImport } from './routes/business.delivery-new'
@@ -81,6 +82,11 @@ const BusinessMapRoute = BusinessMapRouteImport.update({
   path: '/map',
   getParentRoute: () => BusinessRoute,
 } as any)
+const BusinessIntegrationsRoute = BusinessIntegrationsRouteImport.update({
+  id: '/integrations',
+  path: '/integrations',
+  getParentRoute: () => BusinessRoute,
+} as any)
 const BusinessHistoryRoute = BusinessHistoryRouteImport.update({
   id: '/history',
   path: '/history',
@@ -117,6 +123,7 @@ export interface FileRoutesByFullPath {
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/integrations': typeof BusinessIntegrationsRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
@@ -134,6 +141,7 @@ export interface FileRoutesByTo {
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/integrations': typeof BusinessIntegrationsRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
@@ -153,6 +161,7 @@ export interface FileRoutesById {
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
   '/business/finance': typeof BusinessFinanceRoute
   '/business/history': typeof BusinessHistoryRoute
+  '/business/integrations': typeof BusinessIntegrationsRoute
   '/business/map': typeof BusinessMapRoute
   '/business/orders': typeof BusinessOrdersRoute
   '/business/products': typeof BusinessProductsRoute
@@ -173,6 +182,7 @@ export interface FileRouteTypes {
     | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
+    | '/business/integrations'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
@@ -190,6 +200,7 @@ export interface FileRouteTypes {
     | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
+    | '/business/integrations'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
@@ -208,6 +219,7 @@ export interface FileRouteTypes {
     | '/business/delivery-new'
     | '/business/finance'
     | '/business/history'
+    | '/business/integrations'
     | '/business/map'
     | '/business/orders'
     | '/business/products'
@@ -304,6 +316,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BusinessMapRouteImport
       parentRoute: typeof BusinessRoute
     }
+    '/business/integrations': {
+      id: '/business/integrations'
+      path: '/integrations'
+      fullPath: '/business/integrations'
+      preLoaderRoute: typeof BusinessIntegrationsRouteImport
+      parentRoute: typeof BusinessRoute
+    }
     '/business/history': {
       id: '/business/history'
       path: '/history'
@@ -348,6 +367,7 @@ interface BusinessRouteChildren {
   BusinessDeliveryNewRoute: typeof BusinessDeliveryNewRoute
   BusinessFinanceRoute: typeof BusinessFinanceRoute
   BusinessHistoryRoute: typeof BusinessHistoryRoute
+  BusinessIntegrationsRoute: typeof BusinessIntegrationsRoute
   BusinessMapRoute: typeof BusinessMapRoute
   BusinessOrdersRoute: typeof BusinessOrdersRoute
   BusinessProductsRoute: typeof BusinessProductsRoute
@@ -361,6 +381,7 @@ const BusinessRouteChildren: BusinessRouteChildren = {
   BusinessDeliveryNewRoute: BusinessDeliveryNewRoute,
   BusinessFinanceRoute: BusinessFinanceRoute,
   BusinessHistoryRoute: BusinessHistoryRoute,
+  BusinessIntegrationsRoute: BusinessIntegrationsRoute,
   BusinessMapRoute: BusinessMapRoute,
   BusinessOrdersRoute: BusinessOrdersRoute,
   BusinessProductsRoute: BusinessProductsRoute,

@@ -48,6 +48,7 @@ const SIDEBAR_GROUPS = [
     items: [
       { to: "/business/finance", label: "Financeiro", icon: Wallet },
       { to: "/business/history", label: "Histórico", icon: History },
+      { to: "/business/integrations", label: "Integrações", icon: Plug },
     ]
   }
 ];
