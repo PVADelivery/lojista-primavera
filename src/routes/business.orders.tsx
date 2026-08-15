@@ -95,8 +95,34 @@ function OrdersPage() {
         return true;
       });
     },
-    refetchInterval: 10000,
+    refetchOnWindowFocus: false,
   });
+
+  // Atualização em Tempo Real quando uma NOVA VENDA ocorrer no marketplace
+  useEffect(() => {
+    if (!company?.id) return;
+
+    const channel = supabase
+      .channel(`lojista-orders-realtime-${company.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "orders",
+          filter: `company_id=eq.${company.id}`,
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["orders", company.id] });
+          fetchOrders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [company?.id, qc, fetchOrders]);
 
   const pendingCount = orders.filter((o: any) => o.status === "pending").length;
 
