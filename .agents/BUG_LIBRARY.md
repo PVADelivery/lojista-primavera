@@ -219,12 +219,14 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 21. Erro "ReferenceError: maplibregl is not defined" no Rastreio do Painel Admin
-* **Sintoma**: Ao abrir o Rastreio em Tempo Real (`/admin/tracking`), a tela falhava em tela branca com `ReferenceError: maplibregl is not defined`.
-* **Causa Raiz**: O pacote `react-map-gl/maplibre` procura a variável global `window.maplibregl` quando não é fornecida explicitamente. No build de produção do Vite/Rollup com ESM, o `maplibre-gl` não é exposto como global global no escopo da janela.
+### 22. Erro "NotFoundError: Failed to execute 'insertBefore' on 'Node'" no App do Entregador
+* **Sintoma**: Ao carregar ou atualizar a lista de entregas no App do Entregador (`https://entregador.mt24horasexpress.com/driver`), o app disparava `NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node`.
+* **Causa Raiz**: O componente `DeliveryCard.tsx` utilizava fragmentos vazios (`<>...</>`) e avaliações booleanas inline (`{delivery.notes && ...}`) com múltiplos nós filhos e nós de texto dinâmicos adjacentes. Durante as atualizações do Realtime e re-renderizações rápidas do React, a árvore virtual perdia a referência do elemento pai durante o `insertBefore`.
 * **Solução Padrão**:
-  1. Importar explicitamente o pacote: `import maplibregl from "maplibre-gl";`.
-  2. Passar a instância diretamente na prop do componente: `<Map {...viewState} mapLib={maplibregl} ... />`.
+  1. Substituir fragmentos vazios por containers de bloco estáveis (`<div className="...">...</div>`).
+  2. Forçar coerção booleana explícita em condições JSX: `{Boolean(delivery.notes) && <div>...</div>}`.
+  3. Garantir nós DOM consistentes e estáveis durante transições de status da entrega.
+
 
 
 
