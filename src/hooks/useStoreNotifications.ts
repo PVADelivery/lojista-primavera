@@ -16,60 +16,65 @@ export function useStoreNotifications() {
 
     // Configuração Nativa Capacitor (FCM)
     if (Capacitor.isNativePlatform()) {
-      LocalNotifications.requestPermissions().then((res) => {
-        if (res.display === "granted" && Capacitor.getPlatform() === "android") {
-          LocalNotifications.createChannel({
-            id: "store-order-incoming-v1",
-            name: "Novos Pedidos do Estabelecimento",
-            description: "Alerta sonoro e visual para novos pedidos",
-            importance: 5,
-            visibility: 1,
-            sound: "ring.mp3",
-            vibration: true,
-          }).catch(() => {});
-        }
-      });
-
-      const syncFcmToken = async (tokenVal: string) => {
-        if (!tokenVal) return;
-        localStorage.setItem("store_fcm_token", tokenVal);
-        try {
-          await supabase
-            .from("companies")
-            .update({ fcm_token: tokenVal } as any)
-            .eq("user_id", user.id);
-        } catch (e) {
-          console.warn("[FCM Lojista] Erro ao salvar token:", e);
-        }
-      };
-
-      PushNotifications.addListener("registration", (token) => {
-        console.log("[FCM Lojista] Token:", token.value);
-        syncFcmToken(token.value);
-      });
-
-      const cachedToken = localStorage.getItem("store_fcm_token");
-      if (cachedToken) {
-        syncFcmToken(cachedToken);
+      if (Capacitor.isPluginAvailable("LocalNotifications")) {
+        LocalNotifications.requestPermissions().then((res) => {
+          if (res.display === "granted" && Capacitor.getPlatform() === "android") {
+            LocalNotifications.createChannel({
+              id: "store-order-incoming-v1",
+              name: "Novos Pedidos do Estabelecimento",
+              description: "Alerta sonoro e visual para novos pedidos",
+              importance: 5,
+              visibility: 1,
+              sound: "ring.mp3",
+              vibration: true,
+            }).catch(() => {});
+          }
+        }).catch(() => {});
       }
 
-      PushNotifications.requestPermissions().then((res) => {
-        if (res.receive === "granted") {
-          PushNotifications.register().catch(() => {});
-        }
-      });
+      if (Capacitor.isPluginAvailable("PushNotifications")) {
+        const syncFcmToken = async (tokenVal: string) => {
+          if (!tokenVal) return;
+          localStorage.setItem("store_fcm_token", tokenVal);
+          try {
+            await supabase
+              .from("companies")
+              .update({ fcm_token: tokenVal } as any)
+              .eq("user_id", user.id);
+          } catch (e) {
+            console.warn("[FCM Lojista] Erro ao salvar token:", e);
+          }
+        };
 
-      PushNotifications.addListener("pushNotificationReceived", (notification) => {
-        const title = notification.title || "🔔 Novo Pedido Recebido!";
-        const body = notification.body || notification.data?.message || "Novo pedido chegou para preparo!";
-        toast.success(title, { description: body });
-      });
+        PushNotifications.addListener("registration", (token) => {
+          console.log("[FCM Lojista] Token:", token.value);
+          syncFcmToken(token.value);
+        }).catch(() => {});
 
-      PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-        if (typeof window !== "undefined") {
-          window.location.href = "/business/orders";
+        const cachedToken = localStorage.getItem("store_fcm_token");
+        if (cachedToken) {
+          syncFcmToken(cachedToken);
         }
-      });
+
+        PushNotifications.requestPermissions().then((res) => {
+          if (res.receive === "granted") {
+            PushNotifications.register().catch(() => {});
+          }
+        }).catch(() => {});
+      }
+
+        PushNotifications.addListener("pushNotificationReceived", (notification) => {
+          const title = notification.title || "🔔 Novo Pedido Recebido!";
+          const body = notification.body || notification.data?.message || "Novo pedido chegou para preparo!";
+          toast.success(title, { description: body });
+        }).catch(() => {});
+
+        PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+          if (typeof window !== "undefined") {
+            window.location.href = "/business/orders";
+          }
+        }).catch(() => {});
+      }
     }
 
     // Escuta em tempo real novos pedidos da loja
