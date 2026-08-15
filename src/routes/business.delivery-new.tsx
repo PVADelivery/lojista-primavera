@@ -1188,7 +1188,7 @@ function NewDeliveryPage() {
                         <SelectContent className="rounded-2xl">
                           <SelectItem value="dinheiro">Dinheiro</SelectItem>
                           <SelectItem value="cartao">Cartão (Maquininha)</SelectItem>
-                          <SelectItem value="pix">PIX (Chave do Entregador)</SelectItem>
+                          <SelectItem value="pix">PIX</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
