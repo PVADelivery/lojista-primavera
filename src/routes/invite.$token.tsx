@@ -64,12 +64,8 @@ function InvitePage() {
             setError("Este link de convite expirou.");
           } else {
             setInvitation(inv);
-            // Pre-fill email only if it is a real custom email, NEVER placeholder convite_
-            if (inv.email && !String(inv.email).toLowerCase().startsWith("convite_") && !String(inv.email).includes("@mt24horasexpress.com")) {
-              setFormData(prev => ({ ...prev, email: inv.email }));
-            } else {
-              setFormData(prev => ({ ...prev, email: "" }));
-            }
+            // Email NUNCA é pré-preenchido, sempre inicia 100% em branco para o lojista digitar
+            setFormData(prev => ({ ...prev, email: "", password: "", confirmPassword: "" }));
           }
         }
       } catch (err: any) {
@@ -314,8 +310,10 @@ function InvitePage() {
                     <Input 
                       type="email"
                       className="pl-12 h-14 rounded-2xl text-base" 
-                      placeholder="exemplo@email.com"
+                      placeholder="Digite seu email aqui"
                       value={formData.email}
+                      autoComplete="off"
+                      name="access_email_input"
                       onChange={e => setFormData({...formData, email: e.target.value})}
                       onKeyDown={e => e.key === 'Enter' && nextStep()}
                     />
@@ -329,8 +327,10 @@ function InvitePage() {
                     <Input 
                       type={showPassword ? "text" : "password"}
                       className="pl-12 pr-12 h-14 rounded-2xl text-base tracking-wider" 
-                      placeholder="••••••••"
+                      placeholder="Crie uma senha segura"
                       value={formData.password}
+                      autoComplete="new-password"
+                      name="access_password_input"
                       onChange={e => setFormData({...formData, password: e.target.value})}
                       onKeyDown={e => e.key === 'Enter' && nextStep()}
                     />
@@ -351,8 +351,10 @@ function InvitePage() {
                     <Input 
                       type={showConfirmPassword ? "text" : "password"}
                       className="pl-12 pr-12 h-14 rounded-2xl text-base tracking-wider" 
-                      placeholder="••••••••"
+                      placeholder="Confirme sua senha"
                       value={formData.confirmPassword}
+                      autoComplete="new-password"
+                      name="access_confirm_password_input"
                       onChange={e => setFormData({...formData, confirmPassword: e.target.value})}
                       onKeyDown={e => e.key === 'Enter' && nextStep()}
                     />
