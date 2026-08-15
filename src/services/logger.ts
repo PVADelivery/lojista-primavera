@@ -109,27 +109,74 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "MT
   }
 }
 
+export function translateErrorMessage(rawMsg: string): string {
+  if (!rawMsg || typeof rawMsg !== "string") return "Ocorreu um erro. Tente novamente.";
+
+  const lower = rawMsg.toLowerCase();
+
+  if (lower.includes("user already registered") || lower.includes("already been registered") || lower.includes("email address has already been registered")) {
+    return "Este endereço de e-mail já está cadastrado no sistema. Por favor, faça login com sua senha.";
+  }
+  if (lower.includes("invalid login credentials") || lower.includes("invalid credentials")) {
+    return "E-mail ou senha incorretos. Verifique os dados digitados.";
+  }
+  if (lower.includes("email not confirmed")) {
+    return "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
+  }
+  if (lower.includes("password should be at least")) {
+    return "A senha deve ter pelo menos 6 caracteres.";
+  }
+  if (lower.includes("signup disabled")) {
+    return "Novos cadastros estão temporariamente suspensos.";
+  }
+  if (lower.includes("network error") || lower.includes("failed to fetch")) {
+    return "Falha de conexão com a internet. Verifique sua rede e tente novamente.";
+  }
+  if (lower.includes("jwt expired") || lower.includes("token expired") || lower.includes("session expired")) {
+    return "Sua sessão expirou. Por favor, faça login novamente.";
+  }
+  if (lower.includes("rate limit") || lower.includes("too many requests")) {
+    return "Muitas tentativas em pouco tempo. Aguarde alguns instantes e tente novamente.";
+  }
+  if (lower.includes("row-level security") || lower.includes("permission denied") || lower.includes("unauthorized")) {
+    return "Você não tem permissão para realizar esta operação.";
+  }
+
+  return rawMsg;
+}
+
 // Global error handlers + Toast error interceptor
 export function initializeGlobalErrorHandlers(appName: string) {
   if (typeof window === "undefined") return;
 
-  // Intercept Sonner toast.error calls to immediately log on-screen errors
+  // Intercept Sonner toast.error calls to immediately log on-screen errors & translate english messages
   try {
     const rawToast = toast as any;
     if (rawToast && typeof rawToast.error === "function" && !rawToast.__telegram_patched) {
       const originalToastError = rawToast.error;
       rawToast.error = function (message: any, options?: any) {
+        let translatedMessage = message;
         try {
           const msgStr = typeof message === "string" ? message : (message?.message || message?.toString?.() || JSON.stringify(message));
+          const ptMsg = translateErrorMessage(msgStr);
+          if (typeof message === "string") {
+            translatedMessage = ptMsg;
+          } else if (message && typeof message === "object" && message.message) {
+            message.message = ptMsg;
+            translatedMessage = message;
+          } else {
+            translatedMessage = ptMsg;
+          }
+
           if (msgStr && typeof msgStr === "string" && !msgStr.includes("cancelada pelo usuário")) {
             reportErrorToTelegram({
-              error_message: `[Erro na Tela] ${msgStr}`,
+              error_message: `[Erro na Tela] ${ptMsg}`,
               url: window.location.href,
-              additional_info: { type: "toast_error", options }
+              additional_info: { type: "toast_error", rawMessage: msgStr, options }
             }, appName);
           }
         } catch {}
-        return originalToastError.apply(rawToast, [message, options]);
+        return originalToastError.apply(rawToast, [translatedMessage, options]);
       };
       rawToast.__telegram_patched = true;
     }

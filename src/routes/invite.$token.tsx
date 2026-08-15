@@ -136,6 +136,9 @@ function InvitePage() {
         }
 
         if (customMessage) {
+          if (customMessage.toLowerCase().includes("already registered") || customMessage.toLowerCase().includes("already been registered")) {
+            throw new Error("Este endereço de e-mail já está cadastrado no sistema. Por favor, faça login com sua senha.");
+          }
           throw new Error(customMessage);
         }
 
