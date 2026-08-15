@@ -57,7 +57,7 @@ serve(async (req) => {
       });
     }
 
-    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID") || "fd78e2cc-9a8a-4f93-9efe-a03cc0249ab5";
+    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID") || "9e845849-a0e7-4645-87f0-b7a5b9b36b58";
     const clientSecret = client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "wzz94902vae79kw6cvr1m0c85f52upjphfg9zftansn6cuanlw7ruxodbswg5o3yvx2yj2qm6p1ypv5w1yxgzzunmaopetbfnc7";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
