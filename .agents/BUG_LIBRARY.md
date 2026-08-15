@@ -219,14 +219,12 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 19. Erro "Failed to execute 'insertBefore' on 'Node'" e "Categoria não habilitada" no App do Entregador
-* **Sintoma**: O entregador recebia o erro `Categoria não habilitada pelo administrador` ao trocar de modo de trabalho e a tela falhava com `NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node`.
-* **Causa Raiz**:
-  1. O componente `PermissionModal` estava sendo renderizado simultaneamente no `RootComponent` (`__root.tsx`) e dentro do `DriverShell` (`DriverShell.tsx`). Essa duplicidade de montagem de Dialog do Radix/shadcn causava conflito de nós no DOM durante desmontagem/animações, disparando o erro `insertBefore`.
-  2. A consulta em `useWorkMode.tsx` buscava `delivery_drivers` estritamente por `user_id.eq.${user.id}`, mas em alguns cadastros o identificador principal registrado é o próprio `id`. Se a consulta retornava vazio, `serviceTypes` não encontrava as categorias e bloqueava as abas.
+### 20. Erro "Unhandled Rejection: PushNotifications plugin is not implemented on android"
+* **Sintoma**: Ao abrir o app do entregador no Android (em APKs antigas ou navegadores WebView), a tela capturava o erro `Error: "PushNotifications" plugin is not implemented on android (code: UNIMPLEMENTED)`.
+* **Causa Raiz**: O hook `useDriverNotifications.ts` chamava diretamente os métodos `PushNotifications.addListener` e `PushNotifications.requestPermissions` assumindo que o APK já continha a compilação nativa do plugin `@capacitor/push-notifications`. Aparelhos executando a versão web em tela cheia (PWA/TWA) ou builds anteriores do APK não possuíam o plugin registrado na ponte nativa do Java.
 * **Solução Padrão**:
-  1. Remover a duplicidade do `<PermissionModal />` mantendo apenas no `__root.tsx`.
-  2. Corrigir a consulta no `useWorkMode.tsx` para usar `.or('user_id.eq.${user.id},id.eq.${user.id}')` com fallback permissivo padrão caso não haja restrição explícita.
+  1. Utilizar a verificação `Capacitor.isPluginAvailable("PushNotifications")` antes de invocar qualquer método do plugin.
+  2. Proteger todas as Promises e listeners retornados com `.catch()` silencioso para manter o funcionamento fluido do app mesmo em ambientes sem suporte ao plugin.
 
 
 
