@@ -219,12 +219,13 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 20. Erro "Unhandled Rejection: PushNotifications plugin is not implemented on android"
-* **Sintoma**: Ao abrir o app do entregador no Android (em APKs antigas ou navegadores WebView), a tela capturava o erro `Error: "PushNotifications" plugin is not implemented on android (code: UNIMPLEMENTED)`.
-* **Causa Raiz**: O hook `useDriverNotifications.ts` chamava diretamente os métodos `PushNotifications.addListener` e `PushNotifications.requestPermissions` assumindo que o APK já continha a compilação nativa do plugin `@capacitor/push-notifications`. Aparelhos executando a versão web em tela cheia (PWA/TWA) ou builds anteriores do APK não possuíam o plugin registrado na ponte nativa do Java.
+### 21. Erro "ReferenceError: maplibregl is not defined" no Rastreio do Painel Admin
+* **Sintoma**: Ao abrir o Rastreio em Tempo Real (`/admin/tracking`), a tela falhava em tela branca com `ReferenceError: maplibregl is not defined`.
+* **Causa Raiz**: O pacote `react-map-gl/maplibre` procura a variável global `window.maplibregl` quando não é fornecida explicitamente. No build de produção do Vite/Rollup com ESM, o `maplibre-gl` não é exposto como global global no escopo da janela.
 * **Solução Padrão**:
-  1. Utilizar a verificação `Capacitor.isPluginAvailable("PushNotifications")` antes de invocar qualquer método do plugin.
-  2. Proteger todas as Promises e listeners retornados com `.catch()` silencioso para manter o funcionamento fluido do app mesmo em ambientes sem suporte ao plugin.
+  1. Importar explicitamente o pacote: `import maplibregl from "maplibre-gl";`.
+  2. Passar a instância diretamente na prop do componente: `<Map {...viewState} mapLib={maplibregl} ... />`.
+
 
 
 
