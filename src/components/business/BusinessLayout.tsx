@@ -6,7 +6,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   LayoutDashboard, ShoppingBag, UtensilsCrossed, Wallet, Users, History, Tag,
   Settings, LogOut, Bell, Search, Power, User as UserIcon,
-  ChevronLeft, ChevronRight, HelpCircle, Smartphone, MapPin, Store, ExternalLink
+  ChevronLeft, ChevronRight, HelpCircle, Smartphone, MapPin, Store, ExternalLink, Plug
 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
