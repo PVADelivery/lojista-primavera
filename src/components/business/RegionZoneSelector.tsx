@@ -333,7 +333,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
                     : "bg-primary text-primary-foreground hover:bg-primary/90"
                 }`}
               >
-                Clique aqui — {zone.title} · R$ {zone.price.toFixed(2).replace(".", ",")}
+                {zone.title} · R$ {zone.price.toFixed(2).replace(".", ",")}
               </button>
             </div>
           </div>
