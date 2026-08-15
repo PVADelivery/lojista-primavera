@@ -34,7 +34,7 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const clientId = state.client_id || Deno.env.get("IFOOD_CLIENT_ID") || "";
+    const clientId = state.client_id || Deno.env.get("IFOOD_CLIENT_ID") || "fd78e2cc-9a8a-4f93-9efe-a03cc0249ab5";
     const clientSecret = state.client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 

@@ -57,11 +57,11 @@ serve(async (req) => {
       });
     }
 
-    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID");
+    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID") || "fd78e2cc-9a8a-4f93-9efe-a03cc0249ab5";
     const clientSecret = client_secret || Deno.env.get("IFOOD_CLIENT_SECRET");
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
-    if (!clientId || clientId.includes("PLACEHOLDER")) {
+    if (!clientId) {
       return new Response(
         JSON.stringify({ 
           error: "Credenciais do iFood ainda não configuradas. Insira seu Client ID do Portal iFood Developer para iniciar." 
