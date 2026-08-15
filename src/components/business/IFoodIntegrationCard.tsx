@@ -16,6 +16,14 @@ import {
   Clock,
   Sparkles,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { IFoodImportPreviewModal } from "./IFoodImportPreviewModal";
 
 interface IFoodIntegrationCardProps {
@@ -89,7 +97,12 @@ export function IFoodIntegrationCard({ companyId, onMenuUpdated }: IFoodIntegrat
     }
   };
 
-  const handleConnect = async () => {
+  // Modal de Configuração de Credenciais do Lojista
+  const [configModalOpen, setConfigModalOpen] = useState(false);
+  const [clientIdInput, setClientIdInput] = useState("");
+  const [clientSecretInput, setClientSecretInput] = useState("");
+
+  const handleConnect = async (customClientId?: string, customClientSecret?: string) => {
     setConnecting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -103,7 +116,11 @@ export function IFoodIntegrationCard({ companyId, onMenuUpdated }: IFoodIntegrat
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ company_id: companyId }),
+          body: JSON.stringify({ 
+            company_id: companyId,
+            client_id: customClientId || clientIdInput.trim() || undefined,
+            client_secret: customClientSecret || clientSecretInput.trim() || undefined,
+          }),
         }
       );
 
@@ -114,6 +131,7 @@ export function IFoodIntegrationCard({ companyId, onMenuUpdated }: IFoodIntegrat
         // Abre a autorização oficial do iFood em uma nova aba
         window.open(data.url, "_blank", "noopener,noreferrer");
         toast.info("A página de autorização do iFood foi aberta em uma nova aba.");
+        setConfigModalOpen(false);
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao conectar ao iFood");
@@ -312,27 +330,89 @@ export function IFoodIntegrationCard({ companyId, onMenuUpdated }: IFoodIntegrat
                 </Button>
               </>
             ) : (
-              <Button
-                onClick={handleConnect}
-                disabled={connecting}
-                className="rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-6 py-5 shadow-lg shadow-rose-500/20 flex items-center gap-2"
-              >
-                {connecting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Conectando...
-                  </>
-                ) : (
-                  <>
-                    <Plug className="h-4 w-4" />
-                    Conectar iFood
-                  </>
-                )}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  onClick={() => setConfigModalOpen(true)}
+                  disabled={connecting}
+                  className="rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-xs px-6 py-5 shadow-lg shadow-rose-500/20 flex items-center gap-2"
+                >
+                  {connecting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Conectando...
+                    </>
+                  ) : (
+                    <>
+                      <Plug className="h-4 w-4" />
+                      Conectar iFood
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Modal de Configuração de Credenciais do Lojista */}
+      <Dialog open={configModalOpen} onOpenChange={setConfigModalOpen}>
+        <DialogContent className="max-w-md rounded-[2.5rem] bg-card border border-border p-6 shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-black flex items-center gap-2">
+              <div className="h-8 w-8 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 font-bold text-sm">
+                iF
+              </div>
+              Conectar Estabelecimento iFood
+            </DialogTitle>
+            <DialogDescription className="text-xs text-muted-foreground pt-1">
+              Informe as credenciais do seu aplicativo ou conecte diretamente com a conta de desenvolvedor do iFood.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-3">
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Client ID (iFood Developer)</label>
+              <input
+                type="text"
+                placeholder="Ex: 12345678-abcd-1234-abcd-1234567890ab"
+                value={clientIdInput}
+                onChange={(e) => setClientIdInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-secondary/50 border border-border text-xs focus:border-rose-500 focus:outline-none transition-all font-mono"
+              />
+              <p className="text-[11px] text-muted-foreground">Disponível no Portal iFood Developer em Meus Aplicativos.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-foreground">Client Secret (Opcional se configurado global)</label>
+              <input
+                type="password"
+                placeholder="••••••••••••••••••••••••••••"
+                value={clientSecretInput}
+                onChange={(e) => setClientSecretInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-secondary/50 border border-border text-xs focus:border-rose-500 focus:outline-none transition-all font-mono"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="flex-col sm:flex-row gap-2 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setConfigModalOpen(false)}
+              className="rounded-xl border-border font-bold text-xs"
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => handleConnect()}
+              disabled={connecting}
+              className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs shadow-md shadow-rose-500/20 flex items-center justify-center gap-2"
+            >
+              {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plug className="h-4 w-4" />}
+              Autorizar no Portal iFood
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Prévia e Revisão */}
       <IFoodImportPreviewModal

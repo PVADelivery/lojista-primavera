@@ -34,8 +34,8 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const clientId = Deno.env.get("IFOOD_CLIENT_ID") || "";
-    const clientSecret = Deno.env.get("IFOOD_CLIENT_SECRET") || "";
+    const clientId = state.client_id || Deno.env.get("IFOOD_CLIENT_ID") || "";
+    const clientSecret = state.client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
     // 1. Troca code por access token e refresh token na API Oficial do iFood

@@ -34,7 +34,8 @@ serve(async (req) => {
       });
     }
 
-    const { company_id } = await req.json();
+    const body = await req.json();
+    const { company_id, client_id, client_secret } = body;
     if (!company_id) {
       return new Response(JSON.stringify({ error: "company_id is required" }), {
         status: 400,
@@ -56,13 +57,15 @@ serve(async (req) => {
       });
     }
 
-    const clientId = Deno.env.get("IFOOD_CLIENT_ID") || "IFOOD_CLIENT_ID_PLACEHOLDER";
+    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID") || "IFOOD_CLIENT_ID_PLACEHOLDER";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
-    // State codificado de forma segura (company_id + timestamp + user_id)
+    // State codificado de forma segura (company_id + timestamp + user_id + client_id opcional)
     const statePayload = {
       company_id: company.id,
       user_id: user.id,
+      client_id: client_id || undefined,
+      client_secret: client_secret || undefined,
       ts: Date.now(),
     };
     const state = btoa(JSON.stringify(statePayload));
