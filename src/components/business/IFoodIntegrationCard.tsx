@@ -111,7 +111,9 @@ export function IFoodIntegrationCard({ companyId, onMenuUpdated }: IFoodIntegrat
       if (!res.ok) throw new Error(data.error || "Falha ao iniciar conexão");
 
       if (data.url) {
-        window.location.href = data.url;
+        // Abre a autorização oficial do iFood em uma nova aba
+        window.open(data.url, "_blank", "noopener,noreferrer");
+        toast.info("A página de autorização do iFood foi aberta em uma nova aba.");
       }
     } catch (err: any) {
       toast.error(err.message || "Erro ao conectar ao iFood");
