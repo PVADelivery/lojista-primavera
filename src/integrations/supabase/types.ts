@@ -461,6 +461,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "company_credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       company_credits: {
@@ -501,6 +508,13 @@ export type Database = {
             isOneToOne: true
             referencedRelation: "companies"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_credits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
           },
         ]
       }
@@ -677,6 +691,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "credit_purchase_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       credit_transactions: {
@@ -722,10 +743,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "credit_transactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "credit_transactions_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
             referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "credit_transactions_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -790,6 +825,7 @@ export type Database = {
           difficulty: string | null
           distance_km: number | null
           driver_id: string | null
+          dropoff_address: string | null
           estimated_time_minutes: number | null
           estimated_value: number | null
           id: string
@@ -805,6 +841,7 @@ export type Database = {
           pickup_longitude: number | null
           proof_photo_url: string | null
           region_id: string | null
+          region_name: string | null
           short_id: string | null
           signature_url: string | null
           status: Database["public"]["Enums"]["delivery_status"]
@@ -838,6 +875,7 @@ export type Database = {
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          dropoff_address?: string | null
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
@@ -853,6 +891,7 @@ export type Database = {
           pickup_longitude?: number | null
           proof_photo_url?: string | null
           region_id?: string | null
+          region_name?: string | null
           short_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
@@ -886,6 +925,7 @@ export type Database = {
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
+          dropoff_address?: string | null
           estimated_time_minutes?: number | null
           estimated_value?: number | null
           id?: string
@@ -901,6 +941,7 @@ export type Database = {
           pickup_longitude?: number | null
           proof_photo_url?: string | null
           region_id?: string | null
+          region_name?: string | null
           short_id?: string | null
           signature_url?: string | null
           status?: Database["public"]["Enums"]["delivery_status"]
@@ -924,6 +965,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "deliveries_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -938,6 +986,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "deliveries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["driver_id"]
+          },
+          {
             foreignKeyName: "deliveries_region_id_fkey"
             columns: ["region_id"]
             isOneToOne: false
@@ -950,53 +1005,92 @@ export type Database = {
         Row: {
           city_id: string | null
           commission_rate: number
+          cpf: string | null
           created_at: string
+          created_by_admin_id: string | null
+          current_latitude: number | null
+          current_longitude: number | null
+          delivery_fee_tax: number | null
+          document: string | null
           fcm_token: string | null
+          full_name: string | null
           id: string
+          is_active: boolean | null
           is_online: boolean
           latitude: number | null
           license_plate: string | null
           longitude: number | null
+          online: boolean | null
+          phone: string | null
+          plate: string | null
           rating: number
           service_types: string[] | null
           status: string | null
           updated_at: string
           user_id: string
           vehicle: string
+          vehicle_plate: string | null
+          vehicle_type: string | null
         }
         Insert: {
           city_id?: string | null
           commission_rate?: number
+          cpf?: string | null
           created_at?: string
+          created_by_admin_id?: string | null
+          current_latitude?: number | null
+          current_longitude?: number | null
+          delivery_fee_tax?: number | null
+          document?: string | null
           fcm_token?: string | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean | null
           is_online?: boolean
           latitude?: number | null
           license_plate?: string | null
           longitude?: number | null
+          online?: boolean | null
+          phone?: string | null
+          plate?: string | null
           rating?: number
           service_types?: string[] | null
           status?: string | null
           updated_at?: string
           user_id: string
           vehicle?: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
         }
         Update: {
           city_id?: string | null
           commission_rate?: number
+          cpf?: string | null
           created_at?: string
+          created_by_admin_id?: string | null
+          current_latitude?: number | null
+          current_longitude?: number | null
+          delivery_fee_tax?: number | null
+          document?: string | null
           fcm_token?: string | null
+          full_name?: string | null
           id?: string
+          is_active?: boolean | null
           is_online?: boolean
           latitude?: number | null
           license_plate?: string | null
           longitude?: number | null
+          online?: boolean | null
+          phone?: string | null
+          plate?: string | null
           rating?: number
           service_types?: string[] | null
           status?: string | null
           updated_at?: string
           user_id?: string
           vehicle?: string
+          vehicle_plate?: string | null
+          vehicle_type?: string | null
         }
         Relationships: [
           {
@@ -1278,6 +1372,13 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "merchant_invoices_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       messages: {
@@ -1385,11 +1486,25 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "occurrences_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "occurrences_driver_id_fkey"
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "occurrences_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["driver_id"]
           },
         ]
       }
@@ -1496,6 +1611,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "orders_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "orders_customer_id_fkey"
             columns: ["customer_id"]
             isOneToOne: false
@@ -1507,6 +1629,13 @@ export type Database = {
             columns: ["delivery_id"]
             isOneToOne: false
             referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -1788,11 +1917,19 @@ export type Database = {
             referencedRelation: "companies"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "products_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
         ]
       }
       profiles: {
         Row: {
           avatar_url: string | null
+          cpf: string | null
           created_at: string
           document: string | null
           full_name: string
@@ -1805,6 +1942,7 @@ export type Database = {
         }
         Insert: {
           avatar_url?: string | null
+          cpf?: string | null
           created_at?: string
           document?: string | null
           full_name?: string
@@ -1817,6 +1955,7 @@ export type Database = {
         }
         Update: {
           avatar_url?: string | null
+          cpf?: string | null
           created_at?: string
           document?: string | null
           full_name?: string
@@ -1868,6 +2007,7 @@ export type Database = {
         Row: {
           color: string
           created_at: string
+          delivery_fee: number | null
           geometry: Json | null
           id: string
           is_active: boolean
@@ -1879,6 +2019,7 @@ export type Database = {
         Insert: {
           color?: string
           created_at?: string
+          delivery_fee?: number | null
           geometry?: Json | null
           id?: string
           is_active?: boolean
@@ -1890,6 +2031,7 @@ export type Database = {
         Update: {
           color?: string
           created_at?: string
+          delivery_fee?: number | null
           geometry?: Json | null
           id?: string
           is_active?: boolean
@@ -1937,10 +2079,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+          {
             foreignKeyName: "reviews_delivery_id_fkey"
             columns: ["delivery_id"]
             isOneToOne: false
             referencedRelation: "deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_delivery_id_fkey"
+            columns: ["delivery_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
             referencedColumns: ["id"]
           },
           {
@@ -1949,6 +2105,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["driver_id"]
           },
         ]
       }
@@ -2006,7 +2169,44 @@ export type Database = {
             referencedRelation: "delivery_drivers"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "ride_requests_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["driver_id"]
+          },
         ]
+      }
+      system_error_logs: {
+        Row: {
+          created_at: string | null
+          error_message: string
+          id: string
+          origin_app: string | null
+          stack_trace: string | null
+          url: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message: string
+          id?: string
+          origin_app?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string
+          id?: string
+          origin_app?: string | null
+          stack_trace?: string | null
+          url?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
       }
       system_invitations: {
         Row: {
@@ -2175,7 +2375,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      view_financial_summary: {
+        Row: {
+          company_id: string | null
+          company_name: string | null
+          created_at: string | null
+          delivery_value: number | null
+          driver_id: string | null
+          driver_name: string | null
+          id: string | null
+          payment_method: string | null
+          platform_commission: number | null
+          status: Database["public"]["Enums"]["delivery_status"] | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       add_company_credits: {

@@ -61,7 +61,6 @@ export function useStoreNotifications() {
             PushNotifications.register().catch(() => {});
           }
         }).catch(() => {});
-      }
 
         PushNotifications.addListener("pushNotificationReceived", (notification) => {
           const title = notification.title || "🔔 Novo Pedido Recebido!";
@@ -69,13 +68,14 @@ export function useStoreNotifications() {
           toast.success(title, { description: body });
         }).catch(() => {});
 
-        PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+        PushNotifications.addListener("pushNotificationActionPerformed", () => {
           if (typeof window !== "undefined") {
             window.location.href = "/business/orders";
           }
         }).catch(() => {});
       }
     }
+
 
     // Escuta em tempo real novos pedidos da loja
     const setupRealtime = async () => {
