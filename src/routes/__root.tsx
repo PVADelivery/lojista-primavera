@@ -135,9 +135,13 @@ function RootShell({ children }: { children: React.ReactNode }) {
 
 import { useStoreNotifications } from "@/hooks/useStoreNotifications";
 
+function StoreNotifications() {
+  useStoreNotifications();
+  return null;
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
-  useStoreNotifications();
 
   useEffect(() => {
     initializeGlobalErrorHandlers("Painel do Lojista");
@@ -147,6 +151,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
+          <StoreNotifications />
           <Outlet />
           <Toaster richColors position="top-right" theme="system" />
         </AuthProvider>
