@@ -35,7 +35,7 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const clientId = state.client_id || Deno.env.get("IFOOD_CLIENT_ID") || "fd78e2cc-9a8a-4f93-9efe-a03cc0249ab5";
-    const clientSecret = state.client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "";
+    const clientSecret = state.client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "wzz94902vae79kw6cvr1m0c85f52upjphfg9zftansn6cuanlw7ruxodbswg5o3yvx2yj2qm6p1ypv5w1yxgzzunmaopetbfnc7";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
     // Busca se existe authorizationCodeVerifier gravado na sessão pendente
