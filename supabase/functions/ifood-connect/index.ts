@@ -57,26 +57,92 @@ serve(async (req) => {
       });
     }
 
-    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID") || "IFOOD_CLIENT_ID_PLACEHOLDER";
+    const clientId = client_id || Deno.env.get("IFOOD_CLIENT_ID");
+    const clientSecret = client_secret || Deno.env.get("IFOOD_CLIENT_SECRET");
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
-    // State codificado de forma segura (company_id + timestamp + user_id + client_id opcional)
+    if (!clientId || clientId.includes("PLACEHOLDER")) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Credenciais do iFood ainda não configuradas. Insira seu Client ID do Portal iFood Developer para iniciar." 
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // 1. Tenta obter userCode para fluxo oficial de aplicativo do Portal iFood (Distributed/Centralized OAuth)
+    try {
+      const userCodeRes = await fetch("https://merchant-api.ifood.com.br/authentication/v1.0/oauth/userCode", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          clientId: clientId,
+        }),
+      });
+
+      if (userCodeRes.ok) {
+        const userCodeData = await userCodeRes.json();
+        // userCodeData: { userCode, authorizationCodeVerifier, verificationUrl, verificationUrlComplete, expiresIn }
+        
+        // Salva temporariamente o authorizationCodeVerifier na sessão / conexão pendente
+        const adminClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? supabaseAnonKey);
+        await adminClient
+          .from("ifood_connections")
+          .upsert({
+            company_id: company.id,
+            merchant_id: "PENDING",
+            access_token: "PENDING",
+            token_expires_at: new Date(Date.now() + (userCodeData.expiresIn || 600) * 1000).toISOString(),
+            status: "pending_authorization",
+            last_sync_error: JSON.stringify({
+              userCode: userCodeData.userCode,
+              authorizationCodeVerifier: userCodeData.authorizationCodeVerifier,
+              clientId: clientId,
+              clientSecret: clientSecret || undefined,
+            }),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "company_id" });
+
+        return new Response(
+          JSON.stringify({
+            flow: "user_code",
+            user_code: userCodeData.userCode,
+            verification_url: userCodeData.verificationUrl,
+            verification_url_complete: userCodeData.verificationUrlComplete,
+            expires_in: userCodeData.expiresIn,
+            url: userCodeData.verificationUrlComplete || userCodeData.verificationUrl,
+          }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+    } catch (userCodeErr) {
+      console.warn("userCode endpoint error, falling back to direct authorization URL:", userCodeErr);
+    }
+
+    // Fallback: URL oficial de autorização OAuth 2.0 padrão
     const statePayload = {
       company_id: company.id,
       user_id: user.id,
-      client_id: client_id || undefined,
-      client_secret: client_secret || undefined,
+      client_id: clientId,
+      client_secret: clientSecret || undefined,
+      nonce: crypto.randomUUID(),
       ts: Date.now(),
     };
     const state = btoa(JSON.stringify(statePayload));
 
-    // URL oficial de autorização OAuth 2.0 do Portal iFood
     const authUrl = `https://portal.ifood.com.br/apps/authorization?client_id=${encodeURIComponent(
       clientId
     )}&redirect_uri=${encodeURIComponent(redirectUri)}&state=${encodeURIComponent(state)}`;
 
     return new Response(
       JSON.stringify({
+        flow: "oauth_redirect",
         url: authUrl,
         state,
         redirect_uri: redirectUri,

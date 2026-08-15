@@ -38,6 +38,23 @@ serve(async (req) => {
     const clientSecret = state.client_secret || Deno.env.get("IFOOD_CLIENT_SECRET") || "";
     const redirectUri = Deno.env.get("IFOOD_REDIRECT_URI") || `${supabaseUrl}/functions/v1/ifood-callback`;
 
+    // Busca se existe authorizationCodeVerifier gravado na sessão pendente
+    let codeVerifier = "";
+    const { data: pendingConn } = await supabase
+      .from("ifood_connections")
+      .select("last_sync_error")
+      .eq("company_id", companyId)
+      .single();
+
+    if (pendingConn?.last_sync_error) {
+      try {
+        const parsed = JSON.parse(pendingConn.last_sync_error);
+        if (parsed.authorizationCodeVerifier) {
+          codeVerifier = parsed.authorizationCodeVerifier;
+        }
+      } catch {}
+    }
+
     // 1. Troca code por access token e refresh token na API Oficial do iFood
     const tokenRes = await fetch("https://merchant-api.ifood.com.br/authentication/v1.0/oauth/token", {
       method: "POST",
@@ -47,7 +64,7 @@ serve(async (req) => {
         clientId: clientId,
         clientSecret: clientSecret,
         authorizationCode: code,
-        authorizationCodeVerifier: "",
+        authorizationCodeVerifier: codeVerifier,
         redirectUri: redirectUri,
       }),
     });
