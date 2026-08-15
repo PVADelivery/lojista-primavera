@@ -14,6 +14,7 @@ export function renderErrorPage(): string {
       a, button { padding: 0.5rem 1rem; border-radius: 0.375rem; font: inherit; cursor: pointer; text-decoration: none; border: 1px solid transparent; }
       .primary { background: #111; color: #fff; }
       .secondary { background: #fff; color: #111; border-color: #d1d5db; }
+      #lovable-badge-container, .lovable-badge-container, #lovable-badge, .lovable-badge, lovable-badge, div[id*="lovable"], div[class*="lovable"], span[class*="lovable"], a[href*="lovable"], iframe[src*="lovable"], [data-lovable-badge], [data-component-tag] { display: none !important; opacity: 0 !important; visibility: hidden !important; pointer-events: none !important; position: absolute !important; top: -9999px !important; left: -9999px !important; }
     </style>
   </head>
   <body>
