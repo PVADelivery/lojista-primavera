@@ -217,16 +217,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 18. Erro 'Could not find vehicle_type column of delivery_drivers' e Dados em Branco no Cadastro de Entregador
-* **Sintoma**: Ao tentar salvar a edição de um entregador no Painel Admin (`/admin/drivers`), o sistema acusava o erro: `Could not find the 'vehicle_type' column of 'delivery_drivers' in the schema cache` e os campos de telefone/documento/placa apareciam com traço (`—`).
+---
+
+### 19. Erro "Failed to execute 'insertBefore' on 'Node'" e "Categoria não habilitada" no App do Entregador
+* **Sintoma**: O entregador recebia o erro `Categoria não habilitada pelo administrador` ao trocar de modo de trabalho e a tela falhava com `NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node`.
 * **Causa Raiz**:
-  1. A tabela `delivery_drivers` possui as colunas `vehicle` e `license_plate` (e não `vehicle_type` e `vehicle_plate`). O `EditDriverDialog.tsx` estava tentando atualizar a coluna inexistente `vehicle_type`.
-  2. A Edge Function `accept-invitation` ao registrar um entregador por convite inseria apenas `full_name` e `phone` em `delivery_drivers`, omitindo `vehicle`, `license_plate` e `cpf`.
-  3. No diálogo de edição, erros não eram reportados com prioridade ao `reportErrorToTelegram`.
+  1. O componente `PermissionModal` estava sendo renderizado simultaneamente no `RootComponent` (`__root.tsx`) e dentro do `DriverShell` (`DriverShell.tsx`). Essa duplicidade de montagem de Dialog do Radix/shadcn causava conflito de nós no DOM durante desmontagem/animações, disparando o erro `insertBefore`.
+  2. A consulta em `useWorkMode.tsx` buscava `delivery_drivers` estritamente por `user_id.eq.${user.id}`, mas em alguns cadastros o identificador principal registrado é o próprio `id`. Se a consulta retornava vazio, `serviceTypes` não encontrava as categorias e bloqueava as abas.
 * **Solução Padrão**:
-  1. Corrigir o payload de atualização em `EditDriverDialog.tsx` para gravar em `vehicle` e `license_plate`, associando tanto por `id` quanto por `user_id`.
-  2. Atualizar a Edge Function `accept-invitation` para salvar `vehicle`, `license_plate` e `cpf` em `delivery_drivers` e `profiles`.
-  3. Integrar `reportErrorToTelegram` em todos os blocos `catch` de formulários e diálogos do admin.
+  1. Remover a duplicidade do `<PermissionModal />` mantendo apenas no `__root.tsx`.
+  2. Corrigir a consulta no `useWorkMode.tsx` para usar `.or('user_id.eq.${user.id},id.eq.${user.id}')` com fallback permissivo padrão caso não haja restrição explícita.
+
 
 
 
