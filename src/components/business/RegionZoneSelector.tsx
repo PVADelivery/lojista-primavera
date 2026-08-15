@@ -10,6 +10,7 @@ export interface DeliveryZone {
   price: number;
   neighborhoods: string[];
   note?: string;
+  color?: string;
 }
 
 // Fallback initial zones in case database is offline
@@ -20,6 +21,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     number: "1",
     price: 8,
     neighborhoods: [],
+    color: "#eab308",
   },
   {
     id: "zona-2",
@@ -37,6 +39,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
       "PONCHO VERDE 1/2", "PVA 2", "PVA 4", "SANTA CLARA", "SÃO CRISTOVÃO 1/2/3",
       "SÃO JOSE", "VERTERTES DAS ÁGUAS", "VILA POPULAR",
     ],
+    color: "#eab308",
   },
   {
     id: "zona-3",
@@ -51,6 +54,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
       "JD LUCIANA 1/2", "JD NOVA ESPERANÇA", "PONCHO VERDE 3/4/5",
       "PVA 3 - PADRE ONESTO COSTA", "TUIUIU",
     ],
+    color: "#eab308",
   },
   {
     id: "zona-4",
@@ -63,6 +67,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
       "JD EUROPA", "MT 130 - FENDT - IGUAÇU MAQUINAS", "SAIDA PRA BARRA - NA KAOPPA",
       "SANTA FELICIDADE",
     ],
+    color: "#eab308",
   },
   {
     id: "zona-5",
@@ -70,6 +75,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     number: "5",
     price: 20,
     neighborhoods: [],
+    color: "#eab308",
   },
 ];
 
@@ -190,6 +196,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
         number: String(r.sort_order ?? index + 1),
         price: finalPrice,
         neighborhoods: hoods,
+        color: r.color || "#eab308",
       };
     });
   }, [dbRegions, dbHoods, activeCompany]);
@@ -228,35 +235,44 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
         const isExpanded = expandedZones.has(zone.id);
         const hasNeighborhoods = zone.neighborhoods.length > 0;
         const displayIndex = zone.number || String(idx + 1);
+        const zoneColor = zone.color || "#eab308";
 
         return (
           <div
             key={zone.id}
-            className={`rounded-3xl border-2 overflow-hidden transition-all shadow-sm ${
-              isZoneSelected ? "border-primary shadow-md ring-2 ring-primary/20" : "border-border bg-card"
-            }`}
+            className="rounded-3xl border-2 overflow-hidden transition-all shadow-sm"
+            style={{
+              borderColor: isZoneSelected ? zoneColor : undefined,
+              boxShadow: isZoneSelected ? `0 0 0 2px ${zoneColor}33` : undefined,
+            }}
           >
             {/* Header da Região */}
             <div className="flex flex-wrap items-center gap-3 bg-foreground text-background px-4 py-3">
-              <Building2 className="h-4 w-4 text-primary shrink-0" />
+              <div
+                className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                style={{ backgroundColor: zoneColor }}
+              />
               <span className="text-xs sm:text-sm font-black uppercase tracking-wide flex-1 min-w-0">
                 {zone.title}
               </span>
-              <span className="text-lg font-black text-primary">
-                {displayIndex} <span className="text-xs font-bold">(R$ {zone.price.toFixed(2).replace(".", ",")})</span>
+              <span className="text-lg font-black" style={{ color: zoneColor }}>
+                {displayIndex} <span className="text-xs font-bold text-background/80">(R$ {zone.price.toFixed(2).replace(".", ",")})</span>
               </span>
             </div>
 
-            <div className="p-4 bg-card space-y-3">
+            <div
+              className="p-4 space-y-3 transition-colors"
+              style={{ backgroundColor: zoneColor }}
+            >
               {hasNeighborhoods && (
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                  <span className="text-xs font-black text-black/80 uppercase tracking-wide">
                     {zone.neighborhoods.length} bairro{zone.neighborhoods.length > 1 ? "s" : ""}
                   </span>
                   <button
                     type="button"
                     onClick={() => toggleZone(zone.id)}
-                    className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-primary hover:text-primary/80 transition-colors"
+                    className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wide text-black hover:opacity-80 transition-opacity"
                   >
                     {isExpanded ? "Ocultar bairros" : "Ver bairros"}
                     <ChevronDown
@@ -286,12 +302,12 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
                             onClick={() => pick(zone, left[i])}
                             className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
                               isZoneSelected && selected?.name === left[i]
-                                ? "border-primary bg-primary/10 text-primary shadow-sm"
-                                : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
+                                ? "border-black bg-black text-white shadow-md font-black"
+                                : "border-black/20 bg-white/90 hover:bg-white text-black"
                             }`}
                           >
                             {isZoneSelected && selected?.name === left[i] && (
-                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />
+                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-white" />
                             )}
                             {left[i]}
                           </button>
@@ -305,12 +321,12 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
                             onClick={() => pick(zone, right[i])}
                             className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
                               isZoneSelected && selected?.name === right[i]
-                                ? "border-primary bg-primary/10 text-primary shadow-sm"
-                                : "border-border bg-background hover:border-primary/40 hover:bg-muted/50 text-foreground"
+                                ? "border-black bg-black text-white shadow-md font-black"
+                                : "border-black/20 bg-white/90 hover:bg-white text-black"
                             }`}
                           >
                             {isZoneSelected && selected?.name === right[i] && (
-                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-primary" />
+                              <CheckCircle2 className="absolute right-2 top-2 h-3.5 w-3.5 text-white" />
                             )}
                             {right[i]}
                           </button>
@@ -327,10 +343,10 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
               <button
                 type="button"
                 onClick={() => pick(zone, zone.title)}
-                className={`w-full h-12 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-sm flex items-center justify-center gap-2 ${
+                className={`w-full h-12 rounded-2xl text-sm font-black uppercase tracking-widest transition-all shadow-md flex items-center justify-center gap-2 ${
                   isZoneSelected && selected?.name === zone.title
-                    ? "bg-primary text-primary-foreground ring-2 ring-primary/40"
-                    : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    ? "bg-black text-white ring-2 ring-black/40 scale-[1.01]"
+                    : "bg-black/90 text-white hover:bg-black"
                 }`}
               >
                 {zone.title} · R$ {zone.price.toFixed(2).replace(".", ",")}
