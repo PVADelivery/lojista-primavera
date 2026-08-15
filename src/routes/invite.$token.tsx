@@ -64,8 +64,12 @@ function InvitePage() {
             setError("Este link de convite expirou.");
           } else {
             setInvitation(inv);
-            // Pre-fill email
-            setFormData(prev => ({ ...prev, email: inv.email || "" }));
+            // Pre-fill email only if it is a real custom email, NEVER placeholder convite_
+            if (inv.email && !String(inv.email).toLowerCase().startsWith("convite_") && !String(inv.email).includes("@mt24horasexpress.com")) {
+              setFormData(prev => ({ ...prev, email: inv.email }));
+            } else {
+              setFormData(prev => ({ ...prev, email: "" }));
+            }
           }
         }
       } catch (err: any) {
