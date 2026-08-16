@@ -106,15 +106,6 @@ function InvitePage() {
       return;
     }
 
-    const rawEmail = (formData.email || "").trim().toLowerCase();
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!rawEmail || !emailRegex.test(rawEmail)) {
-      setFormError("Por favor, insira um endereço de e-mail válido (ex: seuemail@dominio.com).");
-      toast.error("Formato de e-mail inválido.");
-      setLoading(false);
-      setStep(0);
-      return;
-    }
 
     const fullAddress = formData.street 
       ? [

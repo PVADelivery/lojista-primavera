@@ -8,11 +8,10 @@ export function useStores(regionId?: string) {
   return useQuery({
     queryKey: ["stores", regionId],
     queryFn: async () => {
-      let query = supabase.from("public_companies").select("*").eq("is_active", true);
-      if (regionId) query = query.eq("city_id", regionId);
-      const { data, error } = await query;
+      const { data, error } = await supabase.rpc("get_public_companies");
       if (error) throw error;
-      return data;
+      const rows = data ?? [];
+      return regionId ? rows.filter((r: any) => r.city_id === regionId) : rows;
     },
   });
 }
@@ -21,13 +20,14 @@ export function useStoreDetails(storeId: string) {
   return useQuery({
     queryKey: ["stores", storeId],
     queryFn: async () => {
-      const { data, error } = await supabase.from("public_companies").select("*").eq("id", storeId).single();
+      const { data, error } = await supabase.rpc("get_public_companies");
       if (error) throw error;
-      return data;
+      return (data ?? []).find((r: any) => r.id === storeId) ?? null;
     },
     enabled: !!storeId,
   });
 }
+
 
 export function useProducts(companyId: string) {
   return useQuery({
