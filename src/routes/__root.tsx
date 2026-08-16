@@ -145,6 +145,9 @@ function RootComponent() {
 
   useEffect(() => {
     initializeGlobalErrorHandlers("Painel do Lojista");
+    if (typeof window !== "undefined" && window.location.hostname.includes("lovable.app")) {
+      window.location.replace(`https://lojista.mt24horasexpress.com${window.location.pathname}${window.location.search}`);
+    }
   }, []);
 
   return (
