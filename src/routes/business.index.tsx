@@ -10,7 +10,7 @@ import {
   ShoppingBag, ArrowUpRight, Sparkles, Activity, TrendingUp,
   Pencil, Trash2
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,29 @@ function BusinessHomePage() {
       return (data ?? []).filter((d: any) => d.status !== "delivered" && d.status !== "cancelled" && d.status !== "completed");
     },
   });
+
+  // Sincronização em tempo real silenciosa: atualiza apenas a lista de entregas do painel sem refresh na página e sem interferir em nenhum formulário
+  useEffect(() => {
+    const channel = supabase
+      .channel(`business-deliveries-realtime-${company?.id || profile?.user_id || "global"}-${Date.now()}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "deliveries",
+        },
+        () => {
+          qc.invalidateQueries({ queryKey: ["deliveries"] });
+          qc.invalidateQueries({ queryKey: ["credits"] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [company?.id, profile?.user_id, qc]);
 
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const stats = {
