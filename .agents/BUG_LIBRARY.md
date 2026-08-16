@@ -217,18 +217,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
----
-
-### 22. Erro "NotFoundError: Failed to execute 'insertBefore' on 'Node'" no App do Entregador
-* **Sintoma**: Ao carregar ou atualizar a lista de entregas no App do Entregador (`https://entregador.mt24horasexpress.com/driver`), o app disparava `NotFoundError: Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node`.
-* **Causa Raiz**: O componente `DeliveryCard.tsx` utilizava fragmentos vazios (`<>...</>`) e avaliações booleanas inline (`{delivery.notes && ...}`) com múltiplos nós filhos e nós de texto dinâmicos adjacentes. Durante as atualizações do Realtime e re-renderizações rápidas do React, a árvore virtual perdia a referência do elemento pai durante o `insertBefore`.
+### 23. Bloqueio de Lojas no Marketplace por RLS Policy Restritiva na Tabela `companies`
+* **Sintoma**: As lojas sumiam do Marketplace do Cliente (`cliente.mt24horasexpress.com`) com retorno de lista vazia (`0 lojas / Nenhuma loja encontrada`).
+* **Causa Raiz**: A tabela `companies` no Supabase estava com Row Level Security (RLS) habilitada sem conceder `SELECT` ao role `anon` (usuários não autenticados que navegam no marketplace).
 * **Solução Padrão**:
-  1. Substituir fragmentos vazios por containers de bloco estáveis (`<div className="...">...</div>`).
-  2. Forçar coerção booleana explícita em condições JSX: `{Boolean(delivery.notes) && <div>...</div>}`.
-  3. Garantir nós DOM consistentes e estáveis durante transições de status da entrega.
+  Garantir concessão de leitura pública para usuários anônimos e autenticados no Supabase:
+  ```sql
+  GRANT USAGE ON SCHEMA public TO anon, authenticated;
+  GRANT SELECT ON public.companies TO anon, authenticated;
 
+  ALTER TABLE public.companies ENABLE ROW LEVEL SECURITY;
 
-
-
-
-
+  DROP POLICY IF EXISTS "companies_public_read" ON public.companies;
+  CREATE POLICY "companies_public_read"
+  ON public.companies
+  FOR SELECT
+  TO anon, authenticated
+  USING (is_active IS DISTINCT FROM false);
+  ```
