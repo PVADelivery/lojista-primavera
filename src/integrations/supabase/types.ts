@@ -2682,6 +2682,10 @@ export type Database = {
         Returns: Json
       }
       user_owns_company: { Args: { _company_id: string }; Returns: boolean }
+      validate_coupon: {
+        Args: { p_code: string; p_company_id: string; p_subtotal: number }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "company" | "driver" | "customer"
