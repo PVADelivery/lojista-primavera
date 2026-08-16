@@ -96,6 +96,15 @@ function InvitePage() {
       setLoading(false);
       return;
     }
+    const rawEmail = (formData.email || "").trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!rawEmail || !emailRegex.test(rawEmail)) {
+      setFormError("Por favor, insira um endereço de e-mail válido (ex: seuemail@dominio.com).");
+      toast.error("Formato de e-mail inválido.");
+      setLoading(false);
+      setStep(0);
+      return;
+    }
 
     const fullAddress = formData.street 
       ? [
@@ -111,12 +120,12 @@ function InvitePage() {
       const { data: result, error: invokeError } = await supabase.functions.invoke("accept-invitation", {
         body: {
           token,
-          email: formData.email,
+          email: rawEmail,
           password: formData.password,
-          fullName: formData.fullName,
-          phone: formData.phone,
-          document: formData.document,
-          companyName: formData.companyName,
+          fullName: formData.fullName?.trim(),
+          phone: formData.phone?.trim(),
+          document: formData.document?.trim(),
+          companyName: formData.companyName?.trim(),
           address: fullAddress,
         },
       });
@@ -139,17 +148,20 @@ function InvitePage() {
           if (customMessage.toLowerCase().includes("already registered") || customMessage.toLowerCase().includes("already been registered")) {
             throw new Error("Este endereço de e-mail já está cadastrado no sistema. Por favor, faça login com sua senha.");
           }
+          if (customMessage.toLowerCase().includes("invalid format") || customMessage.toLowerCase().includes("validate email")) {
+            throw new Error("O formato do e-mail inserido é inválido. Por favor, verifique a digitação.");
+          }
           throw new Error(customMessage);
         }
 
         // Fallback direto via Supabase Auth se Edge Function retornar erro genérico
         const { data: signUpData, error: signUpErr } = await supabase.auth.signUp({
-          email: formData.email,
+          email: rawEmail,
           password: formData.password,
           options: {
             data: {
-              full_name: formData.fullName,
-              phone: formData.phone,
+              full_name: formData.fullName?.trim(),
+              phone: formData.phone?.trim(),
             }
           }
         });
@@ -158,34 +170,41 @@ function InvitePage() {
           if (signUpErr.message?.toLowerCase().includes("already registered")) {
             throw new Error("Este e-mail já está cadastrado no sistema. Faça login diretamente.");
           }
+          if (signUpErr.message?.toLowerCase().includes("invalid format") || signUpErr.message?.toLowerCase().includes("validate email")) {
+            throw new Error("O formato do e-mail inserido é inválido. Por favor, verifique a digitação.");
+          }
           throw signUpErr;
         }
 
-        const userId = signUpData.user?.id;
-        if (userId) {
-          await supabase.from("companies").insert({
-            user_id: userId,
-            name: formData.companyName || "Minha Loja",
-            phone: formData.phone || null,
-            document: formData.document || null,
-            address: fullAddress,
-            is_active: true,
-            is_open: true,
-          });
-
-          await (supabase as any).from("invitations").update({ status: "accepted" }).eq("token", token);
+        if (signUpData.user) {
+          // Atualiza status do convite diretamente no banco
+          await (supabase as any)
+            .from("invitations")
+            .update({ status: "accepted" })
+            .eq("token", token);
           registrationSuccess = true;
         }
       }
 
-      // Log in locally
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
+      if (!registrationSuccess) {
+        throw new Error("Não foi possível processar o cadastro com este convite.");
+      }
+
+      // Autenticar após o cadastro
+      const { error: loginError } = await supabase.auth.signInWithPassword({
+        email: rawEmail,
         password: formData.password,
       });
 
-      toast.success("Bem-vindo! Seu cadastro foi finalizado com sucesso.");
-      
+      if (loginError) {
+        toast.success("Conta criada com sucesso! Redirecionando para o login...");
+        setTimeout(() => {
+          navigate({ to: "/login" });
+        }, 1500);
+        return;
+      }
+
+      toast.success("Cadastro concluído com sucesso!");
       setTimeout(() => {
         navigate({ to: "/" });
       }, 1500);
@@ -202,9 +221,22 @@ function InvitePage() {
   const steps = ["Credenciais", "Dados da Loja", "Localização"];
 
   const nextStep = () => {
-    if (step === 0 && (!formData.email || formData.password.length < 6 || formData.password !== formData.confirmPassword)) {
-      toast.error("Preencha o email e uma senha válida de pelo menos 6 caracteres.");
-      return;
+    const rawEmail = (formData.email || "").trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (step === 0) {
+      if (!rawEmail || !emailRegex.test(rawEmail)) {
+        toast.error("Insira um e-mail válido no formato seuemail@dominio.com.");
+        return;
+      }
+      if (formData.password.length < 6) {
+        toast.error("A senha deve conter no mínimo 6 caracteres.");
+        return;
+      }
+      if (formData.password !== formData.confirmPassword) {
+        toast.error("As senhas digitadas não coincidem.");
+        return;
+      }
     }
     
     if (step === 1) {
