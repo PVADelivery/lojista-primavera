@@ -86,17 +86,20 @@ serve(async (req) => {
 
     const message = {
       notification: {
-        title: 'ÉpraJá - Nova corrida!',
+        title: 'MT 24 Horas Express - Nova Corrida!',
         body: `Retirada: ${address}`
       },
       data: {
         type: 'delivery',
-        deliveryId: String(record.id)
+        deliveryId: String(record.id),
+        pickup: String(record.pickup_address || ''),
+        dropoff: String(record.delivery_address || ''),
+        fee: String(record.price || record.value || '8,80')
       },
       android: {
         priority: 'high' as const,
         notification: {
-          channelId: 'delivery-channel-v2',
+          channelId: 'delivery-incoming-v1',
           sound: 'ring',
           priority: 'max' as const,
           defaultSound: false,
