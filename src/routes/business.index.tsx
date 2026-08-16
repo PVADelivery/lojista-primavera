@@ -15,6 +15,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/business/")({
   component: BusinessHomePage,
@@ -30,7 +31,15 @@ function BusinessHomePage() {
     queryKey: ["deliveries", company?.id, profile?.user_id],
     enabled: true,
     queryFn: async () => {
-      let query = supabase.from("deliveries").select("*");
+      let query = supabase.from("deliveries").select(`
+        *,
+        delivery_drivers (
+          id,
+          full_name,
+          phone,
+          vehicle_type
+        )
+      `);
       
       if (company?.id) {
         query = query.eq("company_id", company.id);
@@ -257,26 +266,50 @@ function EmptyState({ icon: Icon, text, action }: any) {
   );
 }
 
-function DeliveryCard({ d, marketplace, onFinish, onCancel }: any) {
+function DeliveryCard({ d, marketplace, onCancel }: any) {
+  const isPending = d.status === "pending" || d.status === "broadcasted";
+  const isAccepted = d.status === "accepted";
+  const isCollecting = d.status === "collecting";
+  const isInRoute = d.status === "in_route" || d.status === "in_transit";
+
+  // Determinar etapa de progresso (0 = Aguardando, 1 = Aceita, 2 = Coletando, 3 = Em Rota)
+  const stepIndex = isInRoute ? 3 : isCollecting ? 2 : isAccepted ? 1 : 0;
+
+  const steps = [
+    { label: "Pendente", active: true },
+    { label: "Aceito", active: stepIndex >= 1 },
+    { label: "Coleta", active: stepIndex >= 2 },
+    { label: "Em Rota", active: stepIndex >= 3 },
+  ];
+
   return (
-    <div className="group relative bg-card border border-border rounded-[2rem] p-5 hover:shadow-card hover:border-primary/40 transition-all hover:-translate-y-0.5">
-      <div className="flex items-center justify-between">
-        {marketplace ? (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-info/10 text-info text-[10px] font-black uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-info" /> Marketplace
-          </span>
-        ) : (
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/15 text-primary-foreground text-[10px] font-black uppercase tracking-widest">
-            <span className="h-1.5 w-1.5 rounded-full bg-primary" /> Manual
-          </span>
-        )}
+    <div className="group relative overflow-hidden bg-card border border-border/80 rounded-[2rem] p-5 shadow-sm hover:shadow-card hover:border-primary/50 transition-all duration-300 hover:-translate-y-0.5">
+      {/* Top Header: Origem da Corrida & Ações */}
+      <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div className="flex items-center gap-2">
+          {marketplace ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-info/10 text-info text-[11px] font-black uppercase tracking-wider border border-info/20">
+              <span className="h-2 w-2 rounded-full bg-info" /> Marketplace
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/15 text-primary text-[11px] font-black uppercase tracking-wider border border-primary/25">
+              <span className="h-2 w-2 rounded-full bg-primary" /> Manual
+            </span>
+          )}
+          {d.short_id && (
+            <span className="bg-muted px-2 py-0.5 rounded-lg text-muted-foreground font-mono text-[10px] font-black border border-border/60">
+              #{d.short_id}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
           {/* Edit button: only for manual pending deliveries */}
-          {!marketplace && (d.status === "pending" || d.status === "broadcasted") && (
+          {!marketplace && isPending && (
             <Link
               to="/business/delivery-new"
               search={{ edit: d.id }}
-              className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-all shadow-sm flex items-center justify-center"
+              className="p-2 rounded-xl bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all shadow-sm flex items-center justify-center"
               title="Editar corrida"
             >
               <Pencil className="h-3.5 w-3.5" />
@@ -295,24 +328,108 @@ function DeliveryCard({ d, marketplace, onFinish, onCancel }: any) {
         </div>
       </div>
 
-      <div className="flex items-start justify-between mt-3 gap-2">
-        <p className="font-black text-lg leading-tight line-clamp-1">{d.customer_name ?? "Cliente"}</p>
-        {d.short_id && <span className="bg-secondary text-secondary-foreground font-mono text-[10px] font-bold px-2 py-0.5 rounded-md shrink-0">{d.short_id}</span>}
-      </div>
-
-      <div className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-        <p className="flex items-start gap-2"><MapPin className="h-4 w-4 mt-0.5 shrink-0" /><span className="line-clamp-2">{d.address}</span></p>
-        {d.customer_phone && <p className="flex items-center gap-2"><Phone className="h-4 w-4 shrink-0" /> {d.customer_phone}</p>}
-      </div>
-
-      <div className="mt-5 pt-4 border-t border-dashed border-border flex items-center justify-between">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Valor</p>
-          <span className="text-2xl font-black text-primary tracking-tight">{brl(d.value)}</span>
+      {/* Cliente & Valor */}
+      <div className="mt-3.5 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Cliente</p>
+          <p className="font-extrabold text-base sm:text-lg text-foreground tracking-tight truncate">
+            {d.customer_name ?? "Cliente"}
+          </p>
         </div>
-        <Button size="sm" onClick={onFinish} className="rounded-xl font-bold">
-          <CheckCircle2 className="h-4 w-4 mr-1.5" />Finalizar
-        </Button>
+        <div className="text-right shrink-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Valor</p>
+          <p className="text-xl sm:text-2xl font-black text-primary tracking-tight">{brl(d.value)}</p>
+        </div>
+      </div>
+
+      {/* Endereço & Telefone */}
+      <div className="mt-3 space-y-1.5 text-xs text-muted-foreground bg-muted/30 p-3 rounded-2xl border border-border/40">
+        <p className="flex items-start gap-2 leading-relaxed">
+          <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
+          <span className="line-clamp-2 text-foreground/90 font-medium">{d.address}</span>
+        </p>
+        {d.customer_phone && (
+          <p className="flex items-center gap-2 font-medium">
+            <Phone className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span>{d.customer_phone}</span>
+          </p>
+        )}
+      </div>
+
+      {/* Entregador Designado (Se houver) */}
+      {d.delivery_drivers && (
+        <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/5 border border-primary/15 text-xs">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">
+              🏍️
+            </span>
+            <div>
+              <p className="text-[9px] uppercase font-bold text-muted-foreground">Entregador</p>
+              <p className="font-bold text-foreground">{d.delivery_drivers.full_name}</p>
+            </div>
+          </div>
+          {d.delivery_drivers.phone && (
+            <a
+              href={`tel:${d.delivery_drivers.phone}`}
+              className="text-[11px] font-bold text-primary hover:underline"
+            >
+              Ligar
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Barra de Progresso Visual de 4 Etapas */}
+      <div className="mt-4 pt-3 border-t border-dashed border-border/60">
+        <div className="flex items-center justify-between mb-1.5 px-0.5">
+          <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            Status da Entrega
+          </span>
+          <span
+            className={cn(
+              "text-[10px] font-black uppercase px-2 py-0.5 rounded-md",
+              isInRoute
+                ? "bg-emerald-500/20 text-emerald-400"
+                : isCollecting
+                ? "bg-amber-500/20 text-amber-400"
+                : isAccepted
+                ? "bg-blue-500/20 text-blue-400"
+                : "bg-muted text-muted-foreground animate-pulse"
+            )}
+          >
+            {isInRoute ? "🏍️ Em rota" : isCollecting ? "📦 Em coleta" : isAccepted ? "✅ Aceita" : "⏳ Aguardando"}
+          </span>
+        </div>
+
+        {/* Linha de progresso */}
+        <div className="grid grid-cols-4 gap-1.5 mt-2">
+          {steps.map((s, idx) => (
+            <div key={idx} className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  "h-2 w-full rounded-full transition-all duration-500",
+                  idx <= stepIndex
+                    ? idx === 3
+                      ? "bg-emerald-500"
+                      : idx === 2
+                      ? "bg-amber-500"
+                      : idx === 1
+                      ? "bg-blue-500"
+                      : "bg-primary"
+                    : "bg-muted/70"
+                )}
+              />
+              <span
+                className={cn(
+                  "text-[9px] font-bold tracking-tight",
+                  idx <= stepIndex ? "text-foreground font-black" : "text-muted-foreground/50"
+                )}
+              >
+                {s.label}
+              </span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
