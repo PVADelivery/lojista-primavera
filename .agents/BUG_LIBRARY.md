@@ -235,3 +235,39 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   TO anon, authenticated
   USING (is_active IS DISTINCT FROM false);
   ```
+
+---
+
+### 24. Falha ao Atualizar Status de Entregas no App do Entregador ("Falha ao atualizar")
+* **Sintoma**: Ao clicar em *"Cheguei na loja"*, *"Coletado, indo entregar"* ou *"Concluir entrega"*, o app exibia o toast de erro *"Falha ao atualizar"*.
+* **Causa Raiz**:
+  1. A procedure RPC `update_delivery_status_safe` possui parâmetros nomeados `p_delivery_id` e `p_status` em algumas versões da migration e `_delivery_id` e `_status` em outras.
+  2. Atualizações diretas via REST no Supabase falhavam por divergência de nomes de colunas de timestamp (`completed_at` vs `delivered_at`) ou pelo retorno restrito por políticas RLS na cláusula `.select()`.
+* **Solução Padrão**:
+  1. Implementar chamada RPC dual-signature (`p_delivery_id` / `p_status` e fallback para `_delivery_id` / `_status`).
+  2. Implementar fallback REST com as 4 combinações de schema (`status` + `completed_at`, `status` + `delivered_at`, status textual direto e update sem retorno `.select()`).
+
+---
+
+### 25. "LocalNotifications plugin is not implemented on android" no App do Entregador
+* **Sintoma**: Logs de erro de `Unhandled Rejection` acusando ausência do plugin `LocalNotifications` no Android.
+* **Causa Raiz**: Chamadas a `LocalNotifications.cancel(...)` e `LocalNotifications.addListener(...)` eram executadas sem a verificação `Capacitor.isPluginAvailable("LocalNotifications")`.
+* **Solução Padrão**:
+  Envolver todas as chamadas de notificações locais em blocos condicionais com `Capacitor.isNativePlatform() && Capacitor.isPluginAvailable("LocalNotifications")` e `try/catch`.
+
+---
+
+### 26. Minified React Error #520 e Incompatibilidade de Hidratação de Tema na Tela de Login
+* **Sintoma**: Erro #520 no React ao renderizar o botão `ThemeToggle` ou acessar a tela `/login`.
+* **Causa Raiz**: O `ThemeProvider` iniciava com estado fixo `"light"` durante o render do servidor e alterava para `"dark"` de forma assíncrona após a montagem do `useEffect`, quebrando a hidratação do React.
+* **Solução Padrão**:
+  Inicializar o estado do `useState` de forma síncrona com `typeof window !== "undefined"` e leitura imediata do `localStorage` / `matchMedia`.
+
+---
+
+### 27. Subdomínio Inexistente `app.mt24horasexpress.com` no Marketplace do Cliente
+* **Sintoma**: "Não foi possível encontrar o endereço IP do servidor de app.mt24horasexpress.com".
+* **Causa Raiz**: O código do app do cliente (`cliente-primavera`) redirecionava para o subdomínio `app.mt24horasexpress.com`, que não possui entrada DNS configurada no servidor.
+* **Solução Padrão**:
+  Corrigir o redirecionamento em `src/routes/__root.tsx` para apontar para o domínio oficial ativo **`https://www.mt24horasexpress.com`**.
+
