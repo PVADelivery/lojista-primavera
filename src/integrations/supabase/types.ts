@@ -1294,6 +1294,132 @@ export type Database = {
         }
         Relationships: []
       }
+      ifood_connections: {
+        Row: {
+          access_token: string
+          company_id: string
+          connected_at: string
+          id: string
+          last_sync_at: string | null
+          last_sync_error: string | null
+          last_sync_status: string | null
+          merchant_id: string
+          merchant_name: string | null
+          refresh_token: string | null
+          status: string
+          token_expires_at: string
+          updated_at: string
+        }
+        Insert: {
+          access_token: string
+          company_id: string
+          connected_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          merchant_id: string
+          merchant_name?: string | null
+          refresh_token?: string | null
+          status?: string
+          token_expires_at: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          company_id?: string
+          connected_at?: string
+          id?: string
+          last_sync_at?: string | null
+          last_sync_error?: string | null
+          last_sync_status?: string | null
+          merchant_id?: string
+          merchant_name?: string | null
+          refresh_token?: string | null
+          status?: string
+          token_expires_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifood_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_connections_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: true
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
+      ifood_import_logs: {
+        Row: {
+          categories_count: number | null
+          company_id: string
+          created_at: string
+          error_message: string | null
+          errors_count: number | null
+          id: string
+          merchant_id: string
+          operation: string
+          options_count: number | null
+          products_created: number | null
+          products_found: number | null
+          products_updated: number | null
+          status: string
+        }
+        Insert: {
+          categories_count?: number | null
+          company_id: string
+          created_at?: string
+          error_message?: string | null
+          errors_count?: number | null
+          id?: string
+          merchant_id: string
+          operation: string
+          options_count?: number | null
+          products_created?: number | null
+          products_found?: number | null
+          products_updated?: number | null
+          status: string
+        }
+        Update: {
+          categories_count?: number | null
+          company_id?: string
+          created_at?: string
+          error_message?: string | null
+          errors_count?: number | null
+          id?: string
+          merchant_id?: string
+          operation?: string
+          options_count?: number | null
+          products_created?: number | null
+          products_found?: number | null
+          products_updated?: number | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ifood_import_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ifood_import_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       invitations: {
         Row: {
           created_at: string
@@ -1809,6 +1935,8 @@ export type Database = {
       product_option_groups: {
         Row: {
           created_at: string
+          external_id: string | null
+          external_source: string | null
           id: string
           max_options: number
           min_options: number
@@ -1819,6 +1947,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           max_options: number
           min_options: number
@@ -1829,6 +1959,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           max_options?: number
           min_options?: number
@@ -1842,6 +1974,8 @@ export type Database = {
       product_options: {
         Row: {
           created_at: string
+          external_id: string | null
+          external_source: string | null
           group_id: string
           id: string
           is_active: boolean
@@ -1851,6 +1985,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           group_id: string
           id?: string
           is_active: boolean
@@ -1860,6 +1996,8 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          external_id?: string | null
+          external_source?: string | null
           group_id?: string
           id?: string
           is_active?: boolean
@@ -1875,9 +2013,13 @@ export type Database = {
           company_id: string
           created_at: string
           description: string | null
+          external_category_id: string | null
+          external_id: string | null
+          external_source: string | null
           id: string
           image_url: string | null
           is_active: boolean
+          last_synced_at: string | null
           name: string
           price: number
           sort_order: number
@@ -1888,9 +2030,13 @@ export type Database = {
           company_id: string
           created_at?: string
           description?: string | null
+          external_category_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          last_synced_at?: string | null
           name: string
           price: number
           sort_order?: number
@@ -1901,9 +2047,13 @@ export type Database = {
           company_id?: string
           created_at?: string
           description?: string | null
+          external_category_id?: string | null
+          external_id?: string | null
+          external_source?: string | null
           id?: string
           image_url?: string | null
           is_active?: boolean
+          last_synced_at?: string | null
           name?: string
           price?: number
           sort_order?: number
