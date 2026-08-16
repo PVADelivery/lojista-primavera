@@ -750,7 +750,6 @@ function NewDeliveryPage() {
           const { data } = await supabase
             .from("customers")
             .select("id")
-            .eq("company_id", company.id)
             .eq("phone", phoneClean)
             .maybeSingle();
           existingCust = data;
@@ -760,14 +759,12 @@ function NewDeliveryPage() {
           const { data } = await supabase
             .from("customers")
             .select("id")
-            .eq("company_id", company.id)
             .ilike("name", f.customer_name.trim())
             .maybeSingle();
           existingCust = data;
         }
 
         const custPayload: any = {
-          company_id: company.id,
           name: f.customer_name.trim(),
           phone: phoneClean || null,
           cpf: f.customer_cpf.replace(/\D/g, "") || null,
