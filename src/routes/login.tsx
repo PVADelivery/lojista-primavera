@@ -1,4 +1,4 @@
-﻿import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -25,8 +25,12 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (!loading && user) nav({ to: "/business" });
-  }, [user, loading, nav]);
+    if (!loading && user) {
+      if (typeof window !== "undefined" && window.location.pathname.includes("/login")) {
+        nav({ to: "/business", replace: true });
+      }
+    }
+  }, [user, loading]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
