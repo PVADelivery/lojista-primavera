@@ -2632,6 +2632,18 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      get_delivery_company_info: {
+        Args: { _company_id: string }
+        Returns: {
+          address: string
+          id: string
+          latitude: number
+          logo_url: string
+          longitude: number
+          name: string
+          phone: string
+        }[]
+      }
       get_driver_id: { Args: { _user_id: string }; Returns: string }
       get_invitation_by_token: { Args: { _token: string }; Returns: Json }
       get_my_roles: {
