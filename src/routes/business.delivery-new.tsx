@@ -50,6 +50,7 @@ function NewDeliveryPage() {
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
   const { edit: editId } = Route.useSearch();
+  const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">("rapida");
 
   // Form State
   const [f, setF] = useState({
@@ -732,8 +733,14 @@ function NewDeliveryPage() {
       return;
     }
 
-    const fullAddress = `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""
-      }`;
+    if (deliveryMode === "normal" && !f.address.trim()) {
+      toast.error("O endereço de entrega é obrigatório no modo normal.", { duration: 5000 });
+      return;
+    }
+
+    const fullAddress = deliveryMode === "rapida" 
+      ? `A combinar (Entrega Rápida) - Região: ${f.customer_neighborhood}`
+      : `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     setBusy(true);
@@ -790,8 +797,8 @@ function NewDeliveryPage() {
         }
       }
 
-      // 2. Save Address if customer exists
-      if (custId && f.address.trim()) {
+      // 2. Save Address if customer exists and in normal mode
+      if (custId && f.address.trim() && deliveryMode === "normal") {
         const { data: existingAddress } = await supabase
           .from("addresses")
           .select("id")
@@ -939,6 +946,29 @@ function NewDeliveryPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 mt-6">
+        <div className="flex justify-center mb-6">
+          <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full sm:w-auto shadow-sm border border-border/40">
+            <button
+              type="button"
+              onClick={() => setDeliveryMode("rapida")}
+              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
+              }`}
+            >
+              Entregas Rápidas
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeliveryMode("normal")}
+              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
+              }`}
+            >
+              Entrega Normal
+            </button>
+          </div>
+        </div>
+
         <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
           {/* Seção: Cliente */}
           <section className="space-y-4">
@@ -1032,122 +1062,130 @@ function NewDeliveryPage() {
                 </div>
               </div>
             </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>CPF do Cliente (Opcional)</Label>
-                <Input
-                  value={f.customer_cpf}
-                  onChange={(e) => {
-                    setF({ ...f, customer_cpf: e.target.value });
-                    setCustomerQuery(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => {
-                    if (f.customer_cpf) setCustomerQuery(f.customer_cpf);
-                    setShowSuggestions(true);
-                  }}
-                  className="rounded-xl h-11 bg-secondary/30"
-                  placeholder="000.000.000-00"
-                />
-              </div>
             </div>
+            {deliveryMode === "normal" && (
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label>CPF do Cliente (Opcional)</Label>
+                  <Input
+                    value={f.customer_cpf}
+                    onChange={(e) => {
+                      setF({ ...f, customer_cpf: e.target.value });
+                      setCustomerQuery(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => {
+                      if (f.customer_cpf) setCustomerQuery(f.customer_cpf);
+                      setShowSuggestions(true);
+                    }}
+                    className="rounded-xl h-11 bg-secondary/30"
+                    placeholder="000.000.000-00"
+                  />
+                </div>
+              </div>
+            )}
           </section>
 
           {/* Seção: Endereço */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2 text-foreground/80">
               <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-xs">2</span>
-              Endereço de Destino
+              {deliveryMode === "rapida" ? "Região de Destino" : "Endereço de Destino"}
             </h3>
             <div className="space-y-4 p-5 rounded-[1.5rem] bg-secondary/20 border border-border/40">
-              <div className="grid sm:grid-cols-[2fr_1fr] gap-4">
-                <div className="space-y-1.5">
-                  <Label>Rua / Avenida</Label>
-                  <div className="relative">
-                    <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      value={f.address}
-                      onChange={(e) => setF({ ...f, address: e.target.value })}
-                      required
-                      className="rounded-xl h-11 pl-9 bg-background"
-                      placeholder="Ex: Av. Brasil"
-                    />
+              
+              {deliveryMode === "normal" && (
+                <>
+                  <div className="grid sm:grid-cols-[2fr_1fr] gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Rua / Avenida</Label>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          value={f.address}
+                          onChange={(e) => setF({ ...f, address: e.target.value })}
+                          required={deliveryMode === "normal"}
+                          className="rounded-xl h-11 pl-9 bg-background"
+                          placeholder="Ex: Av. Brasil"
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Número</Label>
+                      <Input
+                        value={f.customer_address_number}
+                        onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
+                        required={deliveryMode === "normal"}
+                        className="rounded-xl h-11 bg-background"
+                        placeholder="Ex: 123"
+                      />
+                    </div>
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Número</Label>
-                  <Input
-                    value={f.customer_address_number}
-                    onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
-                    required
-                    className="rounded-xl h-11 bg-background"
-                    placeholder="Ex: 123"
-                  />
-                </div>
-              </div>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <Label>Complemento (Opcional)</Label>
-                  <Input
-                    value={f.customer_address_complement}
-                    onChange={(e) => setF({ ...f, customer_address_complement: e.target.value })}
-                    className="rounded-xl h-11 bg-background"
-                    placeholder="Apto, Bloco, Casa..."
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Tipo de Endereço</Label>
-                  <div className="flex gap-2">
-                    {[
-                      { id: "Casa", label: "Casa", icon: Home },
-                      { id: "Trabalho", label: "Trabalho", icon: Briefcase },
-                      { id: "Outro", label: "Outro", icon: MapPin },
-                    ].map((item) => {
-                      const active = f.address_label === item.id;
-                      const Icon = item.icon;
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => setF({ ...f, address_label: item.id })}
-                          className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border text-xs font-bold transition-all ${
-                            active
-                              ? "border-primary bg-primary/10 text-primary animate-scaleIn"
-                              : "border-input bg-background text-muted-foreground hover:bg-muted/50"
-                          }`}
-                        >
-                          <Icon className="h-3.5 w-3.5" />
-                          {item.label}
-                        </button>
-                      );
-                    })}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label>Complemento (Opcional)</Label>
+                      <Input
+                        value={f.customer_address_complement}
+                        onChange={(e) => setF({ ...f, customer_address_complement: e.target.value })}
+                        className="rounded-xl h-11 bg-background"
+                        placeholder="Apto, Bloco, Casa..."
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Tipo de Endereço</Label>
+                      <div className="flex gap-2">
+                        {[
+                          { id: "Casa", label: "Casa", icon: Home },
+                          { id: "Trabalho", label: "Trabalho", icon: Briefcase },
+                          { id: "Outro", label: "Outro", icon: MapPin },
+                        ].map((item) => {
+                          const active = f.address_label === item.id;
+                          const Icon = item.icon;
+                          return (
+                            <button
+                              key={item.id}
+                              type="button"
+                              onClick={() => setF({ ...f, address_label: item.id })}
+                              className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border text-xs font-bold transition-all ${
+                                active
+                                  ? "border-primary bg-primary/10 text-primary animate-scaleIn"
+                                  : "border-input bg-background text-muted-foreground hover:bg-muted/50"
+                              }`}
+                            >
+                              <Icon className="h-3.5 w-3.5" />
+                              {item.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
 
-              {/* Observações */}
-              <div className="space-y-1.5">
-                <Label>Observações para o Entregador (Opcional)</Label>
-                <div className="relative">
-                  <Info className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                  <textarea
-                    value={f.notes}
-                    onChange={(e) => setF({ ...f, notes: e.target.value })}
-                    className="w-full rounded-xl border border-input bg-secondary/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] pl-9 resize-none"
-                    placeholder="Instruções de cuidado, como chegar, etc."
-                  />
-                </div>
-              </div>
+                  {/* Observações */}
+                  <div className="space-y-1.5">
+                    <Label>Observações para o Entregador (Opcional)</Label>
+                    <div className="relative">
+                      <Info className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <textarea
+                        value={f.notes}
+                        onChange={(e) => setF({ ...f, notes: e.target.value })}
+                        className="w-full rounded-xl border border-input bg-secondary/30 px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 min-h-[80px] pl-9 resize-none"
+                        placeholder="Instruções de cuidado, como chegar, etc."
+                      />
+                    </div>
+                  </div>
 
-              {/* Localização / mapa oculto */}
-              <div className="space-y-2 pt-2">
-                <div ref={mapContainerRef} className="hidden" />
-                {routeDistance !== null && (
-                  <p className="text-xs font-semibold text-primary mt-1">
-                    Distância calculada: {routeDistance.toFixed(2)} KM
-                  </p>
-                )}
-              </div>
+                  {/* Localização / mapa oculto */}
+                  <div className="space-y-2 pt-2">
+                    <div ref={mapContainerRef} className="hidden" />
+                    {routeDistance !== null && (
+                      <p className="text-xs font-semibold text-primary mt-1">
+                        Distância calculada: {routeDistance.toFixed(2)} KM
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
               {/* Regiões / Tabela de preços */}
               <div className="space-y-2">
