@@ -951,20 +951,22 @@ function NewDeliveryPage() {
             <button
               type="button"
               onClick={() => setDeliveryMode("rapida")}
-              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
                 deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
-              Entregas Rápidas
+              <span>Entregas</span>
+              <span>Rápidas</span>
             </button>
             <button
               type="button"
               onClick={() => setDeliveryMode("normal")}
-              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all ${
+              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
                 deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
-              Entrega Normal
+              <span>Entrega</span>
+              <span>Normal</span>
             </button>
           </div>
         </div>
