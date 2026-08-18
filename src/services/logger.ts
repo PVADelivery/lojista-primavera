@@ -149,34 +149,54 @@ export function translateErrorMessage(rawMsg: string): string {
 export function initializeGlobalErrorHandlers(appName: string) {
   if (typeof window === "undefined") return;
 
+  // 0. Monkeypatch Node.prototype.insertBefore & removeChild for Google Translate / Browser Extension compatibility
+  try {
+    if (typeof Node !== "undefined" && !(Node.prototype as any).__patched_for_translate) {
+      const originalInsertBefore = Node.prototype.insertBefore;
+      Node.prototype.insertBefore = function <T extends Node>(newNode: T, referenceNode: Node | null): T {
+        if (referenceNode && referenceNode.parentNode !== this) {
+          if (referenceNode.parentNode && referenceNode.parentNode.parentNode === this) {
+            return originalInsertBefore.call(this, newNode, referenceNode.parentNode) as T;
+          }
+          return originalInsertBefore.call(this, newNode, null) as T;
+        }
+        return originalInsertBefore.call(this, newNode, referenceNode) as T;
+      };
+
+      const originalRemoveChild = Node.prototype.removeChild;
+      Node.prototype.removeChild = function <T extends Node>(child: T): T {
+        if (child && child.parentNode !== this) {
+          if (child.parentNode) {
+            return child.parentNode.removeChild(child) as T;
+          }
+          return child;
+        }
+        return originalRemoveChild.call(this, child) as T;
+      };
+
+      (Node.prototype as any).__patched_for_translate = true;
+    }
+  } catch (e) {
+    console.warn("Could not patch Node prototypes for translation compatibility:", e);
+  }
+
   // Intercept Sonner toast.error calls to immediately log on-screen errors & translate english messages
   try {
     const rawToast = toast as any;
     if (rawToast && typeof rawToast.error === "function" && !rawToast.__telegram_patched) {
       const originalToastError = rawToast.error;
       rawToast.error = function (message: any, options?: any) {
-        let translatedMessage = message;
         try {
           const msgStr = typeof message === "string" ? message : (message?.message || message?.toString?.() || JSON.stringify(message));
-          const ptMsg = translateErrorMessage(msgStr);
-          if (typeof message === "string") {
-            translatedMessage = ptMsg;
-          } else if (message && typeof message === "object" && message.message) {
-            message.message = ptMsg;
-            translatedMessage = message;
-          } else {
-            translatedMessage = ptMsg;
-          }
-
           if (msgStr && typeof msgStr === "string" && !msgStr.includes("cancelada pelo usuário")) {
             reportErrorToTelegram({
-              error_message: `[Erro na Tela] ${ptMsg}`,
+              error_message: `[Erro na Tela] ${msgStr}`,
               url: window.location.href,
-              additional_info: { type: "toast_error", rawMessage: msgStr, options }
+              additional_info: { type: "toast_error", options }
             }, appName);
           }
         } catch {}
-        return originalToastError.apply(rawToast, [translatedMessage, options]);
+        return originalToastError.apply(rawToast, [message, options]);
       };
       rawToast.__telegram_patched = true;
     }
@@ -184,6 +204,10 @@ export function initializeGlobalErrorHandlers(appName: string) {
 
   // 1. Unhandled exceptions
   window.onerror = (message, source, lineno, colno, error) => {
+    const msgStr = String(message);
+    if (msgStr.includes("insertBefore") || msgStr.includes("removeChild")) {
+      return true; // Ignore browser-translation DOM mutation errors
+    }
     reportErrorToTelegram({
       error_message: String(message),
       stack_trace: error?.stack || `At ${source}:${lineno}:${colno}`,
