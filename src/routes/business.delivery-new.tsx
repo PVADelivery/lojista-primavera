@@ -207,21 +207,27 @@ function NewDeliveryPage() {
       const phoneOrCpfClean = clean.replace(/\D/g, "");
       const combinedMap = new Map<string, any>();
 
-      // 1. Busca na tabela deliveries (Histórico de entregas da loja e geral)
+      // 1. Busca na tabela deliveries (Histórico de entregas da loja)
       try {
         let delQuery = supabase
           .from("deliveries")
-          .select("customer_id, customer_name, customer_phone, customer_cpf, address, customer_address_number, customer_neighborhood, customer_address_complement, region_id")
+          .select("customer_id, customer_name, customer_phone, customer_cpf, address, region_id")
           .order("created_at", { ascending: false })
-          .limit(15);
+          .limit(20);
+
+        if (company?.id) {
+          delQuery = delQuery.eq("company_id", company.id);
+        }
 
         if (phoneOrCpfClean.length >= 2) {
-          delQuery = delQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%,customer_cpf.ilike.%${phoneOrCpfClean}%`);
+          delQuery = delQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
         } else {
           delQuery = delQuery.ilike("customer_name", `%${clean}%`);
         }
 
-        const { data: delData } = await delQuery;
+        const { data: delData, error: delErr } = await delQuery;
+        if (delErr) console.warn("delQuery error:", delErr);
+
         if (delData) {
           delData.forEach((d: any) => {
             const key = (d.customer_name || "").toLowerCase().trim() || d.customer_phone;
@@ -231,12 +237,10 @@ function NewDeliveryPage() {
                 name: d.customer_name,
                 phone: d.customer_phone,
                 cpf: d.customer_cpf,
+                region_id: d.region_id || "none",
                 addresses: d.address ? [{
                   id: "del-addr",
                   street: d.address,
-                  number: d.customer_address_number || "",
-                  neighborhood: d.customer_neighborhood || "",
-                  complement: d.customer_address_complement || "",
                   region_id: d.region_id || "none"
                 }] : []
               });
@@ -247,13 +251,17 @@ function NewDeliveryPage() {
         console.warn("Erro ao buscar deliveries em autocomplete:", e);
       }
 
-      // 2. Busca na tabela orders (Pedidos Marketplace e Painel)
+      // 2. Busca na tabela orders (Pedidos Marketplace)
       try {
         let ordQuery = supabase
           .from("orders")
           .select("customer_name, customer_phone, delivery_address")
           .order("created_at", { ascending: false })
-          .limit(15);
+          .limit(20);
+
+        if (company?.id) {
+          ordQuery = ordQuery.eq("company_id", company.id);
+        }
 
         if (phoneOrCpfClean.length >= 2) {
           ordQuery = ordQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
@@ -261,7 +269,9 @@ function NewDeliveryPage() {
           ordQuery = ordQuery.ilike("customer_name", `%${clean}%`);
         }
 
-        const { data: ordData } = await ordQuery;
+        const { data: ordData, error: ordErr } = await ordQuery;
+        if (ordErr) console.warn("ordQuery error:", ordErr);
+
         if (ordData) {
           ordData.forEach((o: any) => {
             const key = (o.customer_name || "").toLowerCase().trim() || o.customer_phone;
@@ -277,7 +287,6 @@ function NewDeliveryPage() {
                   street: streetStr,
                   number: o.delivery_address?.number || "",
                   neighborhood: o.delivery_address?.neighborhood || "",
-                  complement: o.delivery_address?.complement || ""
                 }] : []
               });
             }
@@ -287,47 +296,33 @@ function NewDeliveryPage() {
         console.warn("Erro ao buscar orders em autocomplete:", e);
       }
 
-      // 3. Busca na tabela customers (Freguesia / Clientes Salvos com Endereços)
+      // 3. Busca na tabela customers (Clientes Salvos)
       try {
         let custQuery = supabase
           .from("customers")
-          .select(`
-            id,
-            name,
-            phone,
-            cpf,
-            addresses (
-              id,
-              street,
-              number,
-              complement,
-              neighborhood,
-              region_id,
-              latitude,
-              longitude
-            )
-          `)
-          .limit(15);
+          .select("id, name, phone, cpf")
+          .limit(20);
 
         if (phoneOrCpfClean.length >= 2) {
-          custQuery = custQuery.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%,cpf.ilike.%${phoneOrCpfClean}%`);
+          custQuery = custQuery.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%`);
         } else {
           custQuery = custQuery.ilike("name", `%${clean}%`);
         }
 
-        const { data: custData } = await custQuery;
+        const { data: custData, error: custErr } = await custQuery;
+        if (custErr) console.warn("custQuery error:", custErr);
+
         if (custData) {
           custData.forEach((c: any) => {
             const key = (c.name || "").toLowerCase().trim() || c.phone;
             if (key) {
               const existing = combinedMap.get(key);
               if (existing) {
-                // Atualiza/complementa com os endereços completos da tabela customers
-                if (c.addresses && c.addresses.length > 0) existing.addresses = c.addresses;
                 if (c.cpf && !existing.cpf) existing.cpf = c.cpf;
                 if (c.phone && !existing.phone) existing.phone = c.phone;
+                existing.id = c.id;
               } else {
-                combinedMap.set(key, c);
+                combinedMap.set(key, { ...c, addresses: [] });
               }
             }
           });
@@ -340,7 +335,7 @@ function NewDeliveryPage() {
     }, 150);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [customerQuery]);
+  }, [customerQuery, company?.id]);
 
   // Load MapLibre GL - Small Map (Disabled interaction, just shows the route/markers)
   useEffect(() => {
