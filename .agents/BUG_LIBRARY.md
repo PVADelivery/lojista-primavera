@@ -288,6 +288,12 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 ### 30. Erro de Execução em Produção `ReferenceError: BatchDeliveryModal is not defined`
 * **Sintoma**: Ao acessar a página `/business/delivery-new` no painel do lojista, a tela exibia "This page didn't load / ReferenceError: BatchDeliveryModal is not defined".
 * **Causa Raiz**: O componente `<BatchDeliveryModal />` foi inserido no corpo JSX da rota `business.delivery-new.tsx` sem incluir a declaração `import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";` no topo do arquivo.
+---
+
+### 31. Erro Supabase Realtime `cannot add postgres_changes callbacks after subscribe()`
+* **Sintoma**: Ao abrir o modal de entregas em lote com múltiplos seletores de região na mesma tela, a aplicação quebrava com "This page didn't load / Error: cannot add `postgres_changes` callbacks for realtime:realtime-regions-selector after `subscribe()`".
+* **Causa Raiz**: O componente `RegionZoneSelector.tsx` utilizava um nome estático fixo para o canal Supabase (`"realtime-regions-selector"`). Quando múltiplos componentes eram renderizados na mesma página (ou no remounting do React), chamadas subsequentes a `supabase.channel("realtime-regions-selector")` retornavam a mesma instância de canal já inscrita, fazendo o método `.on(...)` falhar por ser invocado após o `.subscribe()`.
 * **Solução Padrão**:
-  Adicionar a importação do componente no topo da rota: `import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";`.
+  Gerar um identificador único de canal por componente: `const channelId = \`realtime-regions-\${Math.random().toString(36).slice(2)}\`;` e passar `channelId` para `supabase.channel(channelId)`.
+
 

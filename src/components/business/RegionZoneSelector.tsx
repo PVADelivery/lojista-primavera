@@ -191,8 +191,9 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
     loadData();
 
     // Inscrição Realtime para atualizar instantaneamente quando o Admin alterar tabelas/regras/preços/bairros
+    const channelId = `realtime-regions-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
-      .channel("realtime-regions-selector")
+      .channel(channelId)
       .on("postgres_changes", { event: "*", schema: "public", table: "regions" }, () => loadData())
       .on("postgres_changes", { event: "*", schema: "public", table: "region_neighborhoods" }, () => loadData())
       .on("postgres_changes", { event: "*", schema: "public", table: "pricing_rules" }, () => loadData())
