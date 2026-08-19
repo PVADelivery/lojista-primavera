@@ -342,6 +342,81 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
 
   return (
     <div className={`space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+      {/* ── CAMPO DE BUSCA DE BAIRRO (SEMPRE VISÍVEL FORA) ── */}
+      <div ref={searchWrapRef} className="relative">
+        <div className="relative flex items-center">
+          <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setIsSearchFocused(true);
+            }}
+            onFocus={() => setIsSearchFocused(true)}
+            placeholder="🔍 Digite o nome do bairro para definir a região automaticamente..."
+            className="w-full h-12 pl-10 pr-10 rounded-2xl border-2 border-border bg-card text-foreground font-semibold text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-sm"
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchTerm("");
+                setIsSearchFocused(false);
+              }}
+              className="absolute right-3.5 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Dropdown de Resultados da Busca de Bairros */}
+        {isSearchFocused && searchTerm.trim().length > 0 && (
+          <div className="absolute left-0 right-0 top-14 z-50 rounded-2xl border-2 border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            {searchResults.length > 0 ? (
+              <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                {searchResults.map((item, idx) => (
+                  <button
+                    key={`${item.name}-${idx}`}
+                    type="button"
+                    onClick={() => handleSelectFromSearch(item)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted transition-colors group"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <MapPin className="h-4 w-4 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                      <div>
+                        <div className="text-sm font-black text-foreground truncate">{item.name}</div>
+                        <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                          <span
+                            className="w-2 h-2 rounded-full inline-block"
+                            style={{ backgroundColor: item.zone.color || "#eab308" }}
+                          />
+                          {item.zone.title} (Região {item.zone.number})
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <span
+                        className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black text-black shadow-sm"
+                        style={{ backgroundColor: item.zone.color || "#eab308" }}
+                      >
+                        R$ {item.zone.price.toFixed(2).replace(".", ",")}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs font-semibold text-muted-foreground">
+                Nenhum bairro cadastrado com o termo "{searchTerm}".
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* ── BOTAO ACCORDION PARA OCULTAR/ABRIR A LISTA DE REGIOES ── */}
       <button
         type="button"
@@ -377,81 +452,6 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       {/* ── LISTA DE REGIOES (EXPANSIVEL VIA SETA) ── */}
       {isListOpen && (
         <div className="space-y-4 pt-1 animate-in fade-in duration-200">
-          {/* ── CAMPO DE BUSCA DE BAIRRO (AUTO-SELEÇÃO DE VALOR) ── */}
-          <div ref={searchWrapRef} className="relative">
-            <div className="relative flex items-center">
-              <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setIsSearchFocused(true);
-                }}
-                onFocus={() => setIsSearchFocused(true)}
-                placeholder="🔍 Digite o nome do bairro para definir a região automaticamente..."
-                className="w-full h-12 pl-10 pr-10 rounded-2xl border-2 border-border bg-card text-foreground font-semibold text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-sm"
-              />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setIsSearchFocused(false);
-                  }}
-                  className="absolute right-3.5 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              )}
-            </div>
-
-            {/* Dropdown de Resultados da Busca de Bairros */}
-            {isSearchFocused && searchTerm.trim().length > 0 && (
-              <div className="absolute left-0 right-0 top-14 z-50 rounded-2xl border-2 border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                {searchResults.length > 0 ? (
-                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
-                    {searchResults.map((item, idx) => (
-                      <button
-                        key={`${item.name}-${idx}`}
-                        type="button"
-                        onClick={() => handleSelectFromSearch(item)}
-                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted transition-colors group"
-                      >
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <MapPin className="h-4 w-4 text-primary shrink-0 group-hover:scale-110 transition-transform" />
-                          <div>
-                            <div className="text-sm font-black text-foreground truncate">{item.name}</div>
-                            <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                              <span
-                                className="w-2 h-2 rounded-full inline-block"
-                                style={{ backgroundColor: item.zone.color || "#eab308" }}
-                              />
-                              {item.zone.title} (Região {item.zone.number})
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="shrink-0 text-right">
-                          <span
-                            className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black text-black shadow-sm"
-                            style={{ backgroundColor: item.zone.color || "#eab308" }}
-                          >
-                            R$ {item.zone.price.toFixed(2).replace(".", ",")}
-                          </span>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-xs font-semibold text-muted-foreground">
-                    Nenhum bairro cadastrado com o termo "{searchTerm}".
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           <div className="text-xs font-black text-muted-foreground uppercase tracking-wider px-1">
             Clique na região para selecionar e ver os bairros:
           </div>
