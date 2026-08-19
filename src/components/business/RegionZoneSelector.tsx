@@ -144,13 +144,15 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
         setDbHoods(sortedHoods);
       }
 
-      // Buscar dados atualizados da empresa (incluindo a tabela de preços personalizada vinculada no Admin)
+      // Buscar dados sempre atualizados da empresa do banco (incluindo a tabela de preços personalizada vinculada no Admin)
+      const activeId = targetCompanyId || myCompany?.id;
       let resolvedCompany = myCompany;
-      if (targetCompanyId) {
+
+      if (activeId) {
         const { data: comp } = await supabase
           .from("companies")
           .select("id, pricing_table_id, delivery_mode, delivery_fee, delivery_regions_pricing")
-          .eq("id", targetCompanyId)
+          .eq("id", activeId)
           .maybeSingle();
         if (comp) {
           resolvedCompany = comp;
@@ -159,7 +161,6 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       }
 
       // Tenta buscar regras via RPC get_company_pricing_rules (que bypassa RLS com 100% de garantia)
-      const activeId = targetCompanyId || resolvedCompany?.id;
       let loadedRules: any[] = [];
       if (activeId) {
         try {
