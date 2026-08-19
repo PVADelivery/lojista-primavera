@@ -324,7 +324,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Sintoma**: Ao submeter a criação de entregas em lote, o Supabase retornava o erro `column "price" of relation "deliveries" does not exist`.
 * **Causa Raiz**: O comando `INSERT INTO public.deliveries (...)` na função PostgreSQL `batch_create_delivery_requests` incluía explicitamente a coluna `price`, que não existe na estrutura da tabela `deliveries` (o campo correto é `value`).
 * **Solução Padrão**:
-  Atualizar o script SQL da RPC `batch_create_delivery_requests` removendo a referência à coluna inexistente `price` e utilizando um bloco `BEGIN ... EXCEPTION` seguro para `delivery_fee` e `value`.
+---
+
+### 36. Agrupamento de Entregas em Lote com Card Único de Aceite no App do Entregador
+* **Sintoma**: Múltiplas entregas enviadas em lote pelo lojista ficavam soltas na lista do entregador, podendo ser aceitas por entregadores diferentes.
+* **Causa Raiz**: Não havia um identificador único de lote (`batch_id`) vinculando as entregas criadas simultaneamente nem um componente visual agregador no App do Entregador.
+* **Solução Padrão**:
+  1. Adicionar coluna `batch_id UUID` na tabela `deliveries` e atualizar a RPC `batch_create_delivery_requests` para atribuir o mesmo `batch_id` para todas as entregas criadas juntas.
+  2. Implementar a RPC `accept_delivery_batch(p_batch_id, p_driver_id)` para transicionar todas as entregas do lote juntas para `accepted`.
+  3. Criar o componente `BatchDeliveryCard.tsx` no App do Entregador (`entrega-primavera`), exibindo o badge em destaque (`📦 LOTE COM N ENTREGAS`), soma dos valores, destinos numerados e o botão de aceite único.
+
 
 
 
