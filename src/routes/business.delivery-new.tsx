@@ -9,6 +9,7 @@ import { brl } from "@/lib/format";
 
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
+import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

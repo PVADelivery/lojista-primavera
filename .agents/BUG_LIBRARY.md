@@ -283,4 +283,11 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   1. Criar a RPC PostgreSQL `batch_create_delivery_requests` que valida a empresa, calcula o valor total do lote, checa o saldo de créditos e executa a inserção atômica de cada entrega individual em `deliveries` juntamente com seu débito sequencial em `credit_transactions`.
   2. Implementar o componente `BatchDeliveryModal.tsx` com formulários independentes para cada entrega (iniciando em 3 por padrão, com suporte a adicionar/remover), seletor de regiões com cálculo automático de taxa por item e resumo financeiro do lote.
-  3. Integrar o botão "📦 Criar entregas em lote" no topo da página `/business/delivery-new`.
+---
+
+### 30. Erro de Execução em Produção `ReferenceError: BatchDeliveryModal is not defined`
+* **Sintoma**: Ao acessar a página `/business/delivery-new` no painel do lojista, a tela exibia "This page didn't load / ReferenceError: BatchDeliveryModal is not defined".
+* **Causa Raiz**: O componente `<BatchDeliveryModal />` foi inserido no corpo JSX da rota `business.delivery-new.tsx` sem incluir a declaração `import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";` no topo do arquivo.
+* **Solução Padrão**:
+  Adicionar a importação do componente no topo da rota: `import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";`.
+
