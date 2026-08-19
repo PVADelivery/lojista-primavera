@@ -311,7 +311,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   1. Adicionar o estado `isListOpen` (fechado por padrão ou com resumo) e o botão retrátil `📍 Clique na seta para escolher a Região [Ver Regiões ⬇️ / Ocultar Regiões ⬆️]`.
   2. Ao clicar na seta, a lista com as 15 regiões expande com animação.
-  3. Ao clicar em qualquer card de Região (`handleZoneHeaderClick`), o sistema seleciona a região e expande automaticamente a lista de bairros daquela região específica (`toggleZone(zone.id)`).
+---
+
+### 34. Busca e Autocomplete de Clientes Cadastrados em Entregas Individuais e em Lote
+* **Sintoma**: Ao digitar o Nome do Cliente ou Telefone durante o cadastro de entregas em lote, o sistema não exibia as sugestões de clientes salvos no banco de dados para preenchimento automático.
+* **Causa Raiz**: Os campos de input dos itens em lote não acionavam a busca consolidada `customerQuery` nem renderizavam o dropdown flutuante de sugestões `customerSuggestions`.
+* **Solução Padrão**:
+  1. Conectar os manipuladores `onChange` e `onFocus` de cada item em lote para atualizar `customerQuery`, `activeBatchSearchIdx` e exibir `showSuggestions`.
+  2. Implementar o dropdown de sugestões por item e a função helper `selectBatchCustomer(idx, cust, addr)`, que auto-preenche Nome, Telefone e Região de Destino do cliente selecionado.
+
 
 
 

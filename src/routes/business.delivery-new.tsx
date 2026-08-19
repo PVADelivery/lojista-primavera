@@ -141,6 +141,7 @@ function NewDeliveryPage() {
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [activeBatchSearchIdx, setActiveBatchSearchIdx] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
 
 
@@ -724,6 +725,26 @@ function NewDeliveryPage() {
     setShowSuggestions(false);
   };
 
+  const selectBatchCustomer = (idx: number, cust: any, targetAddress?: any) => {
+    const addr = targetAddress || (cust.addresses && cust.addresses.length > 0 ? cust.addresses[0] : null);
+    const targetRegionId = addr?.region_id || cust.region_id || "none";
+
+    setBatchItems((prev) => {
+      const copy = [...prev];
+      copy[idx] = {
+        ...copy[idx],
+        customer_name: cust.name || copy[idx].customer_name,
+        customer_phone: cust.phone || copy[idx].customer_phone,
+        region_id: targetRegionId !== "none" ? targetRegionId : copy[idx].region_id,
+      };
+      return copy;
+    });
+
+    setShowSuggestions(false);
+    setActiveBatchSearchIdx(null);
+    toast.success(`Cliente ${cust.name} preenchido na Entrega #${idx + 1}!`);
+  };
+
   const handleRegionSelect = (fee: number, regionId: string, regionName: string) => {
     setF(prev => ({
       ...prev,
@@ -1145,7 +1166,7 @@ function NewDeliveryPage() {
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 relative">
                       <Label className="text-xs font-bold">Nome do cliente *</Label>
                       <Input
                         value={item.customer_name}
@@ -1156,11 +1177,56 @@ function NewDeliveryPage() {
                             copy[idx] = { ...copy[idx], customer_name: val };
                             return copy;
                           });
+                          setCustomerQuery(val);
+                          setActiveBatchSearchIdx(idx);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => {
+                          if (item.customer_name) setCustomerQuery(item.customer_name);
+                          setActiveBatchSearchIdx(idx);
+                          setShowSuggestions(true);
                         }}
                         required
                         className="rounded-xl h-11 bg-secondary/30"
                         placeholder="Ex: João Silva"
                       />
+
+                      {/* Dropdown de Autocomplete para Entregas em Lote */}
+                      {showSuggestions && activeBatchSearchIdx === idx && customerSuggestions.length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-popover border-2 border-primary/30 rounded-2xl shadow-2xl max-h-64 overflow-y-auto divide-y divide-border/20">
+                          {customerSuggestions.map((cust) => (
+                            <div key={cust.id} className="p-2 space-y-1 hover:bg-primary/5 transition-colors">
+                              <button
+                                type="button"
+                                onClick={() => selectBatchCustomer(idx, cust, cust.addresses?.[0])}
+                                className="w-full text-left px-3 py-1.5 rounded-xl hover:bg-primary/10 transition-colors text-sm flex flex-col group"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-bold text-foreground group-hover:text-primary transition-colors">{cust.name}</span>
+                                  <span className="text-xs font-semibold text-muted-foreground">{cust.phone || "Sem telefone"}</span>
+                                </div>
+                                {cust.cpf && <span className="text-[10px] text-muted-foreground font-mono">CPF: {cust.cpf}</span>}
+                              </button>
+                              {cust.addresses && cust.addresses.length > 0 && (
+                                <div className="pl-3 space-y-1">
+                                  {cust.addresses.map((addr: any) => (
+                                    <button
+                                      key={addr.id}
+                                      type="button"
+                                      onClick={() => selectBatchCustomer(idx, cust, addr)}
+                                      className="w-full text-left px-2 py-1 rounded-lg hover:bg-primary/20 text-xs text-muted-foreground flex items-center gap-1.5 truncate"
+                                    >
+                                      <MapPin className="h-3 w-3 text-primary shrink-0" />
+                                      <span className="font-semibold text-foreground/80">{addr.label || 'Endereço'}:</span>
+                                      <span className="truncate">{addr.street}{addr.number ? `, ${addr.number}` : ''}{addr.neighborhood ? ` - ${addr.neighborhood}` : ''}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="space-y-1.5">
@@ -1174,6 +1240,14 @@ function NewDeliveryPage() {
                             copy[idx] = { ...copy[idx], customer_phone: val };
                             return copy;
                           });
+                          setCustomerQuery(val);
+                          setActiveBatchSearchIdx(idx);
+                          setShowSuggestions(true);
+                        }}
+                        onFocus={() => {
+                          if (item.customer_phone) setCustomerQuery(item.customer_phone);
+                          setActiveBatchSearchIdx(idx);
+                          setShowSuggestions(true);
                         }}
                         className="rounded-xl h-11 bg-secondary/30"
                         placeholder="(66) 99999-9999"
