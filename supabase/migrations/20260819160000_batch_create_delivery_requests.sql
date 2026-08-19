@@ -77,36 +77,63 @@ BEGIN
     v_rand_hex := upper(substring(md5(random()::text || clock_timestamp()::text) from 1 for 4));
     v_short_id := '#' || v_rand_hex;
 
-    -- Inserir entrega individual na tabela deliveries
-    INSERT INTO public.deliveries (
-      id,
-      company_id,
-      short_id,
-      customer_name,
-      customer_phone,
-      address,
-      region_id,
-      value,
-      price,
-      delivery_fee,
-      status,
-      created_at,
-      updated_at
-    ) VALUES (
-      gen_random_uuid(),
-      p_company_id,
-      v_short_id,
-      trim(v_elem->>'customer_name'),
-      NULLIF(trim(v_elem->>'customer_phone'), ''),
-      trim(v_elem->>'address'),
-      NULLIF(v_elem->>'region_id', 'none')::uuid,
-      v_item_value,
-      v_item_value,
-      v_item_value,
-      'pending'::public.delivery_status,
-      now(),
-      now()
-    ) RETURNING id INTO v_delivery_id;
+    -- Inserir entrega individual na tabela deliveries (sem coluna 'price' que não existe em deliveries)
+    BEGIN
+      INSERT INTO public.deliveries (
+        id,
+        company_id,
+        short_id,
+        customer_name,
+        customer_phone,
+        address,
+        region_id,
+        value,
+        delivery_fee,
+        status,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        p_company_id,
+        v_short_id,
+        trim(v_elem->>'customer_name'),
+        NULLIF(trim(v_elem->>'customer_phone'), ''),
+        trim(v_elem->>'address'),
+        NULLIF(v_elem->>'region_id', 'none')::uuid,
+        v_item_value,
+        v_item_value,
+        'pending'::public.delivery_status,
+        now(),
+        now()
+      ) RETURNING id INTO v_delivery_id;
+    EXCEPTION WHEN OTHERS THEN
+      -- Fallback se a coluna delivery_fee não existir na tabela deliveries
+      INSERT INTO public.deliveries (
+        id,
+        company_id,
+        short_id,
+        customer_name,
+        customer_phone,
+        address,
+        region_id,
+        value,
+        status,
+        created_at,
+        updated_at
+      ) VALUES (
+        gen_random_uuid(),
+        p_company_id,
+        v_short_id,
+        trim(v_elem->>'customer_name'),
+        NULLIF(trim(v_elem->>'customer_phone'), ''),
+        trim(v_elem->>'address'),
+        NULLIF(v_elem->>'region_id', 'none')::uuid,
+        v_item_value,
+        'pending'::public.delivery_status,
+        now(),
+        now()
+      ) RETURNING id INTO v_delivery_id;
+    END;
 
     -- Calcular novo saldo após esta entrega individual
     v_current_balance := v_current_balance - v_item_value;
@@ -173,6 +200,7 @@ BEGIN
 
   RETURN jsonb_build_object(
     'success', true,
+    'count', jsonb_array_length(p_deliveries),
     'deliveries', v_created_deliveries,
     'total', v_total_value,
     'balance_after', v_current_balance

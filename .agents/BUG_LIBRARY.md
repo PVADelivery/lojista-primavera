@@ -318,7 +318,14 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Causa Raiz**: Os campos de input dos itens em lote não acionavam a busca consolidada `customerQuery` nem renderizavam o dropdown flutuante de sugestões `customerSuggestions`.
 * **Solução Padrão**:
   1. Conectar os manipuladores `onChange` e `onFocus` de cada item em lote para atualizar `customerQuery`, `activeBatchSearchIdx` e exibir `showSuggestions`.
-  2. Implementar o dropdown de sugestões por item e a função helper `selectBatchCustomer(idx, cust, addr)`, que auto-preenche Nome, Telefone e Região de Destino do cliente selecionado.
+---
+
+### 35. Erro no Banco de Dados `column "price" of relation "deliveries" does not exist`
+* **Sintoma**: Ao submeter a criação de entregas em lote, o Supabase retornava o erro `column "price" of relation "deliveries" does not exist`.
+* **Causa Raiz**: O comando `INSERT INTO public.deliveries (...)` na função PostgreSQL `batch_create_delivery_requests` incluía explicitamente a coluna `price`, que não existe na estrutura da tabela `deliveries` (o campo correto é `value`).
+* **Solução Padrão**:
+  Atualizar o script SQL da RPC `batch_create_delivery_requests` removendo a referência à coluna inexistente `price` e utilizando um bloco `BEGIN ... EXCEPTION` seguro para `delivery_fee` e `value`.
+
 
 
 
