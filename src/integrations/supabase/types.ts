@@ -2694,10 +2694,20 @@ export type Database = {
       is_company_safe: { Args: never; Returns: boolean }
       is_driver: { Args: { _user_id: string }; Returns: boolean }
       refund_delivery_credit: { Args: { p_delivery_id: string }; Returns: Json }
-      update_delivery_status_safe: {
-        Args: { p_delivery_id: string; p_driver_id?: string; p_status: string }
+      unassign_delivery_driver: {
+        Args: { p_delivery_id: string }
         Returns: Json
       }
+      update_delivery_status_safe:
+        | { Args: { p_delivery_id: string; p_status: string }; Returns: Json }
+        | {
+            Args: {
+              p_delivery_id: string
+              p_driver_id?: string
+              p_status: string
+            }
+            Returns: Json
+          }
       user_owns_company:
         | { Args: { _company_id: string }; Returns: boolean }
         | { Args: { _company_id: string; _user_id: string }; Returns: boolean }
