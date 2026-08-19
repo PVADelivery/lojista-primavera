@@ -308,12 +308,18 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
   };
 
   useEffect(() => {
-    const activeId = selectedRegionId || initialSelectedId;
-    if (activeId && resolvedZones.length > 0) {
-      const match = resolvedZones.find((z) => z.id === activeId);
+    if (resolvedZones.length > 0) {
+      const activeId = selectedRegionId || initialSelectedId;
+      let match = activeId && activeId !== "none" ? resolvedZones.find((z) => z.id === activeId) : null;
+      
+      // Se nenhuma região estiver pré-selecionada (ou estiver 'none'), seleciona a 1ª região por padrão
+      if (!match && resolvedZones[0]) {
+        match = resolvedZones[0];
+      }
+
       if (match) {
         setSelected({ zoneId: match.id, name: match.title });
-        // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote)
+        // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote e individuais)
         onSelectZone?.(match.id, match.price);
         onRegionSelect?.(match.price, match.id, match.title);
       }

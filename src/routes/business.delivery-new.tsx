@@ -1519,7 +1519,12 @@ function NewDeliveryPage() {
               {/* Regiões / Tabela de preços */}
               <div className="space-y-2">
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
-                <RegionZoneSelector onRegionSelect={handleRegionSelect} companyId={company?.id} initialSelectedId={f.region_id} />
+                <RegionZoneSelector
+                  onRegionSelect={handleRegionSelect}
+                  onSelectZone={(zoneId, price) => handleRegionSelect(price, zoneId, "")}
+                  companyId={company?.id}
+                  initialSelectedId={f.region_id}
+                />
               </div>
 
             </div>
