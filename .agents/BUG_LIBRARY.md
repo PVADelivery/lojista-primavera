@@ -294,6 +294,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Sintoma**: Ao abrir o modal de entregas em lote com múltiplos seletores de região na mesma tela, a aplicação quebrava com "This page didn't load / Error: cannot add `postgres_changes` callbacks for realtime:realtime-regions-selector after `subscribe()`".
 * **Causa Raiz**: O componente `RegionZoneSelector.tsx` utilizava um nome estático fixo para o canal Supabase (`"realtime-regions-selector"`). Quando múltiplos componentes eram renderizados na mesma página (ou no remounting do React), chamadas subsequentes a `supabase.channel("realtime-regions-selector")` retornavam a mesma instância de canal já inscrita, fazendo o método `.on(...)` falhar por ser invocado após o `.subscribe()`.
 * **Solução Padrão**:
-  Gerar um identificador único de canal por componente: `const channelId = \`realtime-regions-\${Math.random().toString(36).slice(2)}\`;` e passar `channelId` para `supabase.channel(channelId)`.
+---
+
+### 32. Migração de Entregas em Lote de Modal para Formulário Direto na Tela com Contador de Entregas
+* **Sintoma**: O lojista solicitou a remoção do modal popup de entregas em lote, exigindo que a criação de múltiplas entregas ocorra diretamente na tela principal (`/business/delivery-new`) no modelo Rápido (somente Nome, Telefone e Região) utilizando um contador de entregas.
+* **Causa Raiz**: O uso de modal separado poluia a navegação e tornava a criação de entregas em lote menos ágil do que um contador direto na página principal.
+* **Solução Padrão**:
+  1. Remover o `BatchDeliveryModal` e integrar o estado `batchCount` diretamente em `business.delivery-new.tsx`.
+  2. Adicionar o componente **Contador de Entregas** (`[-] N entregas [+]` com atalhos `1`, `3`, `5`, `10`, `15`) no topo da tela no modo Entregas Rápidas.
+  3. Quando `batchCount > 1`, renderizar os formulários simplificados por entrega (Nome do Cliente, WhatsApp/Telefone e `RegionZoneSelector`).
+  4. Executar a chamada à RPC PostgreSQL `batch_create_delivery_requests` no submit para realizar a criação e débitos atômicos.
+
 
 

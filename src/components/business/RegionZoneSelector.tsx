@@ -81,12 +81,14 @@ const FALLBACK_ZONES: DeliveryZone[] = [
 
 interface Props {
   onRegionSelect?: (fee: number, regionId: string, regionName: string) => void;
+  onSelectZone?: (regionId: string, fee: number) => void;
   disabled?: boolean;
   companyId?: string;
   initialSelectedId?: string;
+  selectedRegionId?: string;
 }
 
-export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, initialSelectedId }: Props) => {
+export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled, companyId, initialSelectedId, selectedRegionId }: Props) => {
   const { data: myCompany } = useMyCompany();
   const [loading, setLoading] = useState(true);
   const [dbRegions, setDbRegions] = useState<any[]>([]);
@@ -295,7 +297,18 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
     if (disabled) return;
     setSelected({ zoneId: zone.id, name });
     onRegionSelect?.(zone.price, zone.id, name);
+    onSelectZone?.(zone.id, zone.price);
   };
+
+  useEffect(() => {
+    const activeId = selectedRegionId || initialSelectedId;
+    if (activeId && resolvedZones.length > 0) {
+      const match = resolvedZones.find((z) => z.id === activeId);
+      if (match) {
+        setSelected({ zoneId: match.id, name: match.title });
+      }
+    }
+  }, [selectedRegionId, initialSelectedId, resolvedZones]);
 
   const handleSelectFromSearch = (item: { name: string; zone: DeliveryZone }) => {
     setSearchTerm(item.name);

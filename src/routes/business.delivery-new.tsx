@@ -9,7 +9,6 @@ import { brl } from "@/lib/format";
 
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
-import { BatchDeliveryModal } from "@/components/business/BatchDeliveryModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -52,6 +51,26 @@ function NewDeliveryPage() {
   const [busy, setBusy] = useState(false);
   const { edit: editId } = Route.useSearch();
   const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">("rapida");
+  const [batchCount, setBatchCount] = useState<number>(1);
+  const [batchItems, setBatchItems] = useState<
+    { customer_name: string; customer_phone: string; region_id: string; value: number }[]
+  >([
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
+  ]);
+
+  const handleBatchCountChange = (cnt: number) => {
+    const newCount = Math.max(1, Math.min(30, cnt));
+    setBatchCount(newCount);
+    setBatchItems((prev) => {
+      const next = [...prev];
+      while (next.length < newCount) {
+        next.push({ customer_name: "", customer_phone: "", region_id: "none", value: 0 });
+      }
+      return next.slice(0, newCount);
+    });
+  };
 
   // Form State
   const [f, setF] = useState({
@@ -729,6 +748,61 @@ function NewDeliveryPage() {
     e.preventDefault();
     if (!company?.id) return;
 
+    if (batchCount > 1 && deliveryMode === "rapida") {
+      const activeItems = batchItems.slice(0, batchCount);
+      for (let i = 0; i < activeItems.length; i++) {
+        const item = activeItems[i];
+        if (!item.customer_name.trim()) {
+          toast.error(`Informe o Nome do Cliente na Entrega #${i + 1}`);
+          return;
+        }
+        if (!item.region_id || item.region_id === "none") {
+          toast.error(`Selecione a Região de Destino na Entrega #${i + 1}`);
+          return;
+        }
+      }
+
+      const totalBatchFee = activeItems.reduce((acc, item) => acc + (item.value || 0), 0);
+      if (!editId && creditBalance < totalBatchFee) {
+        toast.error(`Saldo de créditos insuficiente. Saldo: ${brl(creditBalance)} · Necessário: ${brl(totalBatchFee)}.`);
+        return;
+      }
+
+      setBusy(true);
+      try {
+        const payload = activeItems.map((item) => ({
+          customer_name: item.customer_name.trim(),
+          customer_phone: item.customer_phone.trim(),
+          address: "Entrega Rápida",
+          region_id: item.region_id,
+          value: item.value,
+          vehicle_type: "moto",
+          payment_method: "dinheiro",
+          is_paid: true,
+          notes: "Entrega Rápida em Lote",
+        }));
+
+        const { data: res, error: rpcErr } = await supabase.rpc("batch_create_delivery_requests", {
+          p_company_id: company.id,
+          p_deliveries: payload,
+        });
+
+        if (rpcErr) throw rpcErr;
+        if (!res?.success) throw new Error(res?.error || "Erro ao criar entregas em lote.");
+
+        toast.success(`🚀 ${res.count} entregas criadas em lote com sucesso!`);
+        qc.invalidateQueries({ queryKey: ["deliveries"] });
+        qc.invalidateQueries({ queryKey: ["credits"] });
+        qc.invalidateQueries({ queryKey: ["credit-transactions"] });
+        navigate({ to: "/business" });
+      } catch (err: any) {
+        toast.error(err.message || "Erro ao criar entregas em lote.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+
     if (!f.value || Number(f.value) <= 0) {
       toast.error("Selecione uma região de entrega para calcular a taxa.", { duration: 5000 });
       return;
@@ -947,34 +1021,16 @@ function NewDeliveryPage() {
               <h1 className="text-xl font-black tracking-tight">{editId ? "Editar Solicitação de Entrega" : "Nova Solicitação de Entrega"}</h1>
             </div>
           </div>
-
-          {!editId && (
-            <Button
-              type="button"
-              onClick={() => setBatchModalOpen(true)}
-              className="rounded-2xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all flex items-center gap-2 px-4 py-2.5"
-            >
-              <Package className="h-4 w-4" />
-              <span className="hidden sm:inline">Criar entregas em lote</span>
-              <span className="sm:hidden">Em lote</span>
-            </Button>
-          )}
         </div>
       </div>
 
-      <BatchDeliveryModal
-        open={batchModalOpen}
-        onOpenChange={setBatchModalOpen}
-        onSuccess={() => navigate({ to: "/business" })}
-      />
-
       <div className="max-w-3xl mx-auto px-4 mt-6">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full sm:w-auto shadow-sm border border-border/40">
+          <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full shadow-sm border border-border/40">
             <button
               type="button"
               onClick={() => setDeliveryMode("rapida")}
-              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
+              className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
                 deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
@@ -984,7 +1040,7 @@ function NewDeliveryPage() {
             <button
               type="button"
               onClick={() => setDeliveryMode("normal")}
-              className={`flex-1 sm:px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
+              className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
                 deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
@@ -992,18 +1048,189 @@ function NewDeliveryPage() {
               <span>Normal</span>
             </button>
           </div>
-
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => setBatchModalOpen(true)}
-            className="w-full sm:w-auto rounded-2xl font-bold border-2 border-primary/30 hover:bg-primary/5 text-primary flex items-center justify-center gap-2 py-5"
-          >
-            <Package className="h-5 w-5" /> Criar várias entregas (Lote)
-          </Button>
         </div>
 
-        <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
+        {/* CONTADOR DE ENTREGAS (Somente no modo Rápida e criação) */}
+        {!editId && deliveryMode === "rapida" && (
+          <div className="bg-card border-2 border-primary/20 p-5 rounded-[2rem] shadow-sm mb-6 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Package className="h-5 w-5 text-primary" />
+                  <h3 className="font-black text-base">Quantidade de Entregas</h3>
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Defina 1 para entrega individual ou escolha mais entregas para cadastrar em lote diretamente nesta tela.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-secondary/60 p-1.5 rounded-2xl border border-border/40 self-start sm:self-auto">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleBatchCountChange(batchCount - 1)}
+                  disabled={batchCount <= 1}
+                  className="h-10 w-10 rounded-xl font-black text-lg"
+                >
+                  -
+                </Button>
+                <div className="w-24 text-center font-black text-base text-primary">
+                  {batchCount} {batchCount === 1 ? "entrega" : "entregas"}
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleBatchCountChange(batchCount + 1)}
+                  disabled={batchCount >= 30}
+                  className="h-10 w-10 rounded-xl font-black text-lg"
+                >
+                  +
+                </Button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 border-t border-border/20 overflow-x-auto">
+              <span className="text-xs font-bold text-muted-foreground mr-1 shrink-0">Atalhos rápidos:</span>
+              {[1, 3, 5, 10, 15].map((num) => (
+                <button
+                  key={num}
+                  type="button"
+                  onClick={() => handleBatchCountChange(num)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 ${
+                    batchCount === num
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-secondary/40 text-muted-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {num} {num === 1 ? "Entrega" : "Entregas"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* FORMS: LOTE VS INDIVIDUAL */}
+        {!editId && deliveryMode === "rapida" && batchCount > 1 ? (
+          <form onSubmit={submit} className="space-y-6">
+            <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex items-center justify-between">
+              <div>
+                <p className="text-xs font-black uppercase text-primary tracking-wider">Entregas Rápidas em Lote ({batchCount} entregas)</p>
+                <p className="text-xs text-muted-foreground">Informe Nome, Telefone e a Região de cada entrega abaixo.</p>
+              </div>
+              <div className="text-right">
+                <span className="text-xs font-bold text-muted-foreground">Valor Total do Lote:</span>
+                <div className="text-lg font-black text-primary">
+                  {brl(batchItems.slice(0, batchCount).reduce((acc, item) => acc + (item.value || 0), 0))}
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {batchItems.slice(0, batchCount).map((item, idx) => (
+                <div key={idx} className="bg-card border border-border/60 p-5 rounded-2xl space-y-4 shadow-sm relative">
+                  <div className="flex items-center justify-between pb-2 border-b border-border/30">
+                    <div className="flex items-center gap-2">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground font-black text-xs">
+                        {idx + 1}
+                      </span>
+                      <span className="font-bold text-sm">Entrega #{idx + 1}</span>
+                    </div>
+                    {item.value > 0 && (
+                      <span className="text-xs font-black text-primary bg-primary/10 px-2.5 py-1 rounded-lg">
+                        Taxa: {brl(item.value)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold">Nome do cliente *</Label>
+                      <Input
+                        value={item.customer_name}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBatchItems((prev) => {
+                            const copy = [...prev];
+                            copy[idx] = { ...copy[idx], customer_name: val };
+                            return copy;
+                          });
+                        }}
+                        required
+                        className="rounded-xl h-11 bg-secondary/30"
+                        placeholder="Ex: João Silva"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs font-bold">WhatsApp / Telefone</Label>
+                      <Input
+                        value={item.customer_phone}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBatchItems((prev) => {
+                            const copy = [...prev];
+                            copy[idx] = { ...copy[idx], customer_phone: val };
+                            return copy;
+                          });
+                        }}
+                        className="rounded-xl h-11 bg-secondary/30"
+                        placeholder="(66) 99999-9999"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold">Região de Destino *</Label>
+                    <RegionZoneSelector
+                      companyId={company?.id}
+                      selectedRegionId={item.region_id}
+                      onSelectZone={(zoneId, val) => {
+                        setBatchItems((prev) => {
+                          const copy = [...prev];
+                          copy[idx] = { ...copy[idx], region_id: zoneId, value: val };
+                          return copy;
+                        });
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="bg-card border border-border/40 p-5 rounded-2xl space-y-3">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-muted-foreground">Saldo disponível em créditos:</span>
+                <span className="font-bold text-foreground">{brl(creditBalance)}</span>
+              </div>
+              <div className="flex justify-between items-center text-base font-bold">
+                <span>Será debitado do seu saldo:</span>
+                <span className="text-primary text-lg">
+                  {brl(batchItems.slice(0, batchCount).reduce((acc, item) => acc + (item.value || 0), 0))}
+                </span>
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={busy || (creditBalance < batchItems.slice(0, batchCount).reduce((acc, item) => acc + (item.value || 0), 0))}
+              className="w-full h-14 rounded-2xl font-black text-lg shadow-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-all flex items-center justify-center gap-2"
+            >
+              {busy ? (
+                <Loader2 className="h-6 w-6 animate-spin" />
+              ) : (
+                <>
+                  <Package className="h-5 w-5" />
+                  <span>
+                    Criar {batchCount} Solicitações de Entrega ({brl(batchItems.slice(0, batchCount).reduce((acc, item) => acc + (item.value || 0), 0))})
+                  </span>
+                </>
+              )}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
           {/* Seção: Cliente */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2 text-foreground/80">
@@ -1354,6 +1581,7 @@ function NewDeliveryPage() {
           </div>
 
         </form>
+        )}
       </div>
 
       {/* ── MODAL MAPA TELA CHEIA (COM MIRA FIXA CENTRAL) ── */}
