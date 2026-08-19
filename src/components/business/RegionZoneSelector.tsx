@@ -155,21 +155,31 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
         }
       }
 
-      const tableId = resolvedCompany?.pricing_table_id;
-      if (tableId) {
-        const { data: rulesData, error: rulesErr } = await supabase
+      // Tenta buscar regras via RPC get_company_pricing_rules (que bypassa RLS com 100% de garantia)
+      const activeId = targetCompanyId || resolvedCompany?.id;
+      let loadedRules: any[] = [];
+      if (activeId) {
+        try {
+          const { data: rpcRules, error: rpcErr } = await supabase
+            .rpc("get_company_pricing_rules", { p_company_id: activeId });
+          if (!rpcErr && rpcRules && rpcRules.length > 0) {
+            loadedRules = rpcRules;
+          }
+        } catch {}
+      }
+
+      // Se a RPC não retornar nada (ex: antes de rodar a migration), tenta busca direta em pricing_rules
+      if (loadedRules.length === 0 && resolvedCompany?.pricing_table_id) {
+        const { data: rulesData } = await supabase
           .from("pricing_rules")
           .select("*")
-          .eq("pricing_table_id", tableId);
-
-        if (rulesErr) {
-          console.warn("[RegionZoneSelector] Erro ao buscar regras de preço:", rulesErr);
-        } else if (rulesData) {
-          setDbRules(rulesData);
+          .eq("pricing_table_id", resolvedCompany.pricing_table_id);
+        if (rulesData) {
+          loadedRules = rulesData;
         }
-      } else {
-        setDbRules([]);
       }
+
+      setDbRules(loadedRules);
     } catch (err) {
       console.warn("[RegionZoneSelector] Erro ao carregar regiões:", err);
     } finally {
