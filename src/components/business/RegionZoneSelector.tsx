@@ -99,6 +99,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
   const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isListOpen, setIsListOpen] = useState(false);
   const searchWrapRef = useRef<HTMLDivElement>(null);
 
   const targetCompanyId = companyId || myCompany?.id;
@@ -340,120 +341,163 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
   }
 
   return (
-    <div className={`space-y-4 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
-      {/* ── CAMPO DE BUSCA DE BAIRRO (AUTO-SELEÇÃO DE VALOR) ── */}
-      <div ref={searchWrapRef} className="relative">
-        <div className="relative flex items-center">
-          <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => {
-              setSearchTerm(e.target.value);
-              setIsSearchFocused(true);
-            }}
-            onFocus={() => setIsSearchFocused(true)}
-            placeholder="🔍 Digite o nome do bairro para definir o valor automaticamente..."
-            className="w-full h-12 pl-10 pr-10 rounded-2xl border-2 border-border bg-card text-foreground font-semibold text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-sm"
-          />
-          {searchTerm && (
-            <button
-              type="button"
-              onClick={() => {
-                setSearchTerm("");
-                setIsSearchFocused(false);
-              }}
-              className="absolute right-3.5 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
-          )}
+    <div className={`space-y-3 ${disabled ? "opacity-50 pointer-events-none" : ""}`}>
+      {/* ── BOTAO ACCORDION PARA OCULTAR/ABRIR A LISTA DE REGIOES ── */}
+      <button
+        type="button"
+        onClick={() => setIsListOpen((prev) => !prev)}
+        className={`w-full flex items-center justify-between p-3.5 rounded-2xl border-2 transition-all text-left shadow-sm ${
+          selected
+            ? "border-primary bg-primary/5 text-foreground"
+            : "border-border/80 bg-card hover:border-primary/40 text-foreground"
+        }`}
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className={`h-8 w-8 rounded-xl flex items-center justify-center font-black text-sm shrink-0 ${
+            selected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+          }`}>
+            📍
+          </div>
+          <div className="min-w-0">
+            <div className="text-sm font-black truncate">
+              {selected ? selected.name : "Clique na seta para escolher a Região"}
+            </div>
+            <div className="text-[11px] font-semibold text-muted-foreground">
+              {resolvedZones.length} regiões disponíveis • Clique na seta para {isListOpen ? "ocultar" : "abrir"}
+            </div>
+          </div>
         </div>
 
-        {/* Dropdown de Resultados da Busca de Bairros */}
-        {isSearchFocused && searchTerm.trim().length > 0 && (
-          <div className="absolute left-0 right-0 top-14 z-50 rounded-2xl border-2 border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            {searchResults.length > 0 ? (
-              <div className="max-h-64 overflow-y-auto divide-y divide-border">
-                {searchResults.map((item, idx) => (
-                  <button
-                    key={`${item.name}-${idx}`}
-                    type="button"
-                    onClick={() => handleSelectFromSearch(item)}
-                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted transition-colors group"
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <MapPin className="h-4 w-4 text-primary shrink-0 group-hover:scale-110 transition-transform" />
-                      <div>
-                        <div className="text-sm font-black text-foreground truncate">{item.name}</div>
-                        <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mt-0.5">
-                          <span
-                            className="w-2 h-2 rounded-full inline-block"
-                            style={{ backgroundColor: item.zone.color || "#eab308" }}
-                          />
-                          {item.zone.title} (Região {item.zone.number})
-                        </div>
-                      </div>
-                    </div>
+        <div className="flex items-center gap-1.5 font-bold text-xs text-primary bg-primary/10 px-3 py-1.5 rounded-xl shrink-0">
+          <span>{isListOpen ? "Ocultar Regiões" : "Ver Regiões"}</span>
+          <ChevronDown className={`h-4 w-4 transition-transform duration-200 ${isListOpen ? "rotate-180" : ""}`} />
+        </div>
+      </button>
 
-                    <div className="shrink-0 text-right">
-                      <span
-                        className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black text-black shadow-sm"
-                        style={{ backgroundColor: item.zone.color || "#eab308" }}
+      {/* ── LISTA DE REGIOES (EXPANSIVEL VIA SETA) ── */}
+      {isListOpen && (
+        <div className="space-y-4 pt-1 animate-in fade-in duration-200">
+          {/* ── CAMPO DE BUSCA DE BAIRRO (AUTO-SELEÇÃO DE VALOR) ── */}
+          <div ref={searchWrapRef} className="relative">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setIsSearchFocused(true);
+                }}
+                onFocus={() => setIsSearchFocused(true)}
+                placeholder="🔍 Digite o nome do bairro para definir a região automaticamente..."
+                className="w-full h-12 pl-10 pr-10 rounded-2xl border-2 border-border bg-card text-foreground font-semibold text-sm outline-none transition-all placeholder:text-muted-foreground focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-sm"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchTerm("");
+                    setIsSearchFocused(false);
+                  }}
+                  className="absolute right-3.5 h-6 w-6 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Dropdown de Resultados da Busca de Bairros */}
+            {isSearchFocused && searchTerm.trim().length > 0 && (
+              <div className="absolute left-0 right-0 top-14 z-50 rounded-2xl border-2 border-border bg-card shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+                {searchResults.length > 0 ? (
+                  <div className="max-h-64 overflow-y-auto divide-y divide-border">
+                    {searchResults.map((item, idx) => (
+                      <button
+                        key={`${item.name}-${idx}`}
+                        type="button"
+                        onClick={() => handleSelectFromSearch(item)}
+                        className="w-full flex items-center justify-between gap-3 px-4 py-3 text-left hover:bg-muted transition-colors group"
                       >
-                        R$ {item.zone.price.toFixed(2).replace(".", ",")}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : (
-              <div className="p-4 text-center text-xs font-semibold text-muted-foreground">
-                Nenhum bairro cadastrado com o termo "{searchTerm}".
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <MapPin className="h-4 w-4 text-primary shrink-0 group-hover:scale-110 transition-transform" />
+                          <div>
+                            <div className="text-sm font-black text-foreground truncate">{item.name}</div>
+                            <div className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                              <span
+                                className="w-2 h-2 rounded-full inline-block"
+                                style={{ backgroundColor: item.zone.color || "#eab308" }}
+                              />
+                              {item.zone.title} (Região {item.zone.number})
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0 text-right">
+                          <span
+                            className="inline-flex items-center px-2.5 py-1 rounded-xl text-xs font-black text-black shadow-sm"
+                            style={{ backgroundColor: item.zone.color || "#eab308" }}
+                          >
+                            R$ {item.zone.price.toFixed(2).replace(".", ",")}
+                          </span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs font-semibold text-muted-foreground">
+                    Nenhum bairro cadastrado com o termo "{searchTerm}".
+                  </div>
+                )}
               </div>
             )}
           </div>
-        )}
-      </div>
 
-      <div className="text-xs font-black text-muted-foreground uppercase tracking-wider px-1">
-        Ou selecione diretamente a região abaixo:
-      </div>
+          <div className="text-xs font-black text-muted-foreground uppercase tracking-wider px-1">
+            Clique na região para selecionar e ver os bairros:
+          </div>
 
-      {resolvedZones.map((zone, idx) => {
-        const isZoneSelected = selected?.zoneId === zone.id;
-        const isExpanded = expandedZones.has(zone.id);
-        const hasNeighborhoods = zone.neighborhoods.length > 0;
-        const displayIndex = zone.number || String(idx + 1);
-        const zoneColor = zone.color || "#eab308";
+          {resolvedZones.map((zone, idx) => {
+            const isZoneSelected = selected?.zoneId === zone.id;
+            const isExpanded = expandedZones.has(zone.id);
+            const hasNeighborhoods = zone.neighborhoods.length > 0;
+            const displayIndex = zone.number || String(idx + 1);
+            const zoneColor = zone.color || "#eab308";
 
-        return (
-          <div
-            key={zone.id}
-            className="rounded-3xl border-2 overflow-hidden transition-all shadow-sm"
-            style={{
-              borderColor: isZoneSelected ? zoneColor : undefined,
-              boxShadow: isZoneSelected ? `0 0 0 2px ${zoneColor}33` : undefined,
-            }}
-          >
-            {/* Header da Região */}
-            <div className="flex flex-wrap items-center gap-3 bg-foreground text-background px-4 py-3">
+            return (
               <div
-                className="w-3 h-3 rounded-full shrink-0 shadow-sm"
-                style={{ backgroundColor: zoneColor }}
-              />
-              <span className="text-xs sm:text-sm font-black uppercase tracking-wide flex-1 min-w-0">
-                {zone.title}
-              </span>
-              <span className="text-lg font-black" style={{ color: zoneColor }}>
-                {displayIndex} <span className="text-xs font-bold text-background/80">(R$ {zone.price.toFixed(2).replace(".", ",")})</span>
-              </span>
-            </div>
+                key={zone.id}
+                className="rounded-3xl border-2 overflow-hidden transition-all shadow-sm"
+                style={{
+                  borderColor: isZoneSelected ? zoneColor : undefined,
+                  boxShadow: isZoneSelected ? `0 0 0 2px ${zoneColor}33` : undefined,
+                }}
+              >
+                {/* Header da Região (Clique seleciona E abre bairros) */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    pick(zone, zone.title);
+                    toggleZone(zone.id);
+                  }}
+                  className="w-full flex flex-wrap items-center gap-3 bg-foreground text-background px-4 py-3 text-left hover:opacity-95 transition-opacity"
+                >
+                  <div
+                    className="w-3 h-3 rounded-full shrink-0 shadow-sm"
+                    style={{ backgroundColor: zoneColor }}
+                  />
+                  <span className="text-xs sm:text-sm font-black uppercase tracking-wide flex-1 min-w-0">
+                    {zone.title}
+                  </span>
+                  <span className="text-lg font-black" style={{ color: zoneColor }}>
+                    {displayIndex} <span className="text-xs font-bold text-background/80">(R$ {zone.price.toFixed(2).replace(".", ",")})</span>
+                  </span>
+                  <ChevronDown className={`h-4 w-4 text-background/80 transition-transform duration-200 ${isExpanded ? "rotate-180" : ""}`} />
+                </button>
 
-            <div
-              className="p-4 space-y-3 transition-colors"
-              style={{ backgroundColor: zoneColor }}
-            >
+                <div
+                  className="p-4 space-y-3 transition-colors"
+                  style={{ backgroundColor: zoneColor }}
+                >
               {hasNeighborhoods && (
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-black text-black/80 uppercase tracking-wide">
@@ -545,6 +589,8 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
           </div>
         );
       })}
+      </div>
+      )}
     </div>
   );
 });

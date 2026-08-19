@@ -303,7 +303,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Remover o `BatchDeliveryModal` e integrar o estado `batchCount` diretamente em `business.delivery-new.tsx`.
   2. Adicionar o componente **Contador de Entregas** (`[-] N entregas [+]` com atalhos `1`, `3`, `5`, `10`, `15`) no topo da tela no modo Entregas Rápidas.
   3. Quando `batchCount > 1`, renderizar os formulários simplificados por entrega (Nome do Cliente, WhatsApp/Telefone e `RegionZoneSelector`).
-  4. Executar a chamada à RPC PostgreSQL `batch_create_delivery_requests` no submit para realizar a criação e débitos atômicos.
+---
+
+### 33. Ocultamento de Regiões com Seta Retrátil (Accordion) e Expansão ao Clicar na Região
+* **Sintoma**: As 15 regiões do seletor ficavam todas visíveis e abertas por padrão, deixando a tela de cadastro de entrega excessivamente longa.
+* **Causa Raiz**: O componente `RegionZoneSelector.tsx` renderizava o grid completo das 15 regiões sem um botão retrátil de agrupamento.
+* **Solução Padrão**:
+  1. Adicionar o estado `isListOpen` (fechado por padrão ou com resumo) e o botão retrátil `📍 Clique na seta para escolher a Região [Ver Regiões ⬇️ / Ocultar Regiões ⬆️]`.
+  2. Ao clicar na seta, a lista com as 15 regiões expande com animação.
+  3. Ao clicar em qualquer card de Região (`handleZoneHeaderClick`), o sistema seleciona a região e expande automaticamente a lista de bairros daquela região específica (`toggleZone(zone.id)`).
+
 
 
 
