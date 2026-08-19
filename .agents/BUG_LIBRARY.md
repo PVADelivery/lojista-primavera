@@ -275,5 +275,12 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Atualizar o `RegionZoneSelector.tsx` para buscar a `pricing_table_id` da empresa e carregar os preços personalizados de `pricing_rules`.
   2. Corrigir os campos de filtragem em `RegionPickerGrid.tsx` (`r.origin_region_id === region.id` e `r.base_value`).
   3. Aplicar migration SQL com política RLS permissiva para leitura de `pricing_tables` e `pricing_rules` (`CREATE POLICY "pricing_rules_public_read" ON public.pricing_rules FOR SELECT TO anon, authenticated, public USING (true);`).
+---
 
-
+### 29. Ausência do Botão/Modal de Criação de Entregas em Lote no Painel Lojista
+* **Sintoma**: O lojista não visualizava o botão "Criar entregas em lote" na tela de Nova Solicitação de Entrega (`/business/delivery-new`), sendo forçado a cadastrar uma entrega de cada vez.
+* **Causa Raiz**: O componente `BatchDeliveryModal.tsx` e a chamada à RPC PostgreSQL `batch_create_delivery_requests` não estavam integrados à rota do painel do lojista.
+* **Solução Padrão**:
+  1. Criar a RPC PostgreSQL `batch_create_delivery_requests` que valida a empresa, calcula o valor total do lote, checa o saldo de créditos e executa a inserção atômica de cada entrega individual em `deliveries` juntamente com seu débito sequencial em `credit_transactions`.
+  2. Implementar o componente `BatchDeliveryModal.tsx` com formulários independentes para cada entrega (iniciando em 3 por padrão, com suporte a adicionar/remover), seletor de regiões com cálculo automático de taxa por item e resumo financeiro do lote.
+  3. Integrar o botão "📦 Criar entregas em lote" no topo da página `/business/delivery-new`.

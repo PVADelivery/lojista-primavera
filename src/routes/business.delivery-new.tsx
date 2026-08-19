@@ -926,27 +926,49 @@ function NewDeliveryPage() {
     }
   };
 
+  const [batchModalOpen, setBatchModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="sticky top-0 z-10 bg-background/80 backdrop-blur-xl border-b border-border/40">
-        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate({ to: "/business" })}
-            className="rounded-xl h-10 w-10"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema de Despacho</p>
-            <h1 className="text-xl font-black tracking-tight">{editId ? "Editar Solicitação de Entrega" : "Nova Solicitação de Entrega"}</h1>
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate({ to: "/business" })}
+              className="rounded-xl h-10 w-10"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.25em] text-primary">Sistema de Despacho</p>
+              <h1 className="text-xl font-black tracking-tight">{editId ? "Editar Solicitação de Entrega" : "Nova Solicitação de Entrega"}</h1>
+            </div>
           </div>
+
+          {!editId && (
+            <Button
+              type="button"
+              onClick={() => setBatchModalOpen(true)}
+              className="rounded-2xl font-bold bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-all flex items-center gap-2 px-4 py-2.5"
+            >
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Criar entregas em lote</span>
+              <span className="sm:hidden">Em lote</span>
+            </Button>
+          )}
         </div>
       </div>
 
+      <BatchDeliveryModal
+        open={batchModalOpen}
+        onOpenChange={setBatchModalOpen}
+        onSuccess={() => navigate({ to: "/business" })}
+      />
+
       <div className="max-w-3xl mx-auto px-4 mt-6">
-        <div className="flex justify-center mb-6">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full sm:w-auto shadow-sm border border-border/40">
             <button
               type="button"
@@ -969,6 +991,15 @@ function NewDeliveryPage() {
               <span>Normal</span>
             </button>
           </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setBatchModalOpen(true)}
+            className="w-full sm:w-auto rounded-2xl font-bold border-2 border-primary/30 hover:bg-primary/5 text-primary flex items-center justify-center gap-2 py-5"
+          >
+            <Package className="h-5 w-5" /> Criar várias entregas (Lote)
+          </Button>
         </div>
 
         <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
