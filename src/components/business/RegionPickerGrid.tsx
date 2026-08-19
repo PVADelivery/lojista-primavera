@@ -71,8 +71,8 @@ export const RegionPickerGrid = memo(({ companyId, onRegionSelect, disabled, ini
     }
 
     // 2. Custom pricing rule for this company's pricing table
-    const rule = pricingRules.find(r => r.region_id === region.id);
-    if (rule) return Number(rule.price);
+    const rule = pricingRules.find(r => (r.origin_region_id === region.id || r.destination_region_id === region.id) && r.base_value != null && r.base_value !== "");
+    if (rule) return Number(rule.base_value);
 
     // 3. Fallback to region's default price
     return Number(region.price || 0);

@@ -265,9 +265,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 27. Subdomínio Inexistente `app.mt24horasexpress.com` no Marketplace do Cliente
-* **Sintoma**: "Não foi possível encontrar o endereço IP do servidor de app.mt24horasexpress.com".
-* **Causa Raiz**: O código do app do cliente (`cliente-primavera`) redirecionava para o subdomínio `app.mt24horasexpress.com`, que não possui entrada DNS configurada no servidor.
+### 28. Tabelas de Preços Personalizadas por Loja Não Aplicadas ao Criar Entrega
+* **Sintoma**: O Admin vinculava uma loja (ex: `AÇAI PRIMAVERA`, `Prime Farma`, `Drogaria Nacional 2`) a uma Tabela de Preços Personalizada em `/admin/pricing`, mas ao criar entregas no painel da loja continuavam aparecendo os valores padrão de cada região.
+* **Causa Raiz**:
+  1. O componente `RegionZoneSelector.tsx` não consultava `pricing_table_id` da empresa e não buscava as regras personalizadas na tabela `pricing_rules` do Supabase.
+  2. Políticas de RLS restritivas na tabela `pricing_rules` e `pricing_tables` bloqueavam a leitura dos dados por usuários autenticados da loja.
+  3. No `RegionPickerGrid.tsx`, a filtragem de regras buscava campos incorretos (`r.region_id` e `r.price` em vez de `r.origin_region_id` e `r.base_value`).
 * **Solução Padrão**:
-  Corrigir o redirecionamento em `src/routes/__root.tsx` para apontar para o domínio oficial ativo **`https://www.mt24horasexpress.com`**.
+  1. Atualizar o `RegionZoneSelector.tsx` para buscar a `pricing_table_id` da empresa e carregar os preços personalizados de `pricing_rules`.
+  2. Corrigir os campos de filtragem em `RegionPickerGrid.tsx` (`r.origin_region_id === region.id` e `r.base_value`).
+  3. Aplicar migration SQL com política RLS permissiva para leitura de `pricing_tables` e `pricing_rules` (`CREATE POLICY "pricing_rules_public_read" ON public.pricing_rules FOR SELECT TO anon, authenticated, public USING (true);`).
+
 

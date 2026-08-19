@@ -91,13 +91,15 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
   const [loading, setLoading] = useState(true);
   const [dbRegions, setDbRegions] = useState<any[]>([]);
   const [dbHoods, setDbHoods] = useState<any[]>([]);
+  const [dbRules, setDbRules] = useState<any[]>([]);
+  const [companySettings, setCompanySettings] = useState<any>(null);
   const [selected, setSelected] = useState<{ zoneId: string; name: string } | null>(null);
   const [expandedZones, setExpandedZones] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchWrapRef = useRef<HTMLDivElement>(null);
 
-  const activeCompany = companyId ? { id: companyId } : myCompany;
+  const targetCompanyId = companyId || myCompany?.id;
 
   // Fecha dropdown de busca ao clicar fora
   useEffect(() => {
@@ -110,7 +112,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
     return () => document.removeEventListener("mousedown", handleDocClick);
   }, []);
 
-  // Carregar Regiões e Bairros dinamicamente do Banco de Dados
+  // Carregar Regiões, Bairros e Tabela de Preço Personalizada do Banco de Dados
   const loadData = async () => {
     try {
       const [regionsRes, hoodsRes] = await Promise.all([
@@ -124,7 +126,6 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
 
       if (regionsRes.data && regionsRes.data.length > 0) {
         const filtered = regionsRes.data.filter((r: any) => r.is_active !== false);
-        // Ordena em memória por sort_order, price ou nome
         filtered.sort((a: any, b: any) => {
           const ordA = a.sort_order != null ? Number(a.sort_order) : (Number(a.price ?? a.delivery_fee ?? 0));
           const ordB = b.sort_order != null ? Number(b.sort_order) : (Number(b.price ?? b.delivery_fee ?? 0));
@@ -139,6 +140,36 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
         });
         setDbHoods(sortedHoods);
       }
+
+      // Buscar dados atualizados da empresa (incluindo a tabela de preços personalizada vinculada no Admin)
+      let resolvedCompany = myCompany;
+      if (targetCompanyId) {
+        const { data: comp } = await supabase
+          .from("companies")
+          .select("id, pricing_table_id, delivery_mode, delivery_fee, delivery_regions_pricing")
+          .eq("id", targetCompanyId)
+          .maybeSingle();
+        if (comp) {
+          resolvedCompany = comp;
+          setCompanySettings(comp);
+        }
+      }
+
+      const tableId = resolvedCompany?.pricing_table_id;
+      if (tableId) {
+        const { data: rulesData, error: rulesErr } = await supabase
+          .from("pricing_rules")
+          .select("*")
+          .eq("pricing_table_id", tableId);
+
+        if (rulesErr) {
+          console.warn("[RegionZoneSelector] Erro ao buscar regras de preço:", rulesErr);
+        } else if (rulesData) {
+          setDbRules(rulesData);
+        }
+      } else {
+        setDbRules([]);
+      }
     } catch (err) {
       console.warn("[RegionZoneSelector] Erro ao carregar regiões:", err);
     } finally {
@@ -149,21 +180,20 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
   useEffect(() => {
     loadData();
 
-    // Inscrição Realtime para atualizar instantaneamente quando o Admin alterar nomes/preços/bairros
+    // Inscrição Realtime para atualizar instantaneamente quando o Admin alterar tabelas/regras/preços/bairros
     const channel = supabase
       .channel("realtime-regions-selector")
-      .on("postgres_changes", { event: "*", schema: "public", table: "regions" }, () => {
-        loadData();
-      })
-      .on("postgres_changes", { event: "*", schema: "public", table: "region_neighborhoods" }, () => {
-        loadData();
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "regions" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "region_neighborhoods" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_rules" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_tables" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "companies" }, () => loadData())
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [targetCompanyId, myCompany?.pricing_table_id]);
 
   // Mapeia regiões e calcula os valores (considerando tabela personalizada da empresa se houver)
   const resolvedZones: DeliveryZone[] = useMemo(() => {
@@ -171,7 +201,8 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
       return FALLBACK_ZONES;
     }
 
-    const companyPricingMatrix = (activeCompany as any)?.delivery_regions_pricing;
+    const activeComp = companySettings || myCompany;
+    const companyPricingMatrix = activeComp?.delivery_regions_pricing;
     let customMatrix: any[] = [];
     if (companyPricingMatrix) {
       let parsed = companyPricingMatrix;
@@ -189,10 +220,24 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
     return dbRegions.map((r, index) => {
       let finalPrice = Number(r.price ?? r.delivery_fee ?? 0);
 
-      // Checa se há taxa fixa da loja
-      if ((activeCompany as any)?.delivery_mode === "fixed_fee" && (activeCompany as any)?.delivery_fee != null) {
-        finalPrice = Number((activeCompany as any).delivery_fee);
-      } else if (customMatrix.length > 0) {
+      // 1. Checa se a loja utiliza taxa de entrega fixa
+      if (activeComp?.delivery_mode === "fixed_fee" && activeComp?.delivery_fee != null) {
+        finalPrice = Number(activeComp.delivery_fee);
+      } 
+      // 2. Checa se a loja possui Tabela de Preços Personalizada atribuída pelo Admin (pricing_table_id)
+      else if (dbRules.length > 0) {
+        const ruleMatch = dbRules.find(
+          (rule: any) =>
+            (rule.origin_region_id === r.id || rule.destination_region_id === r.id) &&
+            rule.base_value != null &&
+            rule.base_value !== ""
+        );
+        if (ruleMatch) {
+          finalPrice = Number(ruleMatch.base_value);
+        }
+      }
+      // 3. Fallback para matriz de preços legada (delivery_regions_pricing)
+      else if (customMatrix.length > 0) {
         const match = customMatrix.find((m: any) => m.region_id === r.id || m.to === r.id);
         if (match && match.price != null && match.price !== "") {
           finalPrice = Number(match.price);
@@ -213,7 +258,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, disabled, companyId, i
         color: r.color || "#eab308",
       };
     });
-  }, [dbRegions, dbHoods, activeCompany]);
+  }, [dbRegions, dbHoods, dbRules, companySettings, myCompany]);
 
   // Lista agregada de todos os bairros para a busca rápida
   const allSearchableNeighborhoods = useMemo(() => {
