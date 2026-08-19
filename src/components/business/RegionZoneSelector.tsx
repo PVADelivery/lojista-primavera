@@ -258,6 +258,12 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
         }
       }
 
+      // Se finalPrice for 0 ou inválido, tenta fallback no array estático de regiões ou valor padrão mínimo
+      if (isNaN(finalPrice) || finalPrice <= 0) {
+        const fallbackMatch = FALLBACK_ZONES.find(fz => fz.title.toLowerCase().includes((r.name || "").toLowerCase()));
+        finalPrice = fallbackMatch ? fallbackMatch.price : (10 + index * 1.5);
+      }
+
       // Bairros vinculados à região no Admin
       const hoods = dbHoods
         .filter((h) => h.region_id === r.id)
@@ -307,6 +313,9 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       const match = resolvedZones.find((z) => z.id === activeId);
       if (match) {
         setSelected({ zoneId: match.id, name: match.title });
+        // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote)
+        onSelectZone?.(match.id, match.price);
+        onRegionSelect?.(match.price, match.id, match.title);
       }
     }
   }, [selectedRegionId, initialSelectedId, resolvedZones]);
