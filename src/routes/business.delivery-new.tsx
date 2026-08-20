@@ -896,14 +896,16 @@ function NewDeliveryPage() {
       return;
     }
 
-    if (deliveryMode === "normal" && !f.address.trim()) {
+    if (deliveryMode === "normal" && f.delivery_type !== "BUSCA_CONDICIONAL" && !f.address.trim()) {
       toast.error("O endereço de entrega é obrigatório no modo normal.", { duration: 5000 });
       return;
     }
 
     const fullAddress = deliveryMode === "rapida" 
       ? `A combinar (Entrega Rápida) - Região: ${f.customer_neighborhood}`
-      : `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
+      : f.delivery_type === "BUSCA_CONDICIONAL"
+        ? (f.address.trim() ? `${f.address}, ${f.customer_address_number || "S/N"} - ${f.customer_neighborhood || "Cliente"}` : `Recolher no Cliente (${f.customer_name || "Cliente"})`)
+        : `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     setBusy(true);
@@ -1516,7 +1518,7 @@ function NewDeliveryPage() {
                         onChange={() => setF((prev) => ({ ...prev, condicional_destination: "STORE" }))}
                         className="accent-purple-600"
                       />
-                      <span>Trazer na Minha Loja ({company?.name || "Sua Loja"})</span>
+                      <span>Trazer na Loja ({company?.name || "Loja"})</span>
                     </label>
 
                     <label className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
@@ -1695,9 +1697,9 @@ function NewDeliveryPage() {
                         <Input
                           value={f.address}
                           onChange={(e) => setF({ ...f, address: e.target.value })}
-                          required={deliveryMode === "normal"}
+                          required={deliveryMode === "normal" && f.delivery_type !== "BUSCA_CONDICIONAL"}
                           className="rounded-xl h-11 pl-9 bg-background"
-                          placeholder="Ex: Av. Brasil"
+                          placeholder="Ex: Av. Brasil (ou deixe em branco se for recolher no cliente)"
                         />
                       </div>
                     </div>
@@ -1706,7 +1708,7 @@ function NewDeliveryPage() {
                       <Input
                         value={f.customer_address_number}
                         onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
-                        required={deliveryMode === "normal"}
+                        required={deliveryMode === "normal" && f.delivery_type !== "BUSCA_CONDICIONAL"}
                         className="rounded-xl h-11 bg-background"
                         placeholder="Ex: 123"
                       />
