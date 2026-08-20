@@ -990,7 +990,7 @@ function NewDeliveryPage() {
       }
 
       // 3. Write Manual Delivery (either update or insert)
-      let deliveryWrite;
+      let deliveryWrite: any = null;
       if (editId) {
         deliveryWrite = await supabase
           .from("deliveries")
@@ -1016,6 +1016,7 @@ function NewDeliveryPage() {
           .eq("id", editId)
           .select("*")
           .single();
+      } else {
         const condicionalPickup = (f.delivery_type === "BUSCA_CONDICIONAL" && f.condicional_destination === "CUSTOM")
           ? (f.condicional_custom_address || company.address || company.name || "Endereço Solicitado")
           : (company.address || company.name || "Sua Loja");
@@ -1074,10 +1075,10 @@ function NewDeliveryPage() {
 
         qc.invalidateQueries({ queryKey: ["credits"] });
         qc.invalidateQueries({ queryKey: ["credit-transactions"] });
-        deliveryWrite = { data: { id: res.delivery_id }, error: null } as any;
+        deliveryWrite = { data: { id: res.delivery_id }, error: null };
       }
 
-      if (deliveryWrite.error) {
+      if (deliveryWrite?.error) {
         throw deliveryWrite.error;
       }
 
