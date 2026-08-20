@@ -94,7 +94,7 @@ function NewDeliveryPage() {
     customer_neighborhood: "",
     customer_address_complement: "",
     payment_method: "cartao",
-    is_paid: false,
+    is_paid: true,
     order_value: "",
     change_for: "",
     vehicle_type: "moto",
