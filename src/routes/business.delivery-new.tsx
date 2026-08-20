@@ -62,11 +62,12 @@ function NewDeliveryPage() {
       payment_method: string;
       order_value: string;
       change_for: string;
+      vehicle_type: string;
     }[]
   >([
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "", vehicle_type: "moto" },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "", vehicle_type: "moto" },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "", vehicle_type: "moto" },
   ]);
 
   const handleBatchCountChange = (cnt: number) => {
@@ -75,7 +76,7 @@ function NewDeliveryPage() {
     setBatchItems((prev) => {
       const next = [...prev];
       while (next.length < newCount) {
-        next.push({ customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" });
+        next.push({ customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "", vehicle_type: "moto" });
       }
       return next.slice(0, newCount);
     });
@@ -796,7 +797,7 @@ function NewDeliveryPage() {
             region_id: item.region_id,
             value: item.value,
             delivery_fee: item.value,
-            vehicle_type: "moto",
+            vehicle_type: item.vehicle_type || "moto",
             payment_method: item.is_paid ? "pago" : (item.payment_method || "cartao"),
             is_paid: item.is_paid,
             order_value: numOrderVal,
@@ -1794,6 +1795,42 @@ function NewDeliveryPage() {
                   </div>
                 </>
               )}
+
+              {/* Seleção do Tipo de Veículo (Moto vs Carro) */}
+              <div className="space-y-2 pt-1 pb-3 border-b border-border/40">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    Tipo de Veículo Solicitado <span className="text-destructive">*</span>
+                  </Label>
+                  <span className="text-[11px] text-amber-500 font-bold">Padrão: 🏍️ Moto</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setF((prev) => ({ ...prev, vehicle_type: "moto" }))}
+                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black transition-all border ${
+                      f.vehicle_type !== "carro"
+                        ? "bg-primary text-primary-foreground border-primary shadow-md ring-2 ring-primary/30"
+                        : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                    }`}
+                  >
+                    <Motorbike className="h-4 w-4" />
+                    <span>🏍️ Moto (Padrão)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setF((prev) => ({ ...prev, vehicle_type: "carro" }))}
+                    className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black transition-all border ${
+                      f.vehicle_type === "carro"
+                        ? "bg-blue-600 text-white border-blue-600 shadow-md ring-2 ring-blue-500/30"
+                        : "bg-background text-muted-foreground border-border hover:border-blue-500/40"
+                    }`}
+                  >
+                    <Car className="h-4 w-4" />
+                    <span>🚗 Carro</span>
+                  </button>
+                </div>
+              </div>
 
               {/* Regiões / Tabela de preços */}
               <div className="space-y-2">
