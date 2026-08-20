@@ -117,6 +117,8 @@ function NewDeliveryPage() {
     if (editingDelivery) {
       setF({
         delivery_type: editingDelivery.delivery_type || "NORMAL",
+        condicional_destination: "STORE",
+        condicional_custom_address: "",
         customer_name: editingDelivery.customer_name || "",
         customer_phone: editingDelivery.customer_phone || "",
         customer_cpf: editingDelivery.customer_cpf || "",
