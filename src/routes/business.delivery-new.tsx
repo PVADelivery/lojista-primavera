@@ -1557,6 +1557,7 @@ function NewDeliveryPage() {
                           <SelectItem value="dinheiro">Dinheiro</SelectItem>
                           <SelectItem value="cartao">Cartão (Maquininha)</SelectItem>
                           <SelectItem value="pix">PIX</SelectItem>
+                          <SelectItem value="convenio">Convênio</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
