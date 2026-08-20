@@ -1055,7 +1055,10 @@ function NewDeliveryPage() {
           <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full shadow-sm border border-border/40">
             <button
               type="button"
-              onClick={() => setDeliveryMode("rapida")}
+              onClick={() => {
+                setDeliveryMode("rapida");
+                setF(prev => ({ ...prev, delivery_type: "NORMAL" }));
+              }}
               className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
                 deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
@@ -1310,98 +1313,100 @@ function NewDeliveryPage() {
           </form>
         ) : (
           <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
-          {/* Seção: Tipo de Solicitação */}
-          <div className="space-y-3 bg-secondary/20 border border-border/40 p-4 sm:p-5 rounded-2xl">
-            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Tipo de Solicitação
-            </Label>
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setF((prev) => ({ ...prev, delivery_type: "NORMAL" }))}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${
-                  f.delivery_type !== "BUSCA_CONDICIONAL"
-                    ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
-                }`}
-              >
-                <span>Entrega Normal</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setF((prev) => ({ ...prev, delivery_type: "BUSCA_CONDICIONAL" }))}
-                className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${
-                  f.delivery_type === "BUSCA_CONDICIONAL"
-                    ? "bg-purple-600 text-white border-purple-600 shadow-sm"
-                    : "bg-background text-muted-foreground border-border hover:border-purple-500/40"
-                }`}
-              >
-                <span>Busca de Condicional</span>
-              </button>
-            </div>
+          {/* Seção: Tipo de Solicitação (Apenas no modo Entrega Normal / Completa) */}
+          {deliveryMode !== "rapida" && (
+            <div className="space-y-3 bg-secondary/20 border border-border/40 p-4 sm:p-5 rounded-2xl">
+              <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                Tipo de Solicitação
+              </Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setF((prev) => ({ ...prev, delivery_type: "NORMAL" }))}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${
+                    f.delivery_type !== "BUSCA_CONDICIONAL"
+                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                      : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                  }`}
+                >
+                  <span>Entrega Normal</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setF((prev) => ({ ...prev, delivery_type: "BUSCA_CONDICIONAL" }))}
+                  className={`flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold transition-all border ${
+                    f.delivery_type === "BUSCA_CONDICIONAL"
+                      ? "bg-purple-600 text-white border-purple-600 shadow-sm"
+                      : "bg-background text-muted-foreground border-border hover:border-purple-500/40"
+                  }`}
+                >
+                  <span>Busca de Condicional</span>
+                </button>
+              </div>
 
-            {f.delivery_type === "BUSCA_CONDICIONAL" ? (
-              <div className="mt-3 pt-3 border-t border-border/40 space-y-3">
-                <Label className="text-xs font-semibold text-foreground">
-                  Destino das Peças Recolhidas:
-                </Label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <label className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                    f.condicional_destination !== "CUSTOM"
-                      ? "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300"
-                      : "bg-background border-border text-muted-foreground"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="condicional_dest"
-                      checked={f.condicional_destination !== "CUSTOM"}
-                      onChange={() => setF((prev) => ({ ...prev, condicional_destination: "STORE" }))}
-                      className="accent-purple-600"
-                    />
-                    <span>Trazer na Minha Loja ({company?.name || "Sua Loja"})</span>
-                  </label>
+              {f.delivery_type === "BUSCA_CONDICIONAL" ? (
+                <div className="mt-3 pt-3 border-t border-border/40 space-y-3">
+                  <Label className="text-xs font-semibold text-foreground">
+                    Destino das Peças Recolhidas:
+                  </Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <label className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                      f.condicional_destination !== "CUSTOM"
+                        ? "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300"
+                        : "bg-background border-border text-muted-foreground"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="condicional_dest"
+                        checked={f.condicional_destination !== "CUSTOM"}
+                        onChange={() => setF((prev) => ({ ...prev, condicional_destination: "STORE" }))}
+                        className="accent-purple-600"
+                      />
+                      <span>Trazer na Minha Loja ({company?.name || "Sua Loja"})</span>
+                    </label>
 
-                  <label className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
-                    f.condicional_destination === "CUSTOM"
-                      ? "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300"
-                      : "bg-background border-border text-muted-foreground"
-                  }`}>
-                    <input
-                      type="radio"
-                      name="condicional_dest"
-                      checked={f.condicional_destination === "CUSTOM"}
-                      onChange={() => setF((prev) => ({ ...prev, condicional_destination: "CUSTOM" }))}
-                      className="accent-purple-600"
-                    />
-                    <span>Entregar em Outro Cliente / Endereço</span>
-                  </label>
-                </div>
-
-                {f.condicional_destination === "CUSTOM" ? (
-                  <div className="space-y-1.5 pt-1">
-                    <Label className="text-xs font-medium text-foreground">
-                      Endereço de Destino (Novo Cliente / Local):
-                    </Label>
-                    <Input
-                      value={f.condicional_custom_address}
-                      onChange={(e) => setF((prev) => ({ ...prev, condicional_custom_address: e.target.value }))}
-                      placeholder="Informe a rua, número, bairro ou nome do novo cliente..."
-                      className="rounded-xl h-10 bg-background text-xs"
-                      required
-                    />
+                    <label className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold cursor-pointer transition-all ${
+                      f.condicional_destination === "CUSTOM"
+                        ? "bg-purple-500/15 border-purple-500/50 text-purple-700 dark:text-purple-300"
+                        : "bg-background border-border text-muted-foreground"
+                    }`}>
+                      <input
+                        type="radio"
+                        name="condicional_dest"
+                        checked={f.condicional_destination === "CUSTOM"}
+                        onChange={() => setF((prev) => ({ ...prev, condicional_destination: "CUSTOM" }))}
+                        className="accent-purple-600"
+                      />
+                      <span>Entregar em Outro Cliente / Endereço</span>
+                    </label>
                   </div>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">
-                    O entregador buscará as peças no cliente informado abaixo e entregará diretamente no endereço cadastrado da sua loja.
-                  </p>
-                )}
-              </div>
-            ) : (
-              <div className="text-xs text-muted-foreground mt-1 font-medium">
-                Origem: {company?.name || "Sua Loja"} → Destino: Cliente
-              </div>
-            )}
-          </div>
+
+                  {f.condicional_destination === "CUSTOM" ? (
+                    <div className="space-y-1.5 pt-1">
+                      <Label className="text-xs font-medium text-foreground">
+                        Endereço de Destino (Novo Cliente / Local):
+                      </Label>
+                      <Input
+                        value={f.condicional_custom_address}
+                        onChange={(e) => setF((prev) => ({ ...prev, condicional_custom_address: e.target.value }))}
+                        placeholder="Informe a rua, número, bairro ou nome do novo cliente..."
+                        className="rounded-xl h-10 bg-background text-xs"
+                        required
+                      />
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted-foreground">
+                      O entregador buscará as peças no cliente informado abaixo e entregará diretamente no endereço cadastrado da sua loja.
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="text-xs text-muted-foreground mt-1 font-medium">
+                  Origem: {company?.name || "Sua Loja"} → Destino: Cliente
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Seção: Cliente */}
           <section className="space-y-4">
