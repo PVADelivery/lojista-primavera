@@ -661,22 +661,7 @@ function NewDeliveryPage() {
     }
   }, [pickupCoords, dropoffCoords]);
 
-  // Update shipping value dynamically based on distance and vehicle type
-  useEffect(() => {
-    if (routeDistance !== null) {
-      let baseFee = 5.99;
-      let rate = 2.0;
-      if (f.vehicle_type === "carro") {
-        baseFee = 9.99;
-        rate = 3.0;
-      } else if (f.vehicle_type === "carro_aberto") {
-        baseFee = 30.0;
-        rate = 5.0;
-      }
-      const calculatedVal = baseFee + routeDistance * rate;
-      setF((prev) => ({ ...prev, value: calculatedVal.toFixed(2) }));
-    }
-  }, [routeDistance, f.vehicle_type]);
+  // Taxa de entrega é definida exclusivamente pela região selecionada no RegionZoneSelector
 
   const handleGeocodeSearch = async () => {
     if (!f.address) return;
