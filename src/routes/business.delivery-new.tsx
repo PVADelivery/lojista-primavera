@@ -51,6 +51,7 @@ function NewDeliveryPage() {
   const [busy, setBusy] = useState(false);
   const { edit: editId } = Route.useSearch();
   const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">("rapida");
+  const [batchCount, setBatchCount] = useState<number>(1);
   const [batchItems, setBatchItems] = useState<
     {
       customer_name: string;
