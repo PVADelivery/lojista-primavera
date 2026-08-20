@@ -327,8 +327,8 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
         </div>
 
         <div className="flex items-center gap-1.5">
-          {/* Edit button: only for manual pending deliveries */}
-          {!marketplace && isPending && (
+          {/* Edit button: for all active manual deliveries */}
+          {!marketplace && d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled" && (
             <Link
               to="/business/delivery-new"
               search={{ edit: d.id }}
