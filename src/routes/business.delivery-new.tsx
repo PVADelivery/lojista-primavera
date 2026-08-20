@@ -1803,7 +1803,7 @@ function NewDeliveryPage() {
                   <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                     Tipo de Veículo Solicitado <span className="text-destructive">*</span>
                   </Label>
-                  <span className="text-[11px] text-amber-500 font-bold">Padrão: 🏍️ Moto</span>
+                  <span className="text-[11px] text-amber-500 font-bold">Padrão: Moto</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -1816,7 +1816,7 @@ function NewDeliveryPage() {
                     }`}
                   >
                     <Motorbike className="h-4 w-4" />
-                    <span>🏍️ Moto (Padrão)</span>
+                    <span>Moto (Padrão)</span>
                   </button>
                   <button
                     type="button"
@@ -1828,7 +1828,7 @@ function NewDeliveryPage() {
                     }`}
                   >
                     <Car className="h-4 w-4" />
-                    <span>🚗 Carro</span>
+                    <span>Carro</span>
                   </button>
                 </div>
               </div>
