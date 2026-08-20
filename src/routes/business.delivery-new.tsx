@@ -990,7 +990,7 @@ function NewDeliveryPage() {
       }
 
       // 3. Write Manual Delivery (either update or insert)
-      let deliveryWrite: any = null;
+      let deliveryWrite: any = { data: null, error: null };
       if (editId) {
         deliveryWrite = await supabase
           .from("deliveries")
