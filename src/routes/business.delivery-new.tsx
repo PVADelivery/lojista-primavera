@@ -1689,70 +1689,97 @@ function NewDeliveryPage() {
               
               {deliveryMode === "normal" && (
                 <>
-                  <div className="grid sm:grid-cols-[2fr_1fr] gap-4">
-                    <div className="space-y-1.5">
-                      <Label>Rua / Avenida</Label>
-                      <div className="relative">
-                        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  {f.delivery_type === "BUSCA_CONDICIONAL" ? (
+                    f.condicional_destination === "CUSTOM" ? (
+                      <div className="space-y-1.5 bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl">
+                        <Label className="text-xs font-bold text-purple-700 dark:text-purple-300">
+                          Endereço de Destino (Novo Cliente / Local de Entrega) *
+                        </Label>
                         <Input
-                          value={f.address}
-                          onChange={(e) => setF({ ...f, address: e.target.value })}
-                          required={deliveryMode === "normal" && f.delivery_type !== "BUSCA_CONDICIONAL"}
-                          className="rounded-xl h-11 pl-9 bg-background"
-                          placeholder="Ex: Av. Brasil (ou deixe em branco se for recolher no cliente)"
+                          value={f.condicional_custom_address}
+                          onChange={(e) => setF((prev) => ({ ...prev, condicional_custom_address: e.target.value }))}
+                          placeholder="Informe a rua, número, bairro ou nome do cliente destino..."
+                          className="rounded-xl h-11 bg-background text-xs"
+                          required
                         />
                       </div>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Número</Label>
-                      <Input
-                        value={f.customer_address_number}
-                        onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
-                        required={deliveryMode === "normal" && f.delivery_type !== "BUSCA_CONDICIONAL"}
-                        className="rounded-xl h-11 bg-background"
-                        placeholder="Ex: 123"
-                      />
-                    </div>
-                  </div>
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>Complemento (Opcional)</Label>
-                      <Input
-                        value={f.customer_address_complement}
-                        onChange={(e) => setF({ ...f, customer_address_complement: e.target.value })}
-                        className="rounded-xl h-11 bg-background"
-                        placeholder="Apto, Bloco, Casa..."
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Tipo de Endereço</Label>
-                      <div className="flex gap-2">
-                        {[
-                          { id: "Casa", label: "Casa", icon: Home },
-                          { id: "Trabalho", label: "Trabalho", icon: Briefcase },
-                          { id: "Outro", label: "Outro", icon: MapPin },
-                        ].map((item) => {
-                          const active = f.address_label === item.id;
-                          const Icon = item.icon;
-                          return (
-                            <button
-                              key={item.id}
-                              type="button"
-                              onClick={() => setF({ ...f, address_label: item.id })}
-                              className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border text-xs font-bold transition-all ${
-                                active
-                                  ? "border-primary bg-primary/10 text-primary animate-scaleIn"
-                                  : "border-input bg-background text-muted-foreground hover:bg-muted/50"
-                              }`}
-                            >
-                              <Icon className="h-3.5 w-3.5" />
-                              {item.label}
-                            </button>
-                          );
-                        })}
+                    ) : (
+                      <div className="bg-purple-500/10 border border-purple-500/20 p-4 rounded-xl text-xs text-purple-700 dark:text-purple-300 space-y-1">
+                        <p className="font-bold text-sm">Destino da Entrega: Sua Loja ({company?.name || "Loja"})</p>
+                        <p className="opacity-90">{company?.address || "Endereço cadastrado da sua loja"}</p>
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          Não é necessário preencher o endereço de destino. O entregador trará as peças recolhidas no cliente diretamente para a sua loja.
+                        </p>
                       </div>
-                    </div>
-                  </div>
+                    )
+                  ) : (
+                    <>
+                      <div className="grid sm:grid-cols-[2fr_1fr] gap-4">
+                        <div className="space-y-1.5">
+                          <Label>Rua / Avenida</Label>
+                          <div className="relative">
+                            <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              value={f.address}
+                              onChange={(e) => setF({ ...f, address: e.target.value })}
+                              required={deliveryMode === "normal"}
+                              className="rounded-xl h-11 pl-9 bg-background"
+                              placeholder="Ex: Av. Brasil"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Número</Label>
+                          <Input
+                            value={f.customer_address_number}
+                            onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
+                            required={deliveryMode === "normal"}
+                            className="rounded-xl h-11 bg-background"
+                            placeholder="Ex: 123"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <Label>Complemento (Opcional)</Label>
+                          <Input
+                            value={f.customer_address_complement}
+                            onChange={(e) => setF({ ...f, customer_address_complement: e.target.value })}
+                            className="rounded-xl h-11 bg-background"
+                            placeholder="Apto, Bloco, Casa..."
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>Tipo de Endereço</Label>
+                          <div className="flex gap-2">
+                            {[
+                              { id: "Casa", label: "Casa", icon: Home },
+                              { id: "Trabalho", label: "Trabalho", icon: Briefcase },
+                              { id: "Outro", label: "Outro", icon: MapPin },
+                            ].map((item) => {
+                              const active = f.address_label === item.id;
+                              const Icon = item.icon;
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => setF({ ...f, address_label: item.id })}
+                                  className={`flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border text-xs font-bold transition-all ${
+                                    active
+                                      ? "border-primary bg-primary/10 text-primary animate-scaleIn"
+                                      : "border-input bg-background text-muted-foreground hover:bg-muted/50"
+                                  }`}
+                                >
+                                  <Icon className="h-3.5 w-3.5" />
+                                  {item.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   {/* Observações */}
                   <div className="space-y-1.5">
