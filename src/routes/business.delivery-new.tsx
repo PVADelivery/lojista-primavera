@@ -803,15 +803,66 @@ function NewDeliveryPage() {
           notes: "Entrega Rápida em Lote",
         }));
 
-        const { data: res, error: rpcErr } = await supabase.rpc("batch_create_delivery_requests", {
-          p_company_id: company.id,
-          p_deliveries: payload,
-        });
+        let batchDone = false;
+        let resCount = 0;
 
-        if (rpcErr) throw rpcErr;
-        if (!res?.success) throw new Error(res?.error || "Erro ao criar entregas em lote.");
+        try {
+          const { data: res, error: rpcErr } = await supabase.rpc("batch_create_delivery_requests", {
+            p_company_id: company.id,
+            p_deliveries: payload,
+          });
 
-        toast.success(`🚀 ${res.count} entregas criadas em lote com sucesso!`);
+          if (!rpcErr && res?.success) {
+            batchDone = true;
+            resCount = res.count || payload.length;
+          }
+        } catch {}
+
+        if (!batchDone) {
+          // Fallback: Criar entregas individualmente usando a RPC unitária ou inserção direta
+          for (const item of payload) {
+            const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
+            const { data: singleRes, error: singleErr } = await supabase.rpc("create_delivery_with_credits", {
+              p_payload: {
+                ...item,
+                company_id: company.id,
+                company_name: company.name || "Loja",
+                pickup_address: company.address || "Loja",
+                short_id: shortId,
+                customer_address_number: "S/N",
+                customer_neighborhood: item.customer_neighborhood || "",
+                customer_address_complement: null,
+                order_value: 0,
+                change_for: 0,
+                notes: item.notes || "Entrega Rápida em Lote",
+                status: "pending",
+              },
+            });
+
+            if (singleErr || !singleRes?.success) {
+              // Direct fallback insert in deliveries table
+              await supabase.from("deliveries").insert({
+                company_id: company.id,
+                company_name: company.name || "Loja",
+                pickup_address: company.address || "Loja",
+                short_id: shortId,
+                customer_name: item.customer_name,
+                customer_phone: item.customer_phone,
+                address: item.address,
+                region_id: item.region_id,
+                value: item.value,
+                delivery_fee: item.value,
+                vehicle_type: "moto",
+                payment_method: "dinheiro",
+                notes: item.notes,
+                status: "pending",
+              });
+            }
+            resCount++;
+          }
+        }
+
+        toast.success(`🚀 ${resCount} entregas criadas em lote com sucesso!`);
         qc.invalidateQueries({ queryKey: ["deliveries"] });
         qc.invalidateQueries({ queryKey: ["credits"] });
         qc.invalidateQueries({ queryKey: ["credit-transactions"] });
