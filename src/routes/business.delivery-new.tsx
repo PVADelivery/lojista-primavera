@@ -51,13 +51,21 @@ function NewDeliveryPage() {
   const [busy, setBusy] = useState(false);
   const { edit: editId } = Route.useSearch();
   const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">("rapida");
-  const [batchCount, setBatchCount] = useState<number>(1);
   const [batchItems, setBatchItems] = useState<
-    { customer_name: string; customer_phone: string; region_id: string; value: number }[]
+    {
+      customer_name: string;
+      customer_phone: string;
+      region_id: string;
+      value: number;
+      is_paid: boolean;
+      payment_method: string;
+      order_value: string;
+      change_for: string;
+    }[]
   >([
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
-    { customer_name: "", customer_phone: "", region_id: "none", value: 0 },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
+    { customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" },
   ]);
 
   const handleBatchCountChange = (cnt: number) => {
@@ -66,7 +74,7 @@ function NewDeliveryPage() {
     setBatchItems((prev) => {
       const next = [...prev];
       while (next.length < newCount) {
-        next.push({ customer_name: "", customer_phone: "", region_id: "none", value: 0 });
+        next.push({ customer_name: "", customer_phone: "", region_id: "none", value: 0, is_paid: true, payment_method: "cartao", order_value: "", change_for: "" });
       }
       return next.slice(0, newCount);
     });
@@ -791,17 +799,24 @@ function NewDeliveryPage() {
 
       setBusy(true);
       try {
-        const payload = activeItems.map((item) => ({
-          customer_name: item.customer_name.trim(),
-          customer_phone: item.customer_phone.trim(),
-          address: "Entrega Rápida",
-          region_id: item.region_id,
-          value: item.value,
-          vehicle_type: "moto",
-          payment_method: "dinheiro",
-          is_paid: true,
-          notes: "Entrega Rápida em Lote",
-        }));
+        const payload = activeItems.map((item) => {
+          const numOrderVal = item.is_paid ? 0 : (Number((item.order_value || "").replace(",", ".")) || 0);
+          const numChangeFor = item.is_paid ? 0 : (Number((item.change_for || "").replace(",", ".")) || 0);
+          return {
+            customer_name: item.customer_name.trim(),
+            customer_phone: item.customer_phone.trim(),
+            address: "Entrega Rápida",
+            region_id: item.region_id,
+            value: item.value,
+            delivery_fee: item.value,
+            vehicle_type: "moto",
+            payment_method: item.is_paid ? "pago" : (item.payment_method || "cartao"),
+            is_paid: item.is_paid,
+            order_value: numOrderVal,
+            change_for: numChangeFor,
+            notes: "Entrega Rápida em Lote",
+          };
+        });
 
         let batchDone = false;
         let resCount = 0;
@@ -1327,6 +1342,93 @@ function NewDeliveryPage() {
                         });
                       }}
                     />
+                  </div>
+
+                  {/* Acerto com Cliente (Cobrança) */}
+                  <div className="pt-3 border-t border-border/30 space-y-3 bg-emerald-500/5 p-4 rounded-xl border border-emerald-500/20">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-xs font-bold text-emerald-800 dark:text-emerald-300">Pedido já foi pago?</Label>
+                        <p className="text-[11px] text-muted-foreground">O entregador não precisará cobrar nada do cliente.</p>
+                      </div>
+                      <Switch
+                        checked={item.is_paid}
+                        onCheckedChange={(c) => {
+                          setBatchItems((prev) => {
+                            const copy = [...prev];
+                            copy[idx] = { ...copy[idx], is_paid: c };
+                            return copy;
+                          });
+                        }}
+                      />
+                    </div>
+
+                    {!item.is_paid && (
+                      <div className="space-y-3 pt-1">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Forma de Pagamento</Label>
+                            <select
+                              value={item.payment_method}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBatchItems((prev) => {
+                                  const copy = [...prev];
+                                  copy[idx] = { ...copy[idx], payment_method: val };
+                                  return copy;
+                                });
+                              }}
+                              className="w-full h-10 rounded-xl bg-background border border-emerald-500/30 text-xs px-3 font-semibold focus:outline-none"
+                            >
+                              <option value="cartao">Cartão (Maquininha)</option>
+                              <option value="dinheiro">Dinheiro</option>
+                              <option value="pix">PIX</option>
+                              <option value="convenio">Convênio</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Valor a Cobrar do Cliente (R$)</Label>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={item.order_value}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBatchItems((prev) => {
+                                  const copy = [...prev];
+                                  copy[idx] = { ...copy[idx], order_value: val };
+                                  return copy;
+                                });
+                              }}
+                              placeholder="0,00"
+                              className="rounded-xl h-10 bg-background border-emerald-500/40 text-xs font-bold"
+                            />
+                          </div>
+                        </div>
+
+                        {item.payment_method === "dinheiro" && (
+                          <div className="space-y-1">
+                            <Label className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Troco para quanto? (R$)</Label>
+                            <Input
+                              type="text"
+                              inputMode="numeric"
+                              value={item.change_for}
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                setBatchItems((prev) => {
+                                  const copy = [...prev];
+                                  copy[idx] = { ...copy[idx], change_for: val };
+                                  return copy;
+                                });
+                              }}
+                              placeholder="0,00 (ou deixe em branco se não precisar)"
+                              className="rounded-xl h-10 bg-background border-emerald-500/40 text-xs font-bold"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
