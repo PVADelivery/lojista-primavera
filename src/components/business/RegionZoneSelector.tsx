@@ -285,7 +285,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
         color: r.color || "#eab308",
       };
     });
-  }, [dbRegions, dbHoods, dbRules, companySettings, myCompany]);
+  }, [dbRegions, dbHoods, dbRules, companySettings, myCompany, vehicleType]);
 
   // Lista agregada de todos os bairros para a busca rápida
   const allSearchableNeighborhoods = useMemo(() => {
@@ -316,7 +316,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
 
   useEffect(() => {
     if (resolvedZones.length > 0) {
-      const activeId = selectedRegionId || initialSelectedId;
+      const activeId = selected?.zoneId || selectedRegionId || initialSelectedId;
       let match = activeId && activeId !== "none" ? resolvedZones.find((z) => z.id === activeId) : null;
       
       // Se nenhuma região estiver pré-selecionada (ou estiver 'none'), seleciona a 1ª região por padrão
@@ -331,7 +331,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
         onRegionSelect?.(match.price, match.id, match.title);
       }
     }
-  }, [selectedRegionId, initialSelectedId, resolvedZones]);
+  }, [selectedRegionId, initialSelectedId, resolvedZones, vehicleType]);
 
   const handleSelectFromSearch = (item: { name: string; zone: DeliveryZone }) => {
     setSearchTerm(item.name);
