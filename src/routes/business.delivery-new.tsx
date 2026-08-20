@@ -755,11 +755,12 @@ function NewDeliveryPage() {
     toast.success(`Cliente ${cust.name} preenchido na Entrega #${idx + 1}!`);
   };
 
-  const handleRegionSelect = (fee: number, regionId: string, regionName: string) => {
+  const handleRegionSelect = (fee: number | string, regionId: string, regionName: string) => {
+    const numFee = typeof fee === "number" ? fee : (parseFloat(fee) || 0);
     setF(prev => ({
       ...prev,
       region_id: regionId,
-      value: fee.toFixed(2),
+      value: numFee.toFixed(2),
       customer_neighborhood: regionName || prev.customer_neighborhood,
     }));
   };
@@ -1011,6 +1012,7 @@ function NewDeliveryPage() {
             vehicle_type: f.vehicle_type,
             region_id: f.region_id === "none" ? null : f.region_id,
             value: Number(f.value || 0),
+            delivery_fee: Number(f.value || 0),
             notes: f.notes,
           })
           .eq("id", editId)
@@ -1813,7 +1815,7 @@ function NewDeliveryPage() {
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
                 <RegionZoneSelector
                   onRegionSelect={handleRegionSelect}
-                  onSelectZone={(zoneId, price) => handleRegionSelect(price, zoneId, "")}
+                  onSelectZone={(regionId, fee) => handleRegionSelect(fee, regionId, "")}
                   companyId={company?.id}
                   initialSelectedId={f.region_id}
                 />
