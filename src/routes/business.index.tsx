@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
@@ -290,10 +290,12 @@ function EmptyState({ icon: Icon, text, action }: any) {
 }
 
 function DeliveryCard({ d, marketplace, onCancel }: any) {
+  const navigate = useNavigate();
   const isPending = d.status === "pending" || d.status === "broadcasted";
   const isAccepted = d.status === "accepted";
   const isCollecting = d.status === "collecting";
   const isInRoute = d.status === "in_route" || d.status === "in_transit";
+  const isEditable = d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled";
 
   // Determinar etapa de progresso (0 = Aguardando, 1 = Aceita, 2 = Coletando, 3 = Em Rota)
   const stepIndex = isInRoute ? 3 : isCollecting ? 2 : isAccepted ? 1 : 0;
@@ -328,15 +330,15 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
 
         <div className="flex items-center gap-1.5">
           {/* Edit button: for all active manual deliveries */}
-          {!marketplace && d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled" && (
-            <Link
-              to="/business/delivery-new"
-              search={{ edit: d.id }}
-              className="p-2 rounded-xl bg-secondary/80 hover:bg-secondary text-muted-foreground hover:text-foreground transition-all shadow-sm flex items-center justify-center"
+          {!marketplace && isEditable && (
+            <button
+              type="button"
+              onClick={() => navigate({ to: "/business/delivery-new", search: { edit: d.id } })}
+              className="p-2 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-500 hover:text-black transition-all shadow-sm flex items-center justify-center border border-amber-500/40 shrink-0"
               title="Editar corrida"
             >
               <Pencil className="h-3.5 w-3.5" />
-            </Link>
+            </button>
           )}
           {/* Cancel button: for all active deliveries */}
           {d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled" && (
