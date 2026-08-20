@@ -796,6 +796,7 @@ function NewDeliveryPage() {
           customer_phone: item.customer_phone.trim(),
           address: "Entrega Rápida",
           region_id: item.region_id,
+          customer_neighborhood: (regions ?? []).find(r => r.id === item.region_id)?.name || "",
           value: item.value,
           vehicle_type: "moto",
           payment_method: "dinheiro",
