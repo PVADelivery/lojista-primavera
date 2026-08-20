@@ -86,9 +86,10 @@ interface Props {
   companyId?: string;
   initialSelectedId?: string;
   selectedRegionId?: string;
+  vehicleType?: string;
 }
 
-export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled, companyId, initialSelectedId, selectedRegionId }: Props) => {
+export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled, companyId, initialSelectedId, selectedRegionId, vehicleType = "moto" }: Props) => {
   const { data: myCompany } = useMyCompany();
   const [loading, setLoading] = useState(true);
   const [dbRegions, setDbRegions] = useState<any[]>([]);
@@ -233,7 +234,10 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
     }
 
     return dbRegions.map((r, index) => {
-      let finalPrice = Number(r.price ?? r.delivery_fee ?? 0);
+      const isCar = vehicleType === "carro";
+      const motoFee = Number(r.price ?? r.delivery_fee ?? 0);
+      const carFee = Number(r.car_price && Number(r.car_price) > 0 ? r.car_price : (motoFee * 1.5));
+      let finalPrice = isCar ? carFee : motoFee;
 
       // 1. Checa se a loja utiliza taxa de entrega fixa
       if (activeComp?.delivery_mode === "fixed_fee" && activeComp?.delivery_fee != null) {

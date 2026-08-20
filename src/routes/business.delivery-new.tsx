@@ -1326,6 +1326,7 @@ function NewDeliveryPage() {
                     <RegionZoneSelector
                       companyId={company?.id}
                       selectedRegionId={item.region_id}
+                      vehicleType={item.vehicle_type}
                       onSelectZone={(zoneId, val) => {
                         setBatchItems((prev) => {
                           const copy = [...prev];
@@ -1840,6 +1841,7 @@ function NewDeliveryPage() {
                   onSelectZone={(regionId, fee) => handleRegionSelect(fee, regionId, "")}
                   companyId={company?.id}
                   initialSelectedId={f.region_id}
+                  vehicleType={f.vehicle_type}
                 />
               </div>
 

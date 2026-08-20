@@ -27,6 +27,7 @@ export interface BatchItem {
   region_id: string;
   region_name: string;
   value: string;
+  vehicle_type?: string;
 }
 
 interface Props {
@@ -150,6 +151,7 @@ export function BatchDeliveryModal({ open, onOpenChange, onSuccess }: Props) {
         address: item.address.trim(),
         region_id: item.region_id,
         value: parseFloat(item.value),
+        vehicle_type: item.vehicle_type || "moto",
       }));
 
       const { data, error } = await supabase.rpc("batch_create_delivery_requests", {
