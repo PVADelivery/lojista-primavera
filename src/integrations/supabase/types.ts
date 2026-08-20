@@ -803,6 +803,7 @@ export type Database = {
           accepted_at: string | null
           address: string
           assignment_type: string | null
+          batch_id: string | null
           cancellation_reason: string | null
           cancelled_at: string | null
           change_for: number | null
@@ -853,6 +854,7 @@ export type Database = {
           accepted_at?: string | null
           address: string
           assignment_type?: string | null
+          batch_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           change_for?: number | null
@@ -903,6 +905,7 @@ export type Database = {
           accepted_at?: string | null
           address?: string
           assignment_type?: string | null
+          batch_id?: string | null
           cancellation_reason?: string | null
           cancelled_at?: string | null
           change_for?: number | null
@@ -2543,6 +2546,10 @@ export type Database = {
     }
     Functions: {
       accept_delivery: { Args: { p_delivery_id: string }; Returns: Json }
+      accept_delivery_batch: {
+        Args: { p_batch_id: string; p_driver_id: string }
+        Returns: Json
+      }
       add_company_credits: {
         Args: {
           _amount: number
@@ -2555,6 +2562,10 @@ export type Database = {
       }
       admin_add_credits: {
         Args: { _amount: number; _company_id: string; _description?: string }
+        Returns: Json
+      }
+      batch_create_delivery_requests: {
+        Args: { p_company_id: string; p_deliveries: Json }
         Returns: Json
       }
       create_admin_user:
@@ -2632,6 +2643,15 @@ export type Database = {
           whatsapp: string
         }[]
       }
+      get_company_pricing_rules: {
+        Args: { p_company_id: string }
+        Returns: {
+          base_value: number
+          destination_region_id: string
+          origin_region_id: string
+          pricing_table_id: string
+        }[]
+      }
       get_delivery_company_info: {
         Args: { _company_id: string }
         Returns: {
@@ -2694,6 +2714,10 @@ export type Database = {
       is_company_safe: { Args: never; Returns: boolean }
       is_driver: { Args: { _user_id: string }; Returns: boolean }
       refund_delivery_credit: { Args: { p_delivery_id: string }; Returns: Json }
+      set_company_pricing_table: {
+        Args: { p_company_id: string; p_pricing_table_id: string }
+        Returns: Json
+      }
       unassign_delivery_driver: {
         Args: { p_delivery_id: string }
         Returns: Json
