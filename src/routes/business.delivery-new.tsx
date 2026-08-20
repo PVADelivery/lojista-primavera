@@ -74,6 +74,7 @@ function NewDeliveryPage() {
 
   // Form State
   const [f, setF] = useState({
+    delivery_type: "NORMAL",
     customer_name: "",
     customer_phone: "",
     customer_cpf: "",
@@ -113,6 +114,7 @@ function NewDeliveryPage() {
   useEffect(() => {
     if (editingDelivery) {
       setF({
+        delivery_type: editingDelivery.delivery_type || "NORMAL",
         customer_name: editingDelivery.customer_name || "",
         customer_phone: editingDelivery.customer_phone || "",
         customer_cpf: editingDelivery.customer_cpf || "",
@@ -920,6 +922,7 @@ function NewDeliveryPage() {
         deliveryWrite = await supabase
           .from("deliveries")
           .update({
+            delivery_type: f.delivery_type || "NORMAL",
             company_id: company.id,
             customer_id: custId || null,
             customer_name: f.customer_name,
@@ -943,6 +946,7 @@ function NewDeliveryPage() {
       } else {
         const { data: rpcRes, error: rpcErr } = await supabase.rpc("create_delivery_with_credits", {
           p_payload: {
+            delivery_type: f.delivery_type || "NORMAL",
             company_name: company.name || "Loja Parceira",
             pickup_address: company.address || null,
             company_id: company.id,
@@ -1299,6 +1303,54 @@ function NewDeliveryPage() {
           </form>
         ) : (
           <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
+          {/* Seção: Tipo de Solicitação */}
+          <div className="space-y-3 bg-secondary/20 border border-border/40 p-4 sm:p-5 rounded-2xl">
+            <Label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Tipo de Solicitação
+            </Label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setF((prev) => ({ ...prev, delivery_type: "NORMAL" }))}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black transition-all border ${
+                  f.delivery_type !== "BUSCA_CONDICIONAL"
+                    ? "bg-primary text-primary-foreground border-primary shadow-md"
+                    : "bg-background text-muted-foreground border-border hover:border-primary/40"
+                }`}
+              >
+                <span>📦 Entrega Normal</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setF((prev) => ({ ...prev, delivery_type: "BUSCA_CONDICIONAL" }))}
+                className={`flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-black transition-all border ${
+                  f.delivery_type === "BUSCA_CONDICIONAL"
+                    ? "bg-purple-600 text-white border-purple-600 shadow-md"
+                    : "bg-background text-muted-foreground border-border hover:border-purple-500/40"
+                }`}
+              >
+                <span>👗 Busca de Condicional</span>
+              </button>
+            </div>
+            {f.delivery_type === "BUSCA_CONDICIONAL" ? (
+              <div className="text-xs font-semibold text-purple-600 dark:text-purple-400 mt-2 bg-purple-500/10 border border-purple-500/20 p-3 rounded-xl">
+                <p className="font-bold flex items-center gap-1.5 text-sm mb-1 text-purple-700 dark:text-purple-300">
+                  <span>👗 Modalidade: Busca de Condicional</span>
+                </p>
+                <p>
+                  O entregador irá <strong>coletar as roupas no Cliente</strong> e <strong>entregar na sua Loja</strong>.
+                </p>
+                <p className="mt-1 text-[11px] opacity-80">
+                  📍 <strong>Origem:</strong> {f.customer_name || "Cliente"} → 📍 <strong>Destino:</strong> {company?.name || "Sua Loja"}
+                </p>
+              </div>
+            ) : (
+              <div className="text-xs font-medium text-muted-foreground mt-2 bg-muted/40 p-2.5 rounded-xl border border-border/40">
+                📍 <strong>Origem:</strong> {company?.name || "Sua Loja"} → 📍 <strong>Destino:</strong> {f.customer_name || "Cliente"}
+              </div>
+            )}
+          </div>
+
           {/* Seção: Cliente */}
           <section className="space-y-4">
             <h3 className="text-sm font-bold flex items-center gap-2 text-foreground/80">

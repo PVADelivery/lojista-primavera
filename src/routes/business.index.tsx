@@ -312,7 +312,11 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
       {/* Top Header: Origem da Corrida & Ações */}
       <div className="flex items-center justify-between pb-3 border-b border-border/40">
         <div className="flex items-center gap-2">
-          {marketplace ? (
+          {d.delivery_type === "BUSCA_CONDICIONAL" ? (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-300 text-[11px] font-black uppercase tracking-wider border border-purple-500/30">
+              <span className="h-2 w-2 rounded-full bg-purple-500" /> Busca de Condicional
+            </span>
+          ) : marketplace ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-info/10 text-info text-[11px] font-black uppercase tracking-wider border border-info/20">
               <span className="h-2 w-2 rounded-full bg-info" /> Marketplace
             </span>
