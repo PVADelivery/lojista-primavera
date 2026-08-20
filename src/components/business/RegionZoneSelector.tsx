@@ -235,8 +235,8 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
 
     return dbRegions.map((r, index) => {
       const isCar = vehicleType === "carro";
-      const motoFee = Number(r.price ?? r.delivery_fee ?? 0);
-      const carFee = Number(r.car_price && Number(r.car_price) > 0 ? r.car_price : (motoFee * 1.5));
+      const motoFee = Number(r.price ?? 0);
+      const carFee = Number((r.delivery_fee && Number(r.delivery_fee) > 0) ? r.delivery_fee : (motoFee * 1.5));
       let finalPrice = isCar ? carFee : motoFee;
 
       // 1. Checa se a loja utiliza taxa de entrega fixa
@@ -252,7 +252,9 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
             rule.base_value !== ""
         );
         if (ruleMatch) {
-          finalPrice = Number(ruleMatch.base_value);
+          const ruleMoto = Number(ruleMatch.base_value);
+          const ruleCar = Number((ruleMatch.return_value && Number(ruleMatch.return_value) > 0) ? ruleMatch.return_value : (ruleMoto * 1.5));
+          finalPrice = isCar ? ruleCar : ruleMoto;
         }
       }
       // 3. Fallback para matriz de preços legada (delivery_regions_pricing)
