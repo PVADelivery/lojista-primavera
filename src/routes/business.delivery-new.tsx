@@ -745,9 +745,8 @@ function NewDeliveryPage() {
       ...prev,
       region_id: regionId,
       value: fee.toFixed(2),
-      customer_neighborhood: regionName,
+      customer_neighborhood: regionName || prev.customer_neighborhood,
     }));
-    toast.success(`Região selecionada: ${regionName} - R$ ${fee.toFixed(2)}`);
   };
 
   const handleMoneyChange = (field: "value" | "order_value" | "change_for", val: string) => {
