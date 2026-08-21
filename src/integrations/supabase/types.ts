@@ -811,6 +811,7 @@ export type Database = {
           collected_at: string | null
           commission: number
           company_id: string
+          company_name: string | null
           completed_at: string | null
           created_at: string
           customer_address_complement: string | null
@@ -821,8 +822,10 @@ export type Database = {
           customer_neighborhood: string | null
           customer_phone: string | null
           delivery_address: string | null
+          delivery_fee: number | null
           delivery_latitude: number | null
           delivery_longitude: number | null
+          delivery_type: string | null
           difficulty: string | null
           distance_km: number | null
           driver_id: string | null
@@ -862,6 +865,7 @@ export type Database = {
           collected_at?: string | null
           commission?: number
           company_id: string
+          company_name?: string | null
           completed_at?: string | null
           created_at?: string
           customer_address_complement?: string | null
@@ -872,8 +876,10 @@ export type Database = {
           customer_neighborhood?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          delivery_fee?: number | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_type?: string | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -913,6 +919,7 @@ export type Database = {
           collected_at?: string | null
           commission?: number
           company_id?: string
+          company_name?: string | null
           completed_at?: string | null
           created_at?: string
           customer_address_complement?: string | null
@@ -923,8 +930,10 @@ export type Database = {
           customer_neighborhood?: string | null
           customer_phone?: string | null
           delivery_address?: string | null
+          delivery_fee?: number | null
           delivery_latitude?: number | null
           delivery_longitude?: number | null
+          delivery_type?: string | null
           difficulty?: string | null
           distance_km?: number | null
           driver_id?: string | null
@@ -1859,6 +1868,7 @@ export type Database = {
       pricing_rules: {
         Row: {
           base_value: number
+          car_base_value: number | null
           created_at: string
           destination_region_id: string
           id: string
@@ -1869,6 +1879,7 @@ export type Database = {
         }
         Insert: {
           base_value?: number
+          car_base_value?: number | null
           created_at?: string
           destination_region_id: string
           id?: string
@@ -1879,6 +1890,7 @@ export type Database = {
         }
         Update: {
           base_value?: number
+          car_base_value?: number | null
           created_at?: string
           destination_region_id?: string
           id?: string
@@ -2158,6 +2170,7 @@ export type Database = {
       }
       regions: {
         Row: {
+          car_price: number | null
           color: string
           created_at: string
           delivery_fee: number | null
@@ -2170,6 +2183,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          car_price?: number | null
           color?: string
           created_at?: string
           delivery_fee?: number | null
@@ -2182,6 +2196,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          car_price?: number | null
           color?: string
           created_at?: string
           delivery_fee?: number | null
@@ -2714,6 +2729,7 @@ export type Database = {
       is_company_safe: { Args: never; Returns: boolean }
       is_driver: { Args: { _user_id: string }; Returns: boolean }
       refund_delivery_credit: { Args: { p_delivery_id: string }; Returns: Json }
+      request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
       set_company_pricing_table: {
         Args: { p_company_id: string; p_pricing_table_id: string }
         Returns: Json
@@ -2732,6 +2748,10 @@ export type Database = {
             }
             Returns: Json
           }
+      update_delivery_with_credits: {
+        Args: { p_delivery_id: string; p_payload: Json }
+        Returns: Json
+      }
       user_owns_company:
         | { Args: { _company_id: string }; Returns: boolean }
         | { Args: { _company_id: string; _user_id: string }; Returns: boolean }
