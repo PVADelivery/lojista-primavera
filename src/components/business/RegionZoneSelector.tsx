@@ -240,7 +240,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       let finalPrice = isCar ? carFee : motoFee;
 
       // 1. Checa se a loja utiliza taxa de entrega fixa
-      if (activeComp?.delivery_mode === "fixed_fee" && activeComp?.delivery_fee != null) {
+      if (activeComp?.delivery_mode === "fixed_fee" && activeComp?.delivery_fee != null && Number(activeComp.delivery_fee) > 0) {
         finalPrice = Number(activeComp.delivery_fee);
       } 
       // 2. Checa se a loja possui Tabela de Preços Personalizada atribuída pelo Admin (pricing_table_id)
@@ -249,26 +249,29 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
           (rule: any) =>
             (rule.origin_region_id === r.id || rule.destination_region_id === r.id) &&
             rule.base_value != null &&
-            rule.base_value !== ""
+            rule.base_value !== "" &&
+            Number(rule.base_value) > 0
         );
         if (ruleMatch) {
           const ruleMoto = Number(ruleMatch.base_value);
           const ruleCar = Number((ruleMatch.return_value && Number(ruleMatch.return_value) > 0) ? ruleMatch.return_value : (ruleMoto * 1.5));
           finalPrice = isCar ? ruleCar : ruleMoto;
+        } else {
+          // Se esta região for "(padrão da região)", usa o valor oficial da tabela de regiões
+          finalPrice = isCar ? carFee : motoFee;
         }
       }
       // 3. Fallback para matriz de preços legada (delivery_regions_pricing)
       else if (customMatrix.length > 0) {
-        const match = customMatrix.find((m: any) => m.region_id === r.id || m.to === r.id);
+        const match = customMatrix.find((m: any) => (m.region_id === r.id || m.to === r.id) && Number(m.price) > 0);
         if (match && match.price != null && match.price !== "") {
           finalPrice = Number(match.price);
         }
       }
 
-      // Se finalPrice for 0 ou inválido, tenta fallback no array estático de regiões ou valor padrão mínimo
+      // Garantia de segurança: se finalPrice continuar inválido (<= 0), usa a taxa oficial da região
       if (isNaN(finalPrice) || finalPrice <= 0) {
-        const fallbackMatch = FALLBACK_ZONES.find(fz => fz.title.toLowerCase().includes((r.name || "").toLowerCase()));
-        finalPrice = fallbackMatch ? fallbackMatch.price : (10 + index * 1.5);
+        finalPrice = isCar ? (carFee > 0 ? carFee : 25) : (motoFee > 0 ? motoFee : 10);
       }
 
       // Bairros vinculados à região no Admin
