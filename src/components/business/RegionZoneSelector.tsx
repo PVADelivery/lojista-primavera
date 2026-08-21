@@ -1,4 +1,5 @@
 import { memo, useState, useEffect, useMemo, useRef } from "react";
+import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Building2, ChevronDown, Loader2, Search, MapPin, X } from "lucide-react";
 import { useMyCompany } from "@/services/companies";
@@ -234,45 +235,12 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
     }
 
     return dbRegions.map((r, index) => {
-      const isCar = vehicleType === "carro";
-      const motoFee = Number(r.price ?? 0);
-      const carFee = Number((r.delivery_fee && Number(r.delivery_fee) > 0) ? r.delivery_fee : (motoFee * 1.5));
-      let finalPrice = isCar ? carFee : motoFee;
-
-      // 1. Checa se a loja utiliza taxa de entrega fixa
-      if (activeComp?.delivery_mode === "fixed_fee" && activeComp?.delivery_fee != null && Number(activeComp.delivery_fee) > 0) {
-        finalPrice = Number(activeComp.delivery_fee);
-      } 
-      // 2. Checa se a loja possui Tabela de Preços Personalizada atribuída pelo Admin (pricing_table_id)
-      else if (dbRules.length > 0) {
-        const ruleMatch = dbRules.find(
-          (rule: any) =>
-            (rule.origin_region_id === r.id || rule.destination_region_id === r.id) &&
-            rule.base_value != null &&
-            rule.base_value !== "" &&
-            Number(rule.base_value) > 0
-        );
-        if (ruleMatch) {
-          const ruleMoto = Number(ruleMatch.base_value);
-          const ruleCar = Number((ruleMatch.return_value && Number(ruleMatch.return_value) > 0) ? ruleMatch.return_value : (ruleMoto * 1.5));
-          finalPrice = isCar ? ruleCar : ruleMoto;
-        } else {
-          // Se esta região for "(padrão da região)", usa o valor oficial da tabela de regiões
-          finalPrice = isCar ? carFee : motoFee;
-        }
-      }
-      // 3. Fallback para matriz de preços legada (delivery_regions_pricing)
-      else if (customMatrix.length > 0) {
-        const match = customMatrix.find((m: any) => (m.region_id === r.id || m.to === r.id) && Number(m.price) > 0);
-        if (match && match.price != null && match.price !== "") {
-          finalPrice = Number(match.price);
-        }
-      }
-
-      // Garantia de segurança: se finalPrice continuar inválido (<= 0), usa a taxa oficial da região
-      if (isNaN(finalPrice) || finalPrice <= 0) {
-        finalPrice = isCar ? (carFee > 0 ? carFee : 25) : (motoFee > 0 ? motoFee : 10);
-      }
+      const finalPrice = resolveRegionDeliveryFee({
+        region: r,
+        vehicleType,
+        companySettings: activeComp,
+        pricingRules: dbRules,
+      });
 
       // Bairros vinculados à região no Admin
       const hoods = dbHoods
