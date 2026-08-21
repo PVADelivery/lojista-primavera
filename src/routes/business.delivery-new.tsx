@@ -220,8 +220,11 @@ function NewDeliveryPage() {
 
     const delayDebounceFn = setTimeout(async () => {
       const clean = customerQuery.trim();
+      const safeClean = clean.replace(/[%"'\\]/g, "").trim();
       const phoneOrCpfClean = clean.replace(/\D/g, "");
       const combinedMap = new Map<string, any>();
+
+      if (!safeClean && !phoneOrCpfClean) return;
 
       // 1. Busca na tabela deliveries (Histórico de entregas da loja)
       try {
@@ -235,10 +238,12 @@ function NewDeliveryPage() {
           delQuery = delQuery.eq("company_id", company.id);
         }
 
-        if (phoneOrCpfClean.length >= 2) {
-          delQuery = delQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
+        if (phoneOrCpfClean.length >= 2 && safeClean) {
+          delQuery = delQuery.or(`customer_name.ilike."%${safeClean}%",customer_phone.ilike."%${phoneOrCpfClean}%"`);
+        } else if (phoneOrCpfClean.length >= 2) {
+          delQuery = delQuery.ilike("customer_phone", `%${phoneOrCpfClean}%`);
         } else {
-          delQuery = delQuery.ilike("customer_name", `%${clean}%`);
+          delQuery = delQuery.ilike("customer_name", `%${safeClean}%`);
         }
 
         const { data: delData, error: delErr } = await delQuery;
@@ -279,10 +284,12 @@ function NewDeliveryPage() {
           ordQuery = ordQuery.eq("company_id", company.id);
         }
 
-        if (phoneOrCpfClean.length >= 2) {
-          ordQuery = ordQuery.or(`customer_name.ilike.%${clean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
+        if (phoneOrCpfClean.length >= 2 && safeClean) {
+          ordQuery = ordQuery.or(`customer_name.ilike."%${safeClean}%",customer_phone.ilike."%${phoneOrCpfClean}%"`);
+        } else if (phoneOrCpfClean.length >= 2) {
+          ordQuery = ordQuery.ilike("customer_phone", `%${phoneOrCpfClean}%`);
         } else {
-          ordQuery = ordQuery.ilike("customer_name", `%${clean}%`);
+          ordQuery = ordQuery.ilike("customer_name", `%${safeClean}%`);
         }
 
         const { data: ordData, error: ordErr } = await ordQuery;
@@ -319,10 +326,12 @@ function NewDeliveryPage() {
           .select("id, name, phone, cpf")
           .limit(20);
 
-        if (phoneOrCpfClean.length >= 2) {
-          custQuery = custQuery.or(`name.ilike.%${clean}%,phone.ilike.%${phoneOrCpfClean}%`);
+        if (phoneOrCpfClean.length >= 2 && safeClean) {
+          custQuery = custQuery.or(`name.ilike."%${safeClean}%",phone.ilike."%${phoneOrCpfClean}%"`);
+        } else if (phoneOrCpfClean.length >= 2) {
+          custQuery = custQuery.ilike("phone", `%${phoneOrCpfClean}%`);
         } else {
-          custQuery = custQuery.ilike("name", `%${clean}%`);
+          custQuery = custQuery.ilike("name", `%${safeClean}%`);
         }
 
         const { data: custData, error: custErr } = await custQuery;
@@ -929,23 +938,27 @@ function NewDeliveryPage() {
           cpf: f.customer_cpf.replace(/\D/g, "") || null,
         };
 
-        if (existingCust) {
-          const { data: updatedCust, error: uErr } = await supabase
-            .from("customers")
-            .update(custPayload)
-            .eq("id", existingCust.id)
-            .select("id")
-            .maybeSingle();
-          if (uErr) console.error("[Update Customer Error]", uErr);
-          if (updatedCust) custId = updatedCust.id;
-        } else {
-          const { data: insertedCust, error: iErr } = await supabase
-            .from("customers")
-            .insert([custPayload])
-            .select("id")
-            .maybeSingle();
-          if (iErr) console.error("[Insert Customer Error]", iErr);
-          if (insertedCust) custId = insertedCust.id;
+        try {
+          if (existingCust) {
+            const { data: updatedCust, error: uErr } = await supabase
+              .from("customers")
+              .update(custPayload)
+              .eq("id", existingCust.id)
+              .select("id")
+              .maybeSingle();
+            if (uErr) console.warn("[Update Customer Error (non-blocking)]", uErr);
+            if (updatedCust) custId = updatedCust.id;
+          } else {
+            const { data: insertedCust, error: iErr } = await supabase
+              .from("customers")
+              .insert([custPayload])
+              .select("id")
+              .maybeSingle();
+            if (iErr) console.warn("[Insert Customer Error (non-blocking)]", iErr);
+            if (insertedCust) custId = insertedCust.id;
+          }
+        } catch (e) {
+          console.warn("[Customer Auto-Save Exception (non-blocking)]", e);
         }
       }
 
