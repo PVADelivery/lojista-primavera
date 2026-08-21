@@ -992,11 +992,12 @@ function NewDeliveryPage() {
       // 3. Write Manual Delivery (either update or insert)
       let deliveryWrite: any = { data: null, error: null };
       if (editId) {
-        deliveryWrite = await supabase
-          .from("deliveries")
-          .update({
+        // Edição passa pela RPC segura: valida dono da empresa, exige entrega pendente
+        // e ajusta os créditos (cobra/estorna a diferença da taxa) no mesmo commit.
+        const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("update_delivery_with_credits", {
+          p_delivery_id: editId,
+          p_payload: {
             delivery_type: f.delivery_type || "NORMAL",
-            company_id: company.id,
             customer_id: custId || null,
             customer_name: f.customer_name,
             customer_phone: f.customer_phone,
@@ -1011,12 +1012,38 @@ function NewDeliveryPage() {
             vehicle_type: f.vehicle_type,
             region_id: f.region_id === "none" ? null : f.region_id,
             value: Number(f.value || 0),
-            delivery_fee: Number(f.value || 0),
             notes: f.notes,
-          })
-          .eq("id", editId)
-          .select("*")
-          .single();
+          },
+        });
+
+        if (rpcErr) throw rpcErr;
+
+        const res: any = rpcRes;
+        if (!res?.success) {
+          if (res?.error === "INSUFFICIENT_CREDITS") {
+            toast.error(
+              `Saldo de créditos insuficiente para a nova taxa. Saldo: ${brl(Number(res.balance || 0))} · Diferença necessária: ${brl(Number(res.required || 0))}. Solicite uma recarga em Financeiro > Créditos.`,
+              { duration: 10000 }
+            );
+            setBusy(false);
+            return;
+          }
+          if (res?.error === "NOT_EDITABLE") {
+            toast.error("Esta entrega já saiu do status pendente e não pode mais ser editada.", { duration: 8000 });
+            setBusy(false);
+            return;
+          }
+          if (res?.error === "FORBIDDEN") {
+            toast.error("Você não tem permissão para editar entregas desta empresa.", { duration: 8000 });
+            setBusy(false);
+            return;
+          }
+          throw new Error(res?.error || "Erro ao atualizar entrega.");
+        }
+
+        qc.invalidateQueries({ queryKey: ["credits"] });
+        qc.invalidateQueries({ queryKey: ["credit-transactions"] });
+        deliveryWrite = { data: { id: editId }, error: null };
       } else {
         const condicionalPickup = (f.delivery_type === "BUSCA_CONDICIONAL" && f.condicional_destination === "CUSTOM")
           ? (f.condicional_custom_address || company.address || company.name || "Endereço Solicitado")
