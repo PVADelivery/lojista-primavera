@@ -360,6 +360,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Ajustar os intervalos de polling para valores leves (10s a 15s) e confiar na sincronização em tempo real nativa do Supabase Realtime (`deliveries-home`).
   3. Reutilizar o nome e endereço da empresa já inclusos no objeto da entrega no `NewDeliveryPopupModal.tsx`, evitando chamadas desnecessárias à API.
 
+---
+
+### 39. Entregas Ocultas no App do Entregador por Erro de Parsing de Timezone em `getElapsedSeconds`
+* **Sintoma**: Entregas criadas recentemente ficavam invisíveis no app do entregador ("Sem entregas no momento"), mesmo após transcorridos os 2 minutos do Admin.
+* **Causa Raiz**:
+  A função `getElapsedSeconds` em `time.ts` manipulava strings ISO (`str.replace(" ", "T") + "Z"`) concatenando `"Z"` incondicionalmente. Em datas ISO retornadas do Supabase contendo `+00:00`, a concatenação gerava datas inválidas (`NaN`) ou distorções de 4 horas no futuro. O cálculo de tempo decorrido resultava em valores negativos/inválidos, fazendo o filtro `elapsedSeconds >= 120` rejeitar as entregas disponíveis.
+* **Solução Padrão**:
+  Refatorar `getElapsedSeconds` para tentar o parse nativo direto via `new Date(str).getTime()` e fallback com substituição limpa de espaço. Se `elapsedMs < 0` por pequenas variações de relógio, retornar `0`, e se for `NaN`, retornar `999999` para garantir que a entrega seja exibida normalmente.
+
 
 
 
