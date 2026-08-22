@@ -71,6 +71,14 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'Status is not pending, ignoring' }), { status: 200 });
     }
 
+    if (record.status === 'pending' && !record.driver_id && record.created_at) {
+      const createdAtMs = new Date(record.created_at).getTime();
+      const elapsedSeconds = (Date.now() - createdAtMs) / 1000;
+      if (elapsedSeconds < 120) {
+        return new Response(JSON.stringify({ message: 'Delivery is in 2-min admin delay window, skipping push' }), { status: 200 });
+      }
+    }
+
     const { data: drivers, error } = await adminClient
       .from('delivery_drivers')
       .select('fcm_token')
