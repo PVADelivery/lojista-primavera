@@ -369,6 +369,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Refatorar `getElapsedSeconds` para tentar o parse nativo direto via `new Date(str).getTime()` e fallback com substituição limpa de espaço. Se `elapsedMs < 0` por pequenas variações de relógio, retornar `0`, e se for `NaN`, retornar `999999` para garantir que a entrega seja exibida normalmente.
 
+---
+
+### 40. Entregas Pendentes Não Listadas por Divergência de Formato de `driver_id` ou Falha de Join PostgREST
+* **Sintoma**: Entregas em aberto criadas no painel do lojista (ex: "Jose teste banco") não apareciam em "Entregas disponíveis" do app do entregador mesmo após decorridos os 2 minutos.
+* **Causa Raiz**:
+  1. O filtro `.is("driver_id", null)` na consulta PostgREST exigia `driver_id` estritamente nulo. Se a entrega fosse gravada com `driver_id` vazio `""` ou `"none"`, a cláusula de busca excluía o registro.
+  2. A cláusula `.select("*, companies(...), regions(...)")` descartava entregas caso houvesse falha de permissão RLS ou junção de tabela em `regions` ou `companies`.
+* **Solução Padrão**:
+  Flexibilizar `fetchAvailableDeliveries` para carregar `deliveries` sem obrigatoriedade de joins e filtrar em memória se `driver_id` está ausente, vazio (`""`), `"none"` ou nulo, incluindo fallbacks de busca e suporte a múltiplos status equivalentes a em aberto (`pending`, `broadcasted`, `pending_assignment`, `open`, `created`, `em_aberto`).
+
 
 
 
