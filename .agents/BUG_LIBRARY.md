@@ -334,6 +334,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Implementar a RPC `accept_delivery_batch(p_batch_id, p_driver_id)` para transicionar todas as entregas do lote juntas para `accepted`.
   3. Criar o componente `BatchDeliveryCard.tsx` no App do Entregador (`entrega-primavera`), exibindo o badge em destaque (`📦 LOTE COM N ENTREGAS`), soma dos valores, destinos numerados e o botão de aceite único.
 
+---
+
+### 37. Disparo Imediato de Notificações e Sons ao Criar Entrega Bypassando a Janela Admin de 2 Minutos
+* **Sintoma**: Ao cadastrar uma entrega no painel do lojista, os entregadores recebiam notificação push, toque de ronco de motor e alerta visual na mesma hora, porém a entrega só aparecia na lista para aceitar 2 minutos depois.
+* **Causa Raiz**:
+  1. A função `notifyNewDelivery` no hook `useDriverNotifications.ts` do app do entregador (`entrega-primavera`) disparava áudio e notificações sem verificar se a entrega estava no período de carência de 2 minutos do Admin (`getElapsedSeconds(created_at) < 120`).
+  2. As Edge Functions `send-push` e `notify-driver` disparavam mensagens push FCM aos entregadores imediatamente no evento `INSERT` de entregas pendentes sem `driver_id`.
+  3. O trigger PostgreSQL `trigger_send_push_on_delivery` bloqueava eventos `UPDATE` quando o Admin atribuía um entregador diretamente.
+* **Solução Padrão**:
+  1. No hook `useDriverNotifications.ts`, verificar `getElapsedSeconds(created_at) < 120` para entregas pendentes e sem `driver_id`, ignorando notificações e sons até a entrega completar 2 minutos ou ser transmitida/atribuída.
+  2. Nas Edge Functions `send-push` e `notify-driver`, adicionar validação de carência de 120 segundos para ignorar push FCM geral em entregas com menos de 2 minutos.
+  3. Atualizar o trigger SQL `trigger_send_push_on_delivery` para permitir disparo de push em eventos `UPDATE` quando `driver_id` for preenchido pelo Admin ou status for alterado para `broadcasted`.
+
 
 
 
