@@ -98,7 +98,13 @@ function BusinessHomePage() {
 
   const cancelDelivery = async (id: string) => {
     if (!confirm("Deseja realmente cancelar esta entrega?")) return;
-    const { error } = await supabase.from("deliveries").update({ status: "cancelled" }).eq("id", id);
+    const cancelledByName = profile?.full_name ? `Lojista: ${profile.full_name}` : company?.name ? `Lojista: ${company.name}` : "Lojista";
+    const { error } = await supabase.from("deliveries").update({
+      status: "cancelled",
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: profile?.id || company?.user_id || null,
+      cancelled_by_name: cancelledByName,
+    } as any).eq("id", id);
     if (error) {
       toast.error("Erro ao cancelar entrega: " + error.message);
     } else {
