@@ -347,6 +347,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Nas Edge Functions `send-push` e `notify-driver`, adicionar validação de carência de 120 segundos para ignorar push FCM geral em entregas com menos de 2 minutos.
   3. Atualizar o trigger SQL `trigger_send_push_on_delivery` para permitir disparo de push em eventos `UPDATE` quando `driver_id` for preenchido pelo Admin ou status for alterado para `broadcasted`.
 
+---
+
+### 38. Lentidão Excessiva e Gargalo de CPU/Rede no Aplicativo do Entregador (`entrega-primavera`)
+* **Sintoma**: O aplicativo do entregador apresentava extrema lentidão, travamentos e requisições excessivas em segundo plano.
+* **Causa Raiz**:
+  1. A função `pollDeliveries` no hook `useDriverNotifications.ts` rodava a cada **3 segundos** e efetuava uma consulta Supabase individual extra (`N+1 queries`) para CADA entrega na lista via `.eq("id", rawDelivery.id).single()`, bombardeando a API com dezenas de requisições por minuto.
+  2. Múltiplos seletores de interval (`checkTimer` a 5s em `NewDeliveryPopupModal`, `refetchInterval` a 5s em `driver.index.tsx` e `pollDeliveries` a 3s) rodavam concorrentemente disputando recursos e travando a thread principal.
+  3. O `triggerOffer` em `NewDeliveryPopupModal.tsx` fazia 2 requisições adicionais incondicionais à tabela `companies` em todo alerta de entrega.
+* **Solução Padrão**:
+  1. Eliminar a consulta `N+1` em `useDriverNotifications.ts`, reaproveitando os dados já carregados pelo payload/realtime (`rawDelivery.companies`).
+  2. Ajustar os intervalos de polling para valores leves (10s a 15s) e confiar na sincronização em tempo real nativa do Supabase Realtime (`deliveries-home`).
+  3. Reutilizar o nome e endereço da empresa já inclusos no objeto da entrega no `NewDeliveryPopupModal.tsx`, evitando chamadas desnecessárias à API.
+
 
 
 
