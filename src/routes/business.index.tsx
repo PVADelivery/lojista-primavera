@@ -127,7 +127,7 @@ function BusinessHomePage() {
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] opacity-70">
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              Ao vivo · {now}
+              {now}
             </div>
             <h1 className="mt-3 text-4xl font-black tracking-tight leading-none sm:text-5xl">
               {greeting},<br />
