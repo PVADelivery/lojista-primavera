@@ -589,6 +589,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Atualizar o filtro de `availableRides` e `activeRides` para aceitar os status `pending`, `searching` e `accepted`, exibindo instantaneamente corridas gerais ou direcionadas ao motorista logado.
   3. Reduzir o intervalo de polling para 2000ms (2 segundos).
 
+---
+
+### 62. Varredura e Substituição Completa de Consultas `.or()` Restritivas no App do Entregador/Motorista (`driver.profile.tsx`)
+* **Sintoma**: O console exibia continuamente `delivery_drivers?select=...&or=(user_id.eq.UUID,id.eq.UUID) 400 Bad Request` na rota de perfil e ao carregar dados do motorista.
+* **Causa Raiz**:
+  Refrenciamento do operador `.or(...)` no PostgREST Supabase dentro de `driver.profile.tsx` em `loadProfile`, `fetchDriverData` e `handleAvatarUpload`.
+* **Solução Padrão**:
+  Substituir todas as ocorrências restantes de `.or(...)` por buscas sequenciais diretas por `user_id` e fallback por `id`, eliminando de forma definitiva todo e qualquer erro 400 no aplicativo.
+
 
 
 
