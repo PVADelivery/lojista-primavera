@@ -533,6 +533,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Atualizar a consulta `availableRides` em `driver.index.tsx` para incluir tanto corridas sem motorista (`driver_id IS NULL`) quanto corridas atribuídas diretamente ao motorista atual (`driver_id === effId || driver_id === user.id`).
   2. Adicionar polling automático com `refetchInterval: 3000` (3 segundos) para atualização instantânea na tela do aplicativo do motorista sem necessidade de recarregar a página.
 
+---
+
+### 56. Adição de Campo de Busca Rápida de Motoristas no Modal de Envio do Painel Admin
+* **Sintoma**: Dificuldade para localizar um motorista específico em listas extensas (mais de 20 motoristas cadastrados) no modal de envio de corridas.
+* **Causa Raiz**:
+  O modal de envio de corrida não possuía um campo de entrada para filtrar motoristas por nome em tempo real.
+* **Solução Padrão**:
+  1. Adicionar o estado `driverSearch` e o memo `filteredModalDrivers` no `painel-primavera/src/routes/admin/rides.tsx`.
+  2. Inserir o campo de busca `<input placeholder="Buscar motorista por nome...">` com ícone de lupa dentro do modal de envio, filtrando instantaneamente por nome ou telefone do motorista.
+
 
 
 
