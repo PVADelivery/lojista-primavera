@@ -449,6 +449,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Atualizar o `marketplace.rides.tsx` para calcular dinamicamente a tarifa exata (`base + dist * rate`) caso `price` seja `0`.
   3. Reformular completamente `painel-primavera/src/routes/admin/rides.tsx` com barra de métricas, filtros por status/veículo, busca inteligente, seletor de alteração rápida de status, modal de detalhes com mapa e modal de atribuição de motorista parceiro.
 
+---
+
+### 48. Reaparecimento de Corrida Cancelada por Falha na Ordem de Execução em `handleCancelRide`
+* **Sintoma**: Ao clicar em "Cancelar Corrida", o card da corrida cancelada continuava aparecendo na tela como "Procurando Motorista".
+* **Causa Raiz**:
+  A função `handleCancelRide` efetuava a chamada ao Supabase antes de atualizar o estado do React e o `localStorage`. Caso a requisição ao Supabase gerasse exceção ou demorasse, a execução do código era interrompida antes de atualizar `activeRide` para `null` e modificar o registro em `pva_local_rides`.
+* **Solução Padrão**:
+  1. Atualizar o estado do React (`setActiveRide(null)`, `setRides`) e o `localStorage` (`pva_local_rides` e `pva_my_ride_ids`) **imediatamente no momento do clique**, antes de qualquer chamada remota.
+  2. Disparar o evento `pva_ride_updated` para zerar instantaneamente o badge da barra inferior.
+  3. Executar o update no Supabase em bloco `try/catch` resiliente sem bloquear a interface do usuário.
+
 
 
 
