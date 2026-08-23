@@ -379,6 +379,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Flexibilizar `fetchAvailableDeliveries` para carregar `deliveries` sem obrigatoriedade de joins e filtrar em memória se `driver_id` está ausente, vazio (`""`), `"none"` ou nulo, incluindo fallbacks de busca e suporte a múltiplos status equivalentes a em aberto (`pending`, `broadcasted`, `pending_assignment`, `open`, `created`, `em_aberto`).
 
+---
+
+### 41. Contador da Barra de Navegação Inferior Desatualizado para a Aba "Corridas"
+* **Sintoma**: O selo/contador (badge) na barra de navegação inferior não exibia a quantidade de corridas ativas na aba "Corridas", mantendo o contador zerado mesmo com uma corrida recém-solicitada.
+* **Causa Raiz**:
+  A consulta em `MarketplaceLayout.tsx` filtrava exclusivamente por `user_id = user.id` via Supabase. Caso o cliente criasse uma corrida sem estar logado ou se os IDs fossem gravados localmente em `localStorage` (`pva_my_ride_ids` / `pva_local_rides`), a contagem ignorava os registros ativos.
+* **Solução Padrão**:
+  Atualizar o cálculo do contador em `MarketplaceLayout.tsx` para combinar consultas por `user_id` e IDs armazenados em `localStorage`, além de registrar um ouvinte de evento `pva_ride_updated` para atualização instantânea em tempo real do badge.
+
 
 
 
