@@ -460,6 +460,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Disparar o evento `pva_ride_updated` para zerar instantaneamente o badge da barra inferior.
   3. Executar o update no Supabase em bloco `try/catch` resiliente sem bloquear a interface do usuário.
 
+---
+
+### 49. Botão para Ocultar/Expandir Barra Lateral no Painel Admin Desktop
+* **Sintoma**: A barra lateral esquerda (`AdminSidebar`) do Painel Admin ocupava espaço fixo de 256px (`w-64`) no desktop, reduzindo a largura útil das tabelas e mapas operacionais.
+* **Causa Raiz**:
+  O layout `AdminLayout.tsx` possuía apenas suporte a drawer mobile, sem um mecanismo para ocultar/recolher a barra lateral em telas desktop de alta resolução.
+* **Solução Padrão**:
+  1. Adicionar o botão de alternância `<Button onClick={toggleSidebar}>` ("Ocultar Barra Lateral" / "Expandir Menu") com o ícone `<PanelLeftClose>` no topo do `AdminLayout.tsx`.
+  2. Implementar a transição suave de largura em `AdminSidebar.tsx` (recolhendo para `w-16` com exibição de ícones/tooltips) e ajustando a margem do conteúdo principal (`md:ml-16` / `md:ml-64`).
+  3. Salvar a preferência do usuário no `localStorage` (`admin_sidebar_collapsed`).
+
 
 
 
