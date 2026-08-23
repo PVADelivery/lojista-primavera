@@ -410,6 +410,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Remover a reinjeção de `pva_local_rides` no `marketplace.rides.tsx` e limitar a exibição estritamente ao card único em destaque da corrida ativa atual.
   2. Calcular dinamicamente `calculateDistance` e o preço final (`baseFee + dist * kmRate`) no exato momento da submissão em `marketplace.taxi.tsx`.
 
+---
+
+### 44. Minified React Error #418 por Leitura de `localStorage` na Inicialização de `useState`
+* **Sintoma**: Erro não capturado `Minified React error #418` no console durante a renderização das rotas do cliente.
+* **Causa Raiz**:
+  Componentes como `marketplace.addresses.tsx`, `marketplace.checkout.tsx` e `marketplace.profile.tsx` utilizavam inicialização lazy `useState(() => localStorage.getItem(...))` com checagem `typeof window !== "undefined"`. Durante a pré-renderização estática o valor inicial era `""` e na hidratação client-side o valor lia o `localStorage`, gerando uma divergência de hidratação no React.
+* **Solução Padrão**:
+  Inicializar o estado de forma determinística (`""` ou `'light'`) e mover a leitura do `localStorage` para dentro do hook `useEffect` após a montagem do componente no navegador.
+
 
 
 
