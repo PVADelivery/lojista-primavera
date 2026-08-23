@@ -40,13 +40,13 @@ function BusinessHomePage() {
           vehicle_type
         )
       `);
-      
+
       if (company?.id) {
         query = query.eq("company_id", company.id);
       }
 
       const { data, error } = await query.order("created_at", { ascending: false }).limit(50);
-      
+
       if (error) {
         console.error("[ERRO SUPABASE]", error);
         return [];
@@ -102,7 +102,7 @@ function BusinessHomePage() {
     const { error } = await supabase.from("deliveries").update({
       status: "cancelled",
       cancelled_at: new Date().toISOString(),
-      cancelled_by: profile?.id || company?.user_id || null,
+      cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
       cancelled_by_name: cancelledByName,
     } as any).eq("id", id);
     if (error) {
@@ -113,10 +113,17 @@ function BusinessHomePage() {
     }
   };
 
+  const [mounted, setMounted] = useState(false);
+  const [nowStr, setNowStr] = useState("");
+
+  useEffect(() => {
+    setMounted(true);
+    setNowStr(new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }));
+  }, []);
+
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const companyName = company?.name || profile?.full_name?.split(" ")[0] || "lojista";
-  const now = new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" });
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -133,7 +140,7 @@ function BusinessHomePage() {
           <div>
             <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.2em] opacity-70">
               <span className="h-2 w-2 rounded-full bg-success animate-pulse" />
-              {now}
+              {nowStr || "Carregando..."}
             </div>
             <h1 className="mt-3 text-4xl font-black tracking-tight leading-none sm:text-5xl">
               {greeting},<br />
@@ -150,11 +157,10 @@ function BusinessHomePage() {
             {/* Cartão de Crédito de Entregas */}
             <Link
               to="/business/finance"
-              className={`flex items-center gap-3.5 px-6 py-2.5 min-h-[52px] rounded-2xl transition-all shadow-md ${
-                creditsLow
+              className={`flex items-center gap-3.5 px-6 py-2.5 min-h-[52px] rounded-2xl transition-all shadow-md ${creditsLow
                   ? "bg-destructive/15 border border-destructive/30 text-destructive animate-pulse"
                   : "bg-card border border-border/80 text-foreground hover:border-primary/40 hover:shadow-lg"
-              }`}
+                }`}
             >
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary shrink-0">
                 <Wallet className="h-4 w-4" />
@@ -212,11 +218,11 @@ function BusinessHomePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {manual.map((d: any) => (
-              <DeliveryCard 
-                key={d.id} 
-                d={d} 
-                onFinish={() => finishDelivery(d.id)} 
-                onCancel={() => cancelDelivery(d.id)} 
+              <DeliveryCard
+                key={d.id}
+                d={d}
+                onFinish={() => finishDelivery(d.id)}
+                onCancel={() => cancelDelivery(d.id)}
               />
             ))}
           </div>
@@ -426,10 +432,10 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
               isInRoute
                 ? "bg-emerald-500/20 text-emerald-400"
                 : isCollecting
-                ? "bg-amber-500/20 text-amber-400"
-                : isAccepted
-                ? "bg-blue-500/20 text-blue-400"
-                : "bg-muted text-muted-foreground animate-pulse"
+                  ? "bg-amber-500/20 text-amber-400"
+                  : isAccepted
+                    ? "bg-blue-500/20 text-blue-400"
+                    : "bg-muted text-muted-foreground animate-pulse"
             )}
           >
             {isInRoute ? "🏍️ Em rota" : isCollecting ? "📦 Em coleta" : isAccepted ? "✅ Aceita" : "⏳ Aguardando"}
@@ -447,10 +453,10 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
                     ? idx === 3
                       ? "bg-emerald-500"
                       : idx === 2
-                      ? "bg-amber-500"
-                      : idx === 1
-                      ? "bg-blue-500"
-                      : "bg-primary"
+                        ? "bg-amber-500"
+                        : idx === 1
+                          ? "bg-blue-500"
+                          : "bg-primary"
                     : "bg-muted/70"
                 )}
               />
