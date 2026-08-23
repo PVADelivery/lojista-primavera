@@ -419,6 +419,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Inicializar o estado de forma determinística (`""` ou `'light'`) e mover a leitura do `localStorage` para dentro do hook `useEffect` após a montagem do componente no navegador.
 
+---
+
+### 45. Ocultação de Corrida Ativa Recém-Criada por Ausência de Fallback de Sessão
+* **Sintoma**: Ao solicitar uma corrida, a aba "Corridas" exibia "Nenhuma corrida em andamento" para passageiros não autenticados ou quando ocorria pequenos atrasos na resposta do Supabase.
+* **Causa Raiz**:
+  A remoção total da leitura do `localStorage` fazia com que corridas solicitadas por passageiros visitantes (com `user_id = null`) não fossem associadas se a busca por `savedIds` sofresse restrição ou atraso RLS.
+* **Solução Padrão**:
+  Restabelecer um fallback seguro em `fetchRides` que busca a corrida recém-criada no `localStorage` (`pva_local_rides`), filtrando estritamente por corridas com status ativo (`pending`, `accepted`, `in_progress`) ou recentes (<24h), garantindo exibição instantânea do card com o mapa.
+
 
 
 
