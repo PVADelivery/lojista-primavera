@@ -388,6 +388,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Atualizar o cálculo do contador em `MarketplaceLayout.tsx` para combinar consultas por `user_id` e IDs armazenados em `localStorage`, além de registrar um ouvinte de evento `pva_ride_updated` para atualização instantânea em tempo real do badge.
 
+---
+
+### 42. Duplicidade de Cards de Corridas e Exibição de R$ 0,00 na Tela de Corridas
+* **Sintoma**: A tela "Suas Corridas" (`marketplace.rides.tsx`) exibia múltiplos cards repetidos da mesma corrida ativa e o valor da corrida ficava fixo em `R$ 0,00`.
+* **Causa Raiz**:
+  1. A listagem "Corridas Ativas" na parte inferior não filtrava o ID da corrida ativa em destaque (`activeRide.id`), renderizando a mesma corrida no topo (Hero Card com mapa) e repetida abaixo.
+  2. O formulário de solicitação de corrida (`marketplace.taxi.tsx`) não incluía o campo `price` no payload enviado para o banco, resultando em `price = null` / `0` na tabela `ride_requests`.
+* **Solução Padrão**:
+  1. Incluir `price` calculado no payload de inserção de `marketplace.taxi.tsx` e adicionar fallbacks de valor (`price || estimated_value || value || (taxi ? 15.0 : 10.0)`).
+  2. Excluir a corrida em destaque (`activeRide.id`) da lista inferior de corridas ativas em `marketplace.rides.tsx`, exibindo um único card limpo em destaque.
+
 
 
 
