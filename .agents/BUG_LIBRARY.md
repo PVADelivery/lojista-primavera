@@ -399,6 +399,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Incluir `price` calculado no payload de inserção de `marketplace.taxi.tsx` e adicionar fallbacks de valor (`price || estimated_value || value || (taxi ? 15.0 : 10.0)`).
   2. Excluir a corrida em destaque (`activeRide.id`) da lista inferior de corridas ativas em `marketplace.rides.tsx`, exibindo um único card limpo em destaque.
 
+---
+
+### 43. Multiplicidade de Cards de Corridas por `localStorage` e Valor Padrão Fixo
+* **Sintoma**: O app apresentava múltiplos cards ativos repetidos da mesma corrida e os valores não refletiam o preço real baseado na distância percorrida.
+* **Causa Raiz**:
+  1. O código de `marketplace.rides.tsx` reinjetava corridas salvas em `localStorage` (`pva_local_rides`), gerando corridas fantasma duplicadas.
+  2. A submissão do formulário (`marketplace.taxi.tsx`) não calculava a distância dinâmica caso `distance` estivesse zerado na hora da solicitação.
+* **Solução Padrão**:
+  1. Remover a reinjeção de `pva_local_rides` no `marketplace.rides.tsx` e limitar a exibição estritamente ao card único em destaque da corrida ativa atual.
+  2. Calcular dinamicamente `calculateDistance` e o preço final (`baseFee + dist * kmRate`) no exato momento da submissão em `marketplace.taxi.tsx`.
+
 
 
 
