@@ -523,6 +523,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Utilizar o serviço unificado de motoristas (`fetchDrivers` de `@/services/drivers`) para resgatar todos os motoristas cadastrados mesclando `delivery_drivers`, `profiles` e `user_roles`.
   2. Exibir **todos os motoristas cadastrados** no modal, ordenando motoristas online no topo com selo em destaque (`● Online` em verde) e exibindo os demais motoristas cadastrados (`● Cadastrado`), garantindo que o admin sempre consiga atribuir a corrida sem depender de scripts SQL manuais.
 
+---
+
+### 55. Não Exibição de Corridas no App do Motorista (`driver.index.tsx`)
+* **Sintoma**: Ao solicitar uma corrida no App do Cliente e/ou atribuir pelo Painel Admin, a corrida exibia "Sem corridas de Táxi ou Moto Táxi disponíveis" na tela do motorista.
+* **Causa Raiz**:
+  A consulta `availableRides` exigia estritamente `.is("driver_id", null)`. Quando o Admin atribuía a corrida a um motorista específico, a corrida deixava de ter `driver_id === null`, mas como ainda estava em status `pending`, não entrava em `activeRides` (que buscava apenas `accepted`/`in_progress`), ficando invisível em ambas as seções.
+* **Solução Padrão**:
+  1. Atualizar a consulta `availableRides` em `driver.index.tsx` para incluir tanto corridas sem motorista (`driver_id IS NULL`) quanto corridas atribuídas diretamente ao motorista atual (`driver_id === effId || driver_id === user.id`).
+  2. Adicionar polling automático com `refetchInterval: 3000` (3 segundos) para atualização instantânea na tela do aplicativo do motorista sem necessidade de recarregar a página.
+
 
 
 
