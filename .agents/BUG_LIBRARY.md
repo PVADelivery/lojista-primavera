@@ -491,6 +491,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir o layout alternado por um *route stepper* com borda vertical pontilhada à esquerda (`border-l-2 border-dashed border-border`), posicionando **Origem** (círculo verde) e **Destino** (círculo vermelho) perfeitamente alinhados à direita de seus respectivos marcadores.
 
+---
+
+### 52. Equiparação Completa do Sistema de Atribuição de Motoristas ao Sistema de Entregas (`/admin/rides`)
+* **Sintoma**: O sistema de atribuição de motoristas nas corridas consistia apenas em um dropdown simples, sem notificações em massa (broadcast), ordenação por proximidade ou widget de janela de tempo do admin (2 min).
+* **Causa Raiz**:
+  A rota `/admin/rides.tsx` não utilizava os mesmos modais e algoritmos de direcionamento presentes na rota `/admin/deliveries.tsx`.
+* **Solução Padrão**:
+  1. Implementar o widget `AdminDispatchWindowWidget` no topo com contador regressivo de 2 minutos para solicitações de corrida sem motorista.
+  2. Adicionar os botões de ação na tabela: **Broadcast (Radio)** para notificar todos os motoristas online e **Direcionar (Send)** para abrir o modal de seleção direta.
+  3. Implementar o modal **"Enviar para Motorista Parceiro"** ordenando motoristas online por proximidade à origem (`calculateDistanceKm`) com exibição de distância em km/metros e tipo de veículo (`🚗 Carro` / `🏍️ Moto`).
+
 
 
 
