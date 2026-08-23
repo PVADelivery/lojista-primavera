@@ -482,6 +482,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Unificar a barra de busca e os seletores de filtro em uma barra única compacta (`p-2 px-3 rounded-xl`).
   3. Aplicar estilização de alta densidade na tabela (`py-2 px-3`), truncando endereços de origem e destino com atribuição do atributo `title` para leitura completa ao passar o ponteiro do mouse.
 
+---
+
+### 51. Desalinhamento do Endereço de Destino no Card de Acompanhamento de Corrida (`marketplace.rides.tsx`)
+* **Sintoma**: No card da corrida ativa, o endereço de Destino era posicionado à esquerda do círculo vermelho em telas médias/grandes, desalinhado do endereço de Origem.
+* **Causa Raiz**:
+  O componente utilizava um layout de grid com `md:odd:flex-row-reverse` que invertia a posição dos elementos pares (`even`), jogando o segundo ponto da rota (Destino) para a esquerda da linha vertical.
+* **Solução Padrão**:
+  Substituir o layout alternado por um *route stepper* com borda vertical pontilhada à esquerda (`border-l-2 border-dashed border-border`), posicionando **Origem** (círculo verde) e **Destino** (círculo vermelho) perfeitamente alinhados à direita de seus respectivos marcadores.
+
 
 
 
