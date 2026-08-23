@@ -471,6 +471,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Implementar a transição suave de largura em `AdminSidebar.tsx` (recolhendo para `w-16` com exibição de ícones/tooltips) e ajustando a margem do conteúdo principal (`md:ml-16` / `md:ml-64`).
   3. Salvar a preferência do usuário no `localStorage` (`admin_sidebar_collapsed`).
 
+---
+
+### 50. Otimização de Densidade e Eliminação de Espaços em Branco no Painel de Corridas
+* **Sintoma**: A tela de Gestão de Corridas (`painel-primavera/src/routes/admin/rides.tsx`) possuía grandes espaçamentos verticais, cards com paddings excessivos e colunas com textos longos que exigiam rolagem horizontal.
+* **Causa Raiz**:
+  O layout utilizava containers com `p-6`, cards de métricas em grid de alta margem e tabelas sem limitação de largura truncada (`max-w-[180px] truncate`).
+* **Solução Padrão**:
+  1. Redesenhar a barra de métricas em chips compactos inline em uma única linha no topo.
+  2. Unificar a barra de busca e os seletores de filtro em uma barra única compacta (`p-2 px-3 rounded-xl`).
+  3. Aplicar estilização de alta densidade na tabela (`py-2 px-3`), truncando endereços de origem e destino com atribuição do atributo `title` para leitura completa ao passar o ponteiro do mouse.
+
 
 
 
