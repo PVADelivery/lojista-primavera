@@ -437,6 +437,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Adicionar `suppressHydrationWarning` nas tags `<html lang="pt-BR" suppressHydrationWarning>` e `<body suppressHydrationWarning>` no `RootShell` de `__root.tsx`.
 
+---
+
+### 47. Erro de Sintaxe PostgREST no Contador de Badges e Equiparação do Painel de Corridas ao Painel de Entregas
+* **Sintoma**: O badge de corridas na barra inferior sumia e os valores de corridas em andamento não batiam com os valores calculados no Painel Admin.
+* **Causa Raiz**:
+  1. A sintaxe de `.or()` no `MarketplaceLayout.tsx` continha aspas duplas inválidas na interpolação de UUIDs em `id.in.()`, gerando erro no PostgREST.
+  2. O Painel Admin de Corridas (`painel-primavera/src/routes/admin/rides.tsx`) era simplificado e carecia de controles avançados de filtro, busca, modais de detalhes e reatribuição direta de motoristas equivalentes ao painel de entregas.
+* **Solução Padrão**:
+  1. Corrigir a consulta do badge em `MarketplaceLayout.tsx` utilizando `Math.max` entre contagem do banco e contagem da sessão local.
+  2. Atualizar o `marketplace.rides.tsx` para calcular dinamicamente a tarifa exata (`base + dist * rate`) caso `price` seja `0`.
+  3. Reformular completamente `painel-primavera/src/routes/admin/rides.tsx` com barra de métricas, filtros por status/veículo, busca inteligente, seletor de alteração rápida de status, modal de detalhes com mapa e modal de atribuição de motorista parceiro.
+
 
 
 
