@@ -513,6 +513,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Implementar busca por palavras-chave flexíveis (`RIDE_KEYS = ["taxi", "mototaxi", "moto_taxi", "táxi", "passageiros", "passageiro", "passenger", "ride", "corridas", "car", "motorcycle", "carro", "moto"]`).
   3. Manter liberações padrão permissivas quando nenhuma restrição for informada no cadastro do motorista.
 
+---
+
+### 54. Lista Vazia de Motoristas no Modal de Envio de Corrida do Painel Admin
+* **Sintoma**: Ao abrir o modal "Enviar para Motorista Parceiro" no Painel Admin (`/admin/rides`), o modal exibia "Nenhum motorista online no momento (0)" mesmo havendo motoristas ativos cadastrados.
+* **Causa Raiz**:
+  A consulta de motoristas no `rides.tsx` fazia filtro restritivo por `.eq("active", true)` e a listagem do modal filtrava estritamente por `is_online === true`. Caso o status `active` estivesse `null` no banco ou a flag `is_online` estivesse zerada, a lista retornava 0 itens.
+* **Solução Padrão**:
+  1. Utilizar o serviço unificado de motoristas (`fetchDrivers` de `@/services/drivers`) para resgatar todos os motoristas cadastrados mesclando `delivery_drivers`, `profiles` e `user_roles`.
+  2. Exibir **todos os motoristas cadastrados** no modal, ordenando motoristas online no topo com selo em destaque (`● Online` em verde) e exibindo os demais motoristas cadastrados (`● Cadastrado`), garantindo que o admin sempre consiga atribuir a corrida sem depender de scripts SQL manuais.
+
 
 
 
