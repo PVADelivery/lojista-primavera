@@ -428,6 +428,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Restabelecer um fallback seguro em `fetchRides` que busca a corrida recém-criada no `localStorage` (`pva_local_rides`), filtrando estritamente por corridas com status ativo (`pending`, `accepted`, `in_progress`) ou recentes (<24h), garantindo exibição instantânea do card com o mapa.
 
+---
+
+### 46. Supressão de Erro de Hidratação React #418 em Elementos Raiz da Aplicação (`__root.tsx`)
+* **Sintoma**: Exibição de `Uncaught Error: Minified React error #418` no console devido a discrepâncias em atributos da tag `<html>` ou `<body>` causadas por extensões de navegador ou troca de tema dinâmico.
+* **Causa Raiz**:
+  O componente `RootShell` em `__root.tsx` não continha o atributo `suppressHydrationWarning` nas tags `<html>` e `<body>`. Atributos inseridos por extensões ou pela classe de tema dark/light inserida dinamicamente desincronizavam o DOM do servidor/cliente.
+* **Solução Padrão**:
+  Adicionar `suppressHydrationWarning` nas tags `<html lang="pt-BR" suppressHydrationWarning>` e `<body suppressHydrationWarning>` no `RootShell` de `__root.tsx`.
+
 
 
 
