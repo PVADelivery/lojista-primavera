@@ -502,6 +502,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Adicionar os botões de ação na tabela: **Broadcast (Radio)** para notificar todos os motoristas online e **Direcionar (Send)** para abrir o modal de seleção direta.
   3. Implementar o modal **"Enviar para Motorista Parceiro"** ordenando motoristas online por proximidade à origem (`calculateDistanceKm`) com exibição de distância em km/metros e tipo de veículo (`🚗 Carro` / `🏍️ Moto`).
 
+---
+
+### 53. Bloqueio Indevido da Aba "Corridas" no App do Entregador/Motorista (`useWorkMode.tsx`)
+* **Sintoma**: Ao tentar clicar na aba "Corridas" no App do Entregador (`entrega-primavera`), o sistema exibia o aviso "Categoria não habilitada pelo administrador" e bloqueava a alternância de modo.
+* **Causa Raiz**:
+  O hook `useWorkMode.tsx` dependia de uma verificação estrita (`RIDE_SERVICES = ["taxi", "mototaxi"]`). Se o array `service_types` no banco fosse salvo como JSON string ou contivesse outros formatos como `"Táxi (Passageiros)"` ou `"Moto Táxi (Passageiros)"`, a verificação falhava e resultava em `canRide = false`.
+* **Solução Padrão**:
+  1. Tornar o tratamento de `service_types` no `useWorkMode.tsx` totalmente resiliente, aceitando arrays nativos ou parsing de JSON strings.
+  2. Implementar busca por palavras-chave flexíveis (`RIDE_KEYS = ["taxi", "mototaxi", "moto_taxi", "táxi", "passageiros", "passageiro", "passenger", "ride", "corridas", "car", "motorcycle", "carro", "moto"]`).
+  3. Manter liberações padrão permissivas quando nenhuma restrição for informada no cadastro do motorista.
+
 
 
 
