@@ -569,6 +569,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Remover a tag `"Oficial Admin"` do dropdown do seletor de bairros.
   2. Ajustar a função `loadOfficialHoods` para priorizar a consulta das tabelas `regions` e `region_neighborhoods` cadastradas diretamente pelo Administrador no banco de dados.
 
+---
+
+### 60. Erro de Coluna 'reference' Inexistente ao Salvar Endereço (`marketplace.addresses.tsx`)
+* **Sintoma**: Ao tentar salvar ou editar um endereço de entrega no App do Cliente (`/marketplace/addresses`), o sistema exibia a mensagem de erro `Could not find the 'reference' column of 'addresses' in the schema cache` e impedia o salvamento.
+* **Causa Raiz**:
+  A tabela `addresses` no PostgreSQL/Supabase não possui a coluna `reference`. O objeto `payload` em `marketplace.addresses.tsx` enviava a propriedade `reference` na gravação.
+* **Solução Padrão**:
+  Remover a chave `reference` do payload enviado ao Supabase e concatenar o ponto de referência informado junto ao campo de complemento (`complement`), garantindo o salvamento bem-sucedido de 100% dos endereços sem depender de alterações na estrutura de tabelas.
+
 
 
 
