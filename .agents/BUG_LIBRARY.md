@@ -559,6 +559,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Remover a barra superior e implementar o botão circular flutuante idêntico ao do Painel do Lojista (`-right-3.5 top-8 h-7 w-7 rounded-full bg-amber-400`), renderizando a setinha `<ChevronLeft />` ou `<ChevronRight />` na borda da barra lateral.
 
+---
+
+### 59. Remoção da Tag "Oficial Admin" e Sincronização de Regiões no Cadastro de Endereço (`marketplace.addresses.tsx`)
+* **Sintoma**: No formulário de endereço do cliente aparecia a tag `"OFICIAL ADMIN"` em cada bairro do dropdown.
+* **Causa Raiz**:
+  O componente `marketplace.addresses.tsx` renderizava uma tag `<span className="...">Oficial Admin</span>` ao lado dos bairros no menu de sugestões.
+* **Solução Padrão**:
+  1. Remover a tag `"Oficial Admin"` do dropdown do seletor de bairros.
+  2. Ajustar a função `loadOfficialHoods` para priorizar a consulta das tabelas `regions` e `region_neighborhoods` cadastradas diretamente pelo Administrador no banco de dados.
+
 
 
 
