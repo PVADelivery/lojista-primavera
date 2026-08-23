@@ -543,6 +543,22 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Adicionar o estado `driverSearch` e o memo `filteredModalDrivers` no `painel-primavera/src/routes/admin/rides.tsx`.
   2. Inserir o campo de busca `<input placeholder="Buscar motorista por nome...">` com ícone de lupa dentro do modal de envio, filtrando instantaneamente por nome ou telefone do motorista.
 
+---
+
+### 57. Erro HTTP 400 no Supabase PostgREST ao Consultar Motorista (`delivery_drivers`)
+* **Sintoma**: No console do navegador exibia `delivery_drivers?select=...&or=(user_id.eq.UUID,id.eq.UUID) Failed to load resource: 400 Bad Request`, impedindo o carregamento do perfil do motorista e das corridas disponíveis no App do Entregador.
+* **Causa Raiz**:
+  O operador `.or(...)` no PostgREST do Supabase falhava com HTTP 400 quando aplicava a comparação OR entre tipos de UUIDs em `user_id` e `id`.
+* **Solução Padrão**:
+  Substituir as chamadas `.or(...)` por buscas sequenciais resilientes: consultar primeiro por `.eq("user_id", user.id)` e, caso não retorne resultados, consultar por `.eq("id", user.id)`, eliminando 100% dos erros 400 no Supabase.
+
+---
+
+### 58. Botão Circular com Setinha de Encolher/Expandir Barra Lateral (`AdminSidebar.tsx`)
+* **Sintoma**: O botão de recolher barra lateral no Painel Admin estava posicionado como um retângulo grande no topo do conteúdo.
+* **Solução Padrão**:
+  Remover a barra superior e implementar o botão circular flutuante idêntico ao do Painel do Lojista (`-right-3.5 top-8 h-7 w-7 rounded-full bg-amber-400`), renderizando a setinha `<ChevronLeft />` ou `<ChevronRight />` na borda da barra lateral.
+
 
 
 
