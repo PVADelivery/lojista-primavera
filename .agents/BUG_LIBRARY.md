@@ -578,6 +578,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Remover a chave `reference` do payload enviado ao Supabase e concatenar o ponto de referência informado junto ao campo de complemento (`complement`), garantindo o salvamento bem-sucedido de 100% dos endereços sem depender de alterações na estrutura de tabelas.
 
+---
+
+### 61. Multi-Identificador de Motorista e Sincronização de Status de Corridas (`driver.index.tsx`)
+* **Sintoma**: A corrida atribuída pelo Admin ou pendente não aparecia no App do Motorista (`entrega-primavera`), exibindo a mensagem "Sem corridas de Táxi ou Moto Táxi disponíveis".
+* **Causa Raiz**:
+  O aplicativo comparava o `r.driver_id` apenas com uma variável pontual (`effId`), que podia divergir do `user.id` do Supabase Auth. Além disso, quando o Admin atribuía a corrida, o status mudava para `accepted`, o que desqualificava a corrida da checagem estrita de `status === "pending"`.
+* **Solução Padrão**:
+  1. Implementar a função `getAllMyDriverIds` para buscar e agregar todos os identificadores conhecidos do motorista (`user.id` e `delivery_drivers.id`).
+  2. Atualizar o filtro de `availableRides` e `activeRides` para aceitar os status `pending`, `searching` e `accepted`, exibindo instantaneamente corridas gerais ou direcionadas ao motorista logado.
+  3. Reduzir o intervalo de polling para 2000ms (2 segundos).
+
 
 
 
