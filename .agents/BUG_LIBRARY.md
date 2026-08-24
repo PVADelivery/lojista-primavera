@@ -748,6 +748,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir a instrução `throw error` em todas as consultas `useQuery` por um tratamento gracioso (`try/catch` retornando `[]`), impedindo que flutuações temporárias de rede quebrem a aplicação do motorista.
 
+---
+
+### 81. Redirecionamento Seguro da Rota Raiz `/` para `/driver` (`index.tsx`)
+* **Sintoma**: Acessar o domínio principal (`https://entregador.mt24horasexpress.com/`) exibia a tela de erro `This page didn't load`.
+* **Causa Raiz**:
+  O handler `beforeLoad` da rota raiz lançava a exceção de redirecionamento bruta `throw redirect({ to: "/driver" })` sem código de status HTTP explícito, gerando erro de renderização SSR no motor Nitro/Cloudflare.
+* **Solução Padrão**:
+  Configurar o redirecionamento com `statusCode: 302` no `beforeLoad` e adicionar um fallback via `useEffect` no componente da rota (`navigate({ to: "/driver", replace: true })`), garantindo redirecionamento suave em qualquer ambiente.
+
 
 
 
