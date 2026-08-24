@@ -598,6 +598,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir todas as ocorrências restantes de `.or(...)` por buscas sequenciais diretas por `user_id` e fallback por `id`, eliminando de forma definitiva todo e qualquer erro 400 no aplicativo.
 
+---
+
+### 63. Eliminação de Erros PostgREST 400 por Colunas Inexistentes no Select (`driver.index.tsx`, `useWorkMode.tsx`, `useDriverNotifications.ts`)
+* **Sintoma**: O Supabase PostgREST retornava HTTP 400 Bad Request em requisições do tipo `/rest/v1/delivery_drivers?select=service_types,vehicle,vehicle_type,active&user_id=eq...`.
+* **Causa Raiz**:
+  Especificar colunas opcionais como `service_types` ou `active` diretamente no parâmetro `select(...)` fazia o PostgREST rejeitar a consulta inteira com erro 400 caso a coluna não existisse no schema da tabela.
+* **Solução Padrão**:
+  Substituir listagens rígidas de colunas no `select(...)` da tabela `delivery_drivers` pelo curinga `select("*")`. Desta forma, o PostgREST retorna dinamicamente todos os campos existentes da tabela sem lançar exceções 400.
+
 
 
 
