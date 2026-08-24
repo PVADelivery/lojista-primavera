@@ -663,6 +663,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Liberar o filtro em `driver.index.tsx` para retornar qualquer corrida com status `pending`, `searching` ou `procurando`, permitindo que qualquer motorista em modo "Corridas" visualize a chamada e possa aceitá-la imediatamente.
 
+---
+
+### 70. Exibição Incondicional de Corridas Não-Finalizadas em "Corridas Disponíveis" (`driver.index.tsx`)
+* **Sintoma**: O aplicativo do motorista logado exibia "Sem corridas de Táxi ou Moto Táxi disponíveis" mesmo quando uma corrida ativa não havia sido concluída.
+* **Causa Raiz**:
+  O filtro JS em `availableRides` exigia checagens adicionais por IDs de motoristas.
+* **Solução Padrão**:
+  Fazer o filtro retornar **qualquer solicitação de corrida cujo status não seja finalizado/cancelado** (`!["completed", "cancelled", "concluida", "cancelada"].includes(status)`). Desta forma, qualquer chamado ativo no sistema é exibido imediatamente para o motorista no aplicativo.
+
 
 
 
