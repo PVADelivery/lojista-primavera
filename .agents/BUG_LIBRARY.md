@@ -966,6 +966,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Adicionar fallback de coordenadas para o destino (`dLat = pLat - 0.005`, `dLng = pLng - 0.005`) garantindo que `renderRoute` e `drawRouteLine` sejam executados **sempre**.
   2. Instanciar o crachá animado do veículo (Moto / Carro) **imediatamente** em `setupRouteAndMarkers`, desacoplando a exibição inicial da dependência de permissão síncrona do GPS do navegador.
 
+---
+
+### 102. Resolução do Retângulo Cinza sem Mapa e Erro de Hidratação #418 no App do Cliente (`marketplace.rides.tsx`)
+* **Sintoma**: O contêiner do mapa do cliente ficava cinza vazio (`bg-secondary`) e o console exibia `Uncaught Error: Minified React error #418`.
+* **Causa Raiz**:
+  1. A inicialização do MapLibre ocorria em um `useEffect` na página raiz `RidesPage`. Quando a página carregava em estado de busca (`loading: true`), o contêiner do mapa ainda não existia no DOM (`mapContainer.current = null`), fazendo o `useEffect` abortar precocemente. Quando a busca concluía (`loading: false`), as dependências do `useEffect` não mudavam e o mapa nunca mais inicializava.
+  2. Incompatibilidade de hidratação entre SSR e cliente ao carregar a casca do app.
+* **Solução Padrão**:
+  1. Refatorar o mapa do cliente em um componente dedicado e auto-suficiente `<CustomerRideMap activeRide={activeRide} />`.
+  2. Quando `<CustomerRideMap />` é montado condicionalmente na tela, seu `mapContainerRef` está 100% garantido no DOM, acionando o MapLibre instantaneamente com marcadores de Origem/Destino, traçado azul da rota OSRM e crachá animado do veículo (Moto/Carro).
+  3. Adicionar `suppressHydrationWarning` nos elementos do Shell em `cliente-primavera/src/routes/__root.tsx`.
+
 
 
 
