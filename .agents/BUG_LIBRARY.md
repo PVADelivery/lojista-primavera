@@ -766,6 +766,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Proteger todas as chamadas diretas a `localStorage`, `sessionStorage` e `window` em componentes e hooks com checagens de runtime (`if (typeof window !== "undefined")`). Desta forma, o servidor compila e renderiza a página HTML inicial **100% limpa com código 200 OK**.
 
+---
+
+### 83. Correção de Imports Faltantes (`Component`, `ReactNode`, `Navigation`, `Phone`) em `driver.deliveries.tsx`
+* **Sintoma**: A página de entregas e corridas do entregador (`/driver/deliveries`) quebrava na compilação ou execução devido a variáveis não encontradas (`Component`, `ReactNode`, `Navigation`, `Phone`).
+* **Causa Raiz**:
+  Ao criar a classe `MapErrorBoundary` e os cards redesign de corrida, as variáveis de classe do React e os ícones do Lucide não foram declarados no bloco de `import` do cabeçalho do arquivo.
+* **Solução Padrão**:
+  Importar explicitamente `Component` e `ReactNode` da biblioteca `"react"`, e `Navigation` e `Phone` da biblioteca `"lucide-react"`. Validar sempre a integridade de compilação com `npx tsc --noEmit`.
+
 
 
 
