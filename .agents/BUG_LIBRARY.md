@@ -784,6 +784,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir a instanciação do mapa JavaScript por um mapa incorporado nativo via `<iframe>` (`https://maps.google.com/maps?...`), que renderiza a localização diretamente pelo navegador com 0% de uso de WebGL/workers de biblioteca JS, erradicando **100% de qualquer chance de `Illegal constructor`**.
 
+---
+
+### 85. Exclusividade de Corridas Aceitas na Aba `Entregas & Corridas` (`driver.index.tsx` & `driver.deliveries.tsx`)
+* **Sintoma**: Corridas aceitas pelo entregador continuavam sendo exibidas na tela inicial (`/driver`) poluindo o painel e não surgiam exclusivamente na aba correta `Entregas & Corridas` (`/driver/deliveries`).
+* **Causa Raiz**:
+  A tela inicial possuía uma seção redundante `Corridas em andamento` e a aba `Entregas & Corridas` dependia da cláusula restritiva `.in("driver_id", ids)` no Supabase.
+* **Solução Padrão**:
+  1. Remover a seção `Corridas em andamento` da tela inicial (`/driver`). A tela inicial fica restrita a exibir **Ganhos** e **Corridas Disponíveis** (pendentes de aceite).
+  2. Redirecionar automaticamente o entregador para `/driver/deliveries` no momento em que ele clica em **Aceitar Corrida** (`navigate({ to: "/driver/deliveries" })`).
+  3. Atualizar a aba `Entregas & Corridas` para resolver todos os IDs válidos do entregador (`getAllMyDriverIds()`) e manter atualização contínua de 2s (`refetchInterval: 2000`).
+
 
 
 
