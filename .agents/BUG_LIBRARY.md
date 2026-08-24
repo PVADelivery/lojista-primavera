@@ -607,6 +607,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir listagens rígidas de colunas no `select(...)` da tabela `delivery_drivers` pelo curinga `select("*")`. Desta forma, o PostgREST retorna dinamicamente todos os campos existentes da tabela sem lançar exceções 400.
 
+---
+
+### 64. Liberação Universal de Troca de Modo de Trabalho no App do Motorista (`useWorkMode.tsx`)
+* **Sintoma**: O motorista tentava alternar entre "Entregas" e "Corridas" e o aplicativo exibia a mensagem de erro: `"Categoria não habilitada pelo administrador."`.
+* **Causa Raiz**:
+  O hook `useWorkMode.tsx` fazia a checagem estrita da coluna `service_types`. Se ela estivesse vazia ou sem os termos exatos de cadastro, `canRide` ou `canDelivery` retornava `false`.
+* **Solução Padrão**:
+  Forçar `canDelivery = true` e `canRide = true` no hook `useWorkMode.tsx`, permitindo que todo motorista/entregador devidamente cadastrado transite livremente entre a recepção de entregas de lojas e corridas de passageiros.
+
 
 
 
