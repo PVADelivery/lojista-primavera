@@ -721,6 +721,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Utilizar parâmetros seguros no construtor do marcador (`{ color: "#f59e0b" }`) em vez de manipular construtores de elementos customizados.
   3. Envolver a inicialização do mapa e marcadores em blocos `try/catch` para prevenir qualquer travamento da interface.
 
+---
+
+### 78. Proteção com `MapErrorBoundary` contra Erros Não Tratados de Mapa (`driver.deliveries.tsx`)
+* **Sintoma**: O console exibia a exceção `Route Error: TypeError: Illegal constructor` no arquivo bundle `index-CwT1FlNM.js`.
+* **Causa Raiz**:
+  Falhas na inicialização do MapLibre em navegadores específicos eram propagadas para o roteador principal do TanStack Router.
+* **Solução Padrão**:
+  Envolver o componente `DriverRideMap` dentro de uma classe de captura de erros React (`MapErrorBoundary`). Se qualquer biblioteca de mapa externa falhar em qualquer dispositivo, o erro é capturado e silenciado com segurança, permitindo que a tela e todos os botões de ação continuem funcionando **100% perfeitamente**.
+
 
 
 
