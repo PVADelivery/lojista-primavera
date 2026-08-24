@@ -944,6 +944,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Aplicar a camada de linha azul royal vibrante (`#2563eb`, 5px) com borda escura (`#0f172a`, 8px, opacity 0.6).
   3. Quando a resposta do servidor OSRM retorna, atualizar o GeoJSON com a geometria de curvatura exata das ruas. Desta forma, a linha de rota aparece **instantaneamente** no mapa.
 
+---
+
+### 100. Substituição do Pino Amarelo pelo Crachá de Veículo Dinâmico (Moto/Carro) no Mapa do Entregador (`driver.deliveries.tsx`)
+* **Sintoma**: O marcador da posição GPS do motorista era exibido como um pino gota amarelo genérico do MapLibre.
+* **Causa Raiz**:
+  Instanciação direta de `new MarkerClass({ color: "#f59e0b" })` sem elemento HTML personalizado dependente do tipo de veículo da corrida.
+* **Solução Padrão**:
+  1. Implementar a função `createVehicleMarkerElement` que gera o elemento HTML com o vetor SVG de Moto para `mototaxi` e Vetor SVG de Carro para `taxi`.
+  2. Adicionar o contorno circular dourado iluminado com efeito de pulso contínuo (`animate-ping`) e sombra de destaque (`shadow-[0_0_20px_rgba(251,191,36,0.8)]`).
+  3. Passar o elemento personalizado para `new MarkerClass({ element: el })`.
+
 
 
 
