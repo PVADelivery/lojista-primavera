@@ -654,6 +654,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Exibir todos os registros ativos da tabela `delivery_drivers` sem restringir pelo `role` da tabela `profiles`, ignorando apenas contas com `status === 'deleted'`. Desta forma, 100% da frota cadastrada volta a ser exibida normalmente no Painel Admin.
 
+---
+
+### 69. Exibição Universal de Corridas Pendentes/Buscando Motorista no App (`driver.index.tsx`)
+* **Sintoma**: O motorista entrava na aba "Corridas Disponíveis" e via a mensagem "Sem corridas de Táxi ou Moto Táxi disponíveis" mesmo havendo solicitações em andamento de busca de motorista.
+* **Causa Raiz**:
+  O filtro de `availableRides` exigia estritamente que `r.driver_id` fosse nulo ou idêntico ao motorista atual, bloqueando corridas que estavam com status `pending` / `searching` / `procurando`.
+* **Solução Padrão**:
+  Liberar o filtro em `driver.index.tsx` para retornar qualquer corrida com status `pending`, `searching` ou `procurando`, permitindo que qualquer motorista em modo "Corridas" visualize a chamada e possa aceitá-la imediatamente.
+
 
 
 
