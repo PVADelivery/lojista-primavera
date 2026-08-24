@@ -739,6 +739,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Incluir os ícones `Navigation`, `User`, `MapPin`, `ArrowRight` e `Loader2` na lista de imports do `lucide-react` no topo de `driver.index.tsx`. Desta forma, a tela inicial renderiza **100% sem erros**.
 
+---
+
+### 80. Blindagem de Consultas `useQuery` contra Erros de Servidor (500) (`driver.index.tsx`)
+* **Sintoma**: A página exibia mensagem genérica de erro `This page didn't load` ou `500 Internal Server Error` quando o servidor enfrentava oscilações.
+* **Causa Raiz**:
+  O handler `queryFn` das consultas `availableRides` e `activeRides` usava `throw error`, repassando qualquer oscilação de rede ao TanStack Router, que acionava a página de erro global.
+* **Solução Padrão**:
+  Substituir a instrução `throw error` em todas as consultas `useQuery` por um tratamento gracioso (`try/catch` retornando `[]`), impedindo que flutuações temporárias de rede quebrem a aplicação do motorista.
+
 
 
 
