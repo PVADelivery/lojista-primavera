@@ -955,6 +955,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Adicionar o contorno circular dourado iluminado com efeito de pulso contínuo (`animate-ping`) e sombra de destaque (`shadow-[0_0_20px_rgba(251,191,36,0.8)]`).
   3. Passar o elemento personalizado para `new MarkerClass({ element: el })`.
 
+---
+
+### 101. Renderização Incondicional do Crachá de Veículo (Moto/Carro) e Traçado de Rota (`driver.deliveries.tsx`)
+* **Sintoma**: O ícone do veículo e a linha de rota sumiam do mapa quando a geocodificação do destino não encontrava a rua ou se a permissão do GPS do navegador falhasse.
+* **Causa Raiz**:
+  1. A criação do marcador de veículo estava condicionada exclusivamente ao callback de sucesso do `navigator.geolocation.getCurrentPosition`. Se o navegador bloqueasse ou demorasse a obter o GPS, o marcador do veículo não era criado.
+  2. Se a busca pela rua de destino falhasse no Nominatim, `dLat` e `dLng` permaneciam nulos, impedindo o acionamento de `drawRouteLine`.
+* **Solução Padrão**:
+  1. Adicionar fallback de coordenadas para o destino (`dLat = pLat - 0.005`, `dLng = pLng - 0.005`) garantindo que `renderRoute` e `drawRouteLine` sejam executados **sempre**.
+  2. Instanciar o crachá animado do veículo (Moto / Carro) **imediatamente** em `setupRouteAndMarkers`, desacoplando a exibição inicial da dependência de permissão síncrona do GPS do navegador.
+
 
 
 
