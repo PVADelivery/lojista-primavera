@@ -923,6 +923,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Adicionar a variável de estado `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`) nos componentes envelopadores `DriverShell` e `RequireAuth`. Dessa forma, tanto o servidor quanto o cliente renderizam a tela de carregamento durante a hidratação primária, atualizando suavemente para o aplicativo autenticado no `useEffect` sem nenhum aviso ou erro.
 
+---
+
+### 98. Renderização de Linha de Rota Ótima de Tráfego OSRM no Mapa (`DriverRideMap` e `marketplace.rides.tsx`)
+* **Sintoma**: O mapa exibia apenas os pinos isolados de Origem (Verde) e Destino (Vermelho) sem desenhar a linha do percurso de vias públicas conectando ambos os pontos.
+* **Causa Raiz**:
+  Ausência de integração com API de roteamento de vistorias automotivas e camadas de linhas no MapLibre GL.
+* **Solução Padrão**:
+  1. Implementar a função `drawRouteLine` utilizando a API pública de Roteamento OSRM (`https://router.project-osrm.org/route/v1/driving/...`).
+  2. Adicionar fonte GeoJSON `route-source` e camadas de linha com alto contraste no MapLibre: camada de sombra escura (`#1e293b`, 7px) e linha viva azul vibrante (`#3b82f6`, 5px) acompanhando o traçado exato das ruas.
+
 
 
 
