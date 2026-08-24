@@ -672,6 +672,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Fazer o filtro retornar **qualquer solicitação de corrida cujo status não seja finalizado/cancelado** (`!["completed", "cancelled", "concluida", "cancelada"].includes(status)`). Desta forma, qualquer chamado ativo no sistema é exibido imediatamente para o motorista no aplicativo.
 
+---
+
+### 72. Eliminação de Atraso de 2 Minutos para Exibição de Entregas de Lojas no App (`deliveries.ts`)
+* **Sintoma**: Ao lançar um pedido ou entrega de loja no Painel Admin ou Lojista, o entregador ficava aguardando no App sem ver a entrega na lista.
+* **Causa Raiz**:
+  A função `fetchAvailableDeliveries` continha a trava `elapsedSeconds >= 120`, que retinha a exibição da entrega de loja no aplicativo por 2 minutos (120 segundos) antes de exibi-la para o entregador.
+* **Solução Padrão**:
+  Remover a trava de 120 segundos e ajustar o polling do aplicativo para 2000ms (2 segundos). Agora, qualquer nova entrega de loja lançada aparece **instantaneamente** na tela do entregador.
+
 
 
 
