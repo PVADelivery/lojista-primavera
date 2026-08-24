@@ -681,6 +681,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Remover a trava de 120 segundos e ajustar o polling do aplicativo para 2000ms (2 segundos). Agora, qualquer nova entrega de loja lançada aparece **instantaneamente** na tela do entregador.
 
+---
+
+### 73. Normalização de Veículo (`mototaxi` / `moto_taxi`) e Sincronização de Corridas Atribuídas (`driver.index.tsx`)
+* **Sintoma**: A corrida de passageiros com status `pending` e `vehicle_type = 'mototaxi'` não aparecia em "Corridas Disponíveis" ou em "Atribuídos pelo Administrador".
+* **Causa Raiz**:
+  Incompatibilidade de formato na string de veículo (`mototaxi` vs `moto_taxi`) e mesclagem incompleta dos `service_types` entre a tabela `delivery_drivers` e a tabela `profiles`.
+* **Solução Padrão**:
+  1. Implementar a função `isRideVehicleCompatible`, que normaliza hífens/underscores (`mototaxi` e `moto_taxi`) e valida contra os `service_types` e `vehicle_type` do motorista.
+  2. Atualizar a inicialização do motorista para mesclar `service_types` das tabelas `delivery_drivers` e `profiles`.
+  3. Adicionar logs detalhados `console.log("[availableRides]", ...)` e `console.log("[activeRides]", ...)` e manter polling de 2000ms. Desta forma, chamadas pendentes e atribuídas surgem **instantaneamente** no App do Motorista.
+
 
 
 
