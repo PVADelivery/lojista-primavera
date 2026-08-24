@@ -881,6 +881,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Inserir o código SVG do logotipo oficial do WhatsApp (balão circular com fone de telefone interno) dentro dos botões de contato do WhatsApp em ambos os aplicativos (`cliente-primavera` e `entrega-primavera`).
 
+---
+
+### 94. Supressão de Erros de Hidratação Disparados por Extensões e WebViews (`__root.tsx`)
+* **Sintoma**: O log exibia `Minified React error #418` em builds minificados (`index-Cob10Wt5.js`).
+* **Causa Raiz**:
+  Injeção dinâmica de atributos DOM nos elementos `<html ...>`, `<head ...>` e `<body ...>` por extensões de navegador ou WebViews de celulares antes da hidratação do React.
+* **Solução Padrão**:
+  Adicionar a propriedade `suppressHydrationWarning` nos elementos estruturais `<html ...>`, `<head ...>` e `<body ...>` do arquivo de rota raiz `__root.tsx`.
+
 
 
 
