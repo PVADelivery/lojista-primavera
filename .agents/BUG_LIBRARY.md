@@ -872,6 +872,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir o botão de chamada pelo botão verde esmeralda com o ícone de conversa (`MessageSquare`) apontando para `https://wa.me/55...` com sanitização do número de telefone.
 
+---
+
+### 93. Aplicação do Ícone Oficial SVG do WhatsApp nos Botões de Contato (`marketplace.rides.tsx` e `driver.deliveries.tsx`)
+* **Sintoma**: O botão do WhatsApp no card do motorista estava exibindo um ícone genérico de balão de mensagem quadrado (`MessageSquare`).
+* **Causa Raiz**:
+  Utilização de ícone genérico do Lucide em vez do vetor gráfico SVG do logotipo oficial do WhatsApp.
+* **Solução Padrão**:
+  Inserir o código SVG do logotipo oficial do WhatsApp (balão circular com fone de telefone interno) dentro dos botões de contato do WhatsApp em ambos os aplicativos (`cliente-primavera` e `entrega-primavera`).
+
 
 
 
