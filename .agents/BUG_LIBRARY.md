@@ -795,6 +795,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Redirecionar automaticamente o entregador para `/driver/deliveries` no momento em que ele clica em **Aceitar Corrida** (`navigate({ to: "/driver/deliveries" })`).
   3. Atualizar a aba `Entregas & Corridas` para resolver todos os IDs válidos do entregador (`getAllMyDriverIds()`) e manter atualização contínua de 2s (`refetchInterval: 2000`).
 
+---
+
+### 86. Padronização do Mapa MapLibre GL com Coordenadas GPS em Tempo Real (`driver.deliveries.tsx`)
+* **Sintoma**: O app do entregador estava exibindo um mapa iframe estático enquanto o app do cliente usava o estilo visual padronizado MapLibre GL CARTO Positron.
+* **Causa Raiz**:
+  Substituição temporária por iframe embed sem integrar o motor MapLibre GL padronizado da plataforma.
+* **Solução Padrão**:
+  1. Reinstanciar o MapLibre GL com o estilo visual padronizado de todo o sistema (`https://basemaps.cartocdn.com/gl/positron-gl-style/style.json`).
+  2. Adicionar os marcadores padronizados sem sobreposição DOM: Verde para Embarque (Origem), Vermelho para Desembarque (Destino) e Amarelo para a posição em tempo real do GPS do motorista (`navigator.geolocation`).
+
 
 
 
