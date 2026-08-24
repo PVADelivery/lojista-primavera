@@ -827,6 +827,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Configurar a fonte de tiles raster direta do OpenStreetMap (`https://a.tile.openstreetmap.org/{z}/{x}/{y}.png`) no MapLibre GL em ambos os aplicativos, garantindo **renderização 100% visível de todas as ruas, bairros e avenidas**.
   3. Adicionar redimensionamento assíncrono (`m.resize()`) para ajustar o container aos limites exatos da tela.
 
+---
+
+### 89. Rastreamento de GPS Estilo Urbano Norte/Uber no Mapa do Cliente (`marketplace.rides.tsx` & `marketplace.taxi.tsx`)
+* **Sintoma**: O motorista a caminho não aparecia no mapa do cliente, o mapa não enquadrava a rota e as coordenadas não eram salvas no pedido da corrida.
+* **Causa Raiz**:
+  1. A criação da corrida em `marketplace.taxi.tsx` gravava apenas o texto do endereço sem salvar `pickup_latitude` e `pickup_longitude`.
+  2. O mapa não realizava geocodificação dinâmica para corridas antigas e não executava consulta contínua na localização do motorista em `delivery_drivers`.
+* **Solução Padrão**:
+  1. Incluir `pickup_latitude`, `pickup_longitude`, `dropoff_latitude` e `dropoff_longitude` no payload de criação da corrida em `marketplace.taxi.tsx`.
+  2. Implementar geocodificação de fallback no `marketplace.rides.tsx` via Nominatim para endereços sem coordenadas gravadas.
+  3. Criar marcador HTML animado com ícone de veículo (Moto / Carro) e brilho pulsante âmbar para o motorista a caminho.
+  4. Executar enquadramento automático da visão de rota (`fitBounds`) englobando o motorista e os pontos de Embarque/Desembarque.
+  5. Adicionar pooling contínuo a cada 2 segundos somado às atualizações de tempo real (Postgres Changes) da tabela `delivery_drivers`.
+
 
 
 
