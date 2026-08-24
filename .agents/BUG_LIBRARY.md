@@ -703,14 +703,12 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 75. Remoção de Email/Overlay de Cidade e Adição do WhatsApp do Cliente (`driver.deliveries.tsx`)
-* **Sintoma**: O card da corrida em rota exibia o nome da cidade fixo no mapa (`📍 Primavera do Leste - MT`) e o e-mail do passageiro entre parênteses, além de não conter um botão direto para entrar em contato no WhatsApp.
+### 76. Formatação Limpa do Veículo do Motorista no App do Cliente (`marketplace.rides.tsx`)
+* **Sintoma**: Sob o nome do motorista no aplicativo do cliente aparecia a string bruta `"carro,moto • 📞"`.
 * **Causa Raiz**:
-  Formatação bruta da string do nome do passageiro e badge estático sobreposto no componente do mapa `DriverRideMap`.
+  O campo `drv.vehicle` trazia a lista em texto bruto dos serviços autorizados do entregador (`carro,moto`).
 * **Solução Padrão**:
-  1. Remover a tag sobreposta `📍 Primavera do Leste - MT` do mapa.
-  2. Limpar qualquer e-mail do nome do cliente (`String(name).replace(/\s*\(.*?\)/g, "")`).
-  3. Adicionar botão dinâmico de WhatsApp verde esmeralda (`https://wa.me/55...`) para que o motorista possa ligar ou enviar mensagem ao passageiro em 1 clique.
+  Substituir a renderização bruta por um rótulo limpo (`Moto Táxi` ou `Carro (Táxi)`), acompanhado da placa se informada (`ex: Moto Táxi • Placa: RAM`), e substituir o emoji `📞` pelo ícone moderno `Phone` do Lucide icons.
 
 
 
