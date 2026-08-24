@@ -914,6 +914,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Fixar o Marcador Verde (Embarque) nas coordenadas exatas da rua de origem e o Marcador Vermelho (Desembarque) nas coordenadas da rua de destino.
   4. Executar `fitBounds` para enquadrar perfeitamente a rota completa entre os dois endereços do cliente.
 
+---
+
+### 97. Eliminação Definitiva do Erro de Hidratação React #418 na Camada de Autenticação (`DriverShell.tsx` e `RequireAuth.tsx`)
+* **Sintoma**: O log no console exibia o erro de runtime `Uncaught Error: Minified React error #418` ao carregar rotas autenticadas como `/driver/deliveries` ou `/driver/`.
+* **Causa Raiz**:
+  No servidor (SSR), o `useAuth()` renderizava a tela de carregamento (`loading: true`). No cliente, o Supabase restaurava a sessão síncrona do `localStorage`, fazendo o `useAuth()` retornar `loading: false` imediatamente na primeira renderização de hidratação. A discrepância entre a tela de carregamento do servidor e a tela autenticada do cliente quebrava a hidratação do React 18.
+* **Solução Padrão**:
+  Adicionar a variável de estado `mounted` (`useState(false)` + `useEffect(() => setMounted(true), [])`) nos componentes envelopadores `DriverShell` e `RequireAuth`. Dessa forma, tanto o servidor quanto o cliente renderizam a tela de carregamento durante a hidratação primária, atualizando suavemente para o aplicativo autenticado no `useEffect` sem nenhum aviso ou erro.
+
 
 
 
