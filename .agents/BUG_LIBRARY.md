@@ -853,6 +853,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Adicionar fallback encadeado para o bairro (*Jardim Progresso*) caso a rua estrita não retorne resultados.
   4. Fixar o marcador Verde de Embarque no ponto exato retornado da busca e executar `fitBounds` para enquadrar a rota e o motorista.
 
+---
+
+### 91. Correção de Erro de Hidratação React #418 SSR (`Header.tsx` e `ThemeContext.tsx`)
+* **Sintoma**: O log no console exibia o erro de runtime `Uncaught Error: Minified React error #418`.
+* **Causa Raiz**:
+  Diferença de estado na hidratação SSR (Server-Side Rendering) entre servidor e cliente quando `useState` era inicializado de forma preguiçosa lendo `localStorage.getItem()` diretamente durante a renderização inicial. O servidor renderizava com valor falso/padrão enquanto o cliente hidratava com valor verdadeiro, quebrando a árvore DOM do React.
+* **Solução Padrão**:
+  1. Definir o estado inicial dos componentes de forma consistente em ambos os ambientes (ex: `false` ou `'dark'`).
+  2. Mover as leituras de preferências do `localStorage` para dentro de `useEffect` (que executa exclusivamente no cliente **após** o término completo da hidratação do React), eliminando 100% dos erros de discrepância SSR.
+
 
 
 
