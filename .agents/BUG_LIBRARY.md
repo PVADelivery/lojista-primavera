@@ -902,6 +902,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Garantir a execução incondicional de `initMapRoute` em **todos** os caminhos de resposta.
   4. Garantir a renderização do marcador do motorista (crachá animado de veículo) com posicionamento temporário próximo à origem enquanto as coordenadas GPS do banco de dados são sincronizadas.
 
+---
+
+### 96. Geocodificação Precisa dos Endereços de Origem (Verde) e Destino (Vermelho) no Mapa do Entregador (`driver.deliveries.tsx`)
+* **Sintoma**: O mapa do entregador renderizava o pino verde no centro da cidade (Avenida David Riva) e omitia o pino vermelho de destino.
+* **Causa Raiz**:
+  A geocodificação anterior enviava o nome do bairro junto na string de busca ("Rua Ari Kriefe, Jardim Progresso"), o que fazia o Nominatim falhar na busca da rua e cair no fallback do bairro/centro da cidade (`-15.5606, -54.3075`), além de não geocodificar o endereço de destino (`dropoff_address`).
+* **Solução Padrão**:
+  1. Criar a função `cleanStreetOnly` que isola o nome estrito da rua (ex: `Rua Ari Kriefe` e `Rua Gabidu`).
+  2. Executar buscas assíncronas paralelas via `geocodeAddress` tanto para a Origem (`pickup_address`) quanto para o Destino (`dropoff_address`).
+  3. Fixar o Marcador Verde (Embarque) nas coordenadas exatas da rua de origem e o Marcador Vermelho (Desembarque) nas coordenadas da rua de destino.
+  4. Executar `fitBounds` para enquadrar perfeitamente a rota completa entre os dois endereços do cliente.
+
 
 
 
