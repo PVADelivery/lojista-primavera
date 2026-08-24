@@ -841,6 +841,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. Executar enquadramento automático da visão de rota (`fitBounds`) englobando o motorista e os pontos de Embarque/Desembarque.
   5. Adicionar pooling contínuo a cada 2 segundos somado às atualizações de tempo real (Postgres Changes) da tabela `delivery_drivers`.
 
+---
+
+### 90. Geocodificação Dinâmica de Endereços Textuais no Mapa do Entregador (`driver.deliveries.tsx`)
+* **Sintoma**: O mapa no card de corrida do entregador marcava uma localização incorreta no centro da cidade (Rua Poxoréu / Av. David Riva) em vez da rua informada (*Rua Ari Kriefe, Jardim Progresso*).
+* **Causa Raiz**:
+  Quando a corrida não possuía coordenadas numéricas gravadas no banco, o mapa utilizava o fallback padrão do centro da cidade `PVA_CENTER` (`-15.5606, -54.3075`).
+* **Solução Padrão**:
+  1. Implementar geocodificação dinâmica via API OpenStreetMap Nominatim no `DriverRideMap`.
+  2. Limpar a string do endereço removendo emails, números e marcas textuais antes da consulta.
+  3. Adicionar fallback encadeado para o bairro (*Jardim Progresso*) caso a rua estrita não retorne resultados.
+  4. Fixar o marcador Verde de Embarque no ponto exato retornado da busca e executar `fitBounds` para enquadrar a rota e o motorista.
+
 
 
 
