@@ -978,6 +978,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Quando `<CustomerRideMap />` é montado condicionalmente na tela, seu `mapContainerRef` está 100% garantido no DOM, acionando o MapLibre instantaneamente com marcadores de Origem/Destino, traçado azul da rota OSRM e crachá animado do veículo (Moto/Carro).
   3. Adicionar `suppressHydrationWarning` nos elementos do Shell em `cliente-primavera/src/routes/__root.tsx`.
 
+---
+
+### 103. Substituição pelo Vetor SVG de Motocicleta de Alta Definição nos Mapas (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O ícone interno do marcador de Moto Táxi exibia um traçado de patinete/bicicleta genérico que não lembrava uma motocicleta real.
+* **Causa Raiz**:
+  Utilização do path genérico do Lucide `Bike` no elemento HTML do marcador.
+* **Solução Padrão**:
+  1. Desenhar o vetor SVG de Motocicleta com rodas nítidas (`cx="6"` e `cx="18"`), garfo dianteiro, guidão, tanque de combustível e escapamento esportivo.
+  2. Ampliar o crachá circular para `w-12 h-12` (`48px`) com gradiente dourado (`from-amber-500 via-amber-400 to-yellow-300`), pulso de iluminação expandido (`w-14 h-14`) e borda branca de destaque.
+
 
 
 
