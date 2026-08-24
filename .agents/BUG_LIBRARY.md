@@ -710,6 +710,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Substituir a renderização bruta por um rótulo limpo (`Moto Táxi` ou `Carro (Táxi)`), acompanhado da placa se informada (`ex: Moto Táxi • Placa: RAM`), e substituir o emoji `📞` pelo ícone moderno `Phone` do Lucide icons.
 
+---
+
+### 77. Resolução de `TypeError: Illegal constructor` no Componente de Mapa (`driver.deliveries.tsx`)
+* **Sintoma**: Ao acessar a tela de entregas/corridas em rota no app do entregador, a tela quebrava com o erro `TypeError: Illegal constructor`.
+* **Causa Raiz**:
+  Instanciação direta de elementos HTML dentro de construtores de marcadores do MapLibre GL carregado assincronamente por importação dinâmica.
+* **Solução Padrão**:
+  1. Extrair os construtores de forma segura (`maplibregl.Map || mod.Map` e `maplibregl.Marker || mod.Marker`).
+  2. Utilizar parâmetros seguros no construtor do marcador (`{ color: "#f59e0b" }`) em vez de manipular construtores de elementos customizados.
+  3. Envolver a inicialização do mapa e marcadores em blocos `try/catch` para prevenir qualquer travamento da interface.
+
 
 
 
