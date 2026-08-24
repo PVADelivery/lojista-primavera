@@ -616,6 +616,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Forçar `canDelivery = true` e `canRide = true` no hook `useWorkMode.tsx`, permitindo que todo motorista/entregador devidamente cadastrado transite livremente entre a recepção de entregas de lojas e corridas de passageiros.
 
+---
+
+### 65. Exclusão Resiliente de Entregadores no Painel Admin (`drivers.tsx`)
+* **Sintoma**: Ao clicar em "Excluir" no menu de um entregador no Painel Admin (`/admin/drivers`), o entregador continuava aparecendo na lista ou a exclusão falhava silenciosamente.
+* **Causa Raiz**:
+  O handler `handleDelete` filtrava apenas por `id`. Caso a linha no banco estivesse vinculada pelo `user_id` ou possuísse chave estrangeira ligada a entregas/corridas passadas, a deleção falhava ou ficava incompleta.
+* **Solução Padrão**:
+  1. Passar o objeto completo do motorista `d` para a função `handleDelete`.
+  2. Executar a exclusão por `id` e fallback por `user_id`.
+  3. Caso haja restrição de integridade por entregas passadas, aplicar desativação automática (`is_online = false`, `status = 'inactive'`).
+  4. Atualizar a `role` da conta em `profiles` de `driver` para `customer`, desvinculando o entregador do sistema permanentemente.
+
 
 
 
