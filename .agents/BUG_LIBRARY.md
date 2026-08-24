@@ -933,6 +933,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Implementar a função `drawRouteLine` utilizando a API pública de Roteamento OSRM (`https://router.project-osrm.org/route/v1/driving/...`).
   2. Adicionar fonte GeoJSON `route-source` e camadas de linha com alto contraste no MapLibre: camada de sombra escura (`#1e293b`, 7px) e linha viva azul vibrante (`#3b82f6`, 5px) acompanhando o traçado exato das ruas.
 
+---
+
+### 99. Renderização Instantânea Garantida da Linha de Rota (`drawRouteLine`)
+* **Sintoma**: Se o servidor remoto da OSRM demorava para responder, falhava ou dava timeout, nenhuma linha de rota era desenhada entre a origem e o destino.
+* **Causa Raiz**:
+  Dependência exclusiva da chamada assíncrona da OSRM sem uma camada de fallback síncrona/instantânea de traçado inicial.
+* **Solução Padrão**:
+  1. Desenhar imediatamente um segmento GeoJSON inicial conectando `[pickupLng, pickupLat]` a `[dropoffLng, dropoffLat]` assim que a rota é carregada.
+  2. Aplicar a camada de linha azul royal vibrante (`#2563eb`, 5px) com borda escura (`#0f172a`, 8px, opacity 0.6).
+  3. Quando a resposta do servidor OSRM retorna, atualizar o GeoJSON com a geometria de curvatura exata das ruas. Desta forma, a linha de rota aparece **instantaneamente** no mapa.
+
 
 
 
