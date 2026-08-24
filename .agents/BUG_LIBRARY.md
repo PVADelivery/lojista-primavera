@@ -863,6 +863,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Definir o estado inicial dos componentes de forma consistente em ambos os ambientes (ex: `false` ou `'dark'`).
   2. Mover as leituras de preferências do `localStorage` para dentro de `useEffect` (que executa exclusivamente no cliente **após** o término completo da hidratação do React), eliminando 100% dos erros de discrepância SSR.
 
+---
+
+### 92. Substituição do Botão de Ligação por Botão Direto de WhatsApp no Card do Motorista (`marketplace.rides.tsx`)
+* **Sintoma**: O card do motorista a caminho no App do Cliente exibia um botão circular laranja de ligação telefônica (`tel:`).
+* **Causa Raiz**:
+  Elemento âncora renderizava `tel:${drv.phone}` em vez de redirecionar para a conversa direta do WhatsApp.
+* **Solução Padrão**:
+  Substituir o botão de chamada pelo botão verde esmeralda com o ícone de conversa (`MessageSquare`) apontando para `https://wa.me/55...` com sanitização do número de telefone.
+
 
 
 
