@@ -890,6 +890,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Adicionar a propriedade `suppressHydrationWarning` nos elementos estruturais `<html ...>`, `<head ...>` e `<body ...>` do arquivo de rota raiz `__root.tsx`.
 
+---
+
+### 95. Renderização Garantida de Marcadores (Origem, Destino e Motorista) no Mapa do Cliente (`marketplace.rides.tsx`)
+* **Sintoma**: O mapa do cliente renderizava apenas as ruas sem os pinos de Embarque (Verde), Desembarque (Vermelho) ou o marcador animado do motorista.
+* **Causa Raiz**:
+  Para corridas antigas sem coordenadas numéricas salvas, a consulta estrita de geocodificação no Nominatim falhava devido a sufixos como `nº 300` e nomes duplicados da cidade, abortando a chamada das funções `renderRouteMarkers` e `updateDriverMarker`.
+* **Solução Padrão**:
+  1. Sanitizar a string do endereço removendo emails, números de residência e redundâncias de cidade antes da consulta.
+  2. Implementar fluxo de fallback encadeado (Busca Limpa -> Busca por Bairro -> Fallback Genérico).
+  3. Garantir a execução incondicional de `initMapRoute` em **todos** os caminhos de resposta.
+  4. Garantir a renderização do marcador do motorista (crachá animado de veículo) com posicionamento temporário próximo à origem enquanto as coordenadas GPS do banco de dados são sincronizadas.
+
 
 
 
