@@ -636,6 +636,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Ignorar estritamente qualquer perfil cujo `role === "customer"`, `status === "deleted"` ou `status === "inactive"`, tanto no loop principal de `delivery_drivers` quanto no loop secundário de `allDriverUserIds`. Desta forma, ao excluir o entregador, ele desaparece **instantaneamente** da interface.
 
+---
+
+### 67. Atualização Otimista da Interface (Optimistic UI) ao Excluir Entregador (`drivers.tsx`)
+* **Sintoma**: Ao confirmar a exclusão de um entregador no Painel Admin, a notificação aparecia mas o card do entregador continuava visível até a recarga completa dos dados.
+* **Causa Raiz**:
+  O cache do React Query não limpava imediatamente o objeto do motorista antes do término das operações assíncronas do Supabase.
+* **Solução Padrão**:
+  Utilizar `qc.setQueryData(["drivers"], ...)` no início de `handleDelete` para filtrar e remover o motorista imediatamente do estado da tela (Optimistic UI Update), além de fornecer o script SQL direto para limpeza forçada no banco de dados Supabase via SQL Editor.
+
 
 
 
