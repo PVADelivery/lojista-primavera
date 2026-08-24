@@ -645,6 +645,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Utilizar `qc.setQueryData(["drivers"], ...)` no início de `handleDelete` para filtrar e remover o motorista imediatamente do estado da tela (Optimistic UI Update), além de fornecer o script SQL direto para limpeza forçada no banco de dados Supabase via SQL Editor.
 
+---
+
+### 68. Restauração Completa da Lista de Motoristas da Frota no Painel Admin (`drivers.ts`)
+* **Sintoma**: A tabela de entregadores no Painel Admin (`/admin/drivers`) exibia apenas 3 motoristas, ocultando todos os outros motoristas reais cadastrados no banco de dados.
+* **Causa Raiz**:
+  A verificação `if (profile && profile.role === 'customer') continue;` em `fetchDrivers` filtrava indevidamente registros reais da tabela `delivery_drivers` cujos perfis na tabela `profiles` possuíam `role` como `customer` ou nula.
+* **Solução Padrão**:
+  Exibir todos os registros ativos da tabela `delivery_drivers` sem restringir pelo `role` da tabela `profiles`, ignorando apenas contas com `status === 'deleted'`. Desta forma, 100% da frota cadastrada volta a ser exibida normalmente no Painel Admin.
+
 
 
 
