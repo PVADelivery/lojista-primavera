@@ -627,6 +627,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Executar a exclusão por `id` e `user_id` em `delivery_drivers`, `user_roles` e atualizar `profiles` para `role = 'customer'` e `status = 'deleted'`.
   3. Atualizar a função `fetchDrivers` em `drivers.ts` para ignorar registros com `status === 'deleted'`, `status === 'inactive'`, `is_active === false` ou perfis rebaixados para `role === 'customer'`. Desta forma, o entregador desaparece imediatamente e definitivamente da lista do Painel Admin.
 
+---
+
+### 66. Filtro Rigoroso de Exclusão de Entregadores no Serviço do Painel (`drivers.ts`)
+* **Sintoma**: Após clicar em OK na confirmação de exclusão do entregador, a notificação "Entregador excluído com sucesso" era exibida, porém o entregador ainda permanecia visível na tabela do Painel Admin.
+* **Causa Raiz**:
+  A função `fetchDrivers` fazia o cruzamento da tabela `delivery_drivers` com a tabela `profiles`. Mesmo quando a role do perfil mudava para `customer` ou o status mudava para `deleted`, a lógica anterior reintroduzia o entregador na tabela pelo loop secundário de perfis cadastrados.
+* **Solução Padrão**:
+  Ignorar estritamente qualquer perfil cujo `role === "customer"`, `status === "deleted"` ou `status === "inactive"`, tanto no loop principal de `delivery_drivers` quanto no loop secundário de `allDriverUserIds`. Desta forma, ao excluir o entregador, ele desaparece **instantaneamente** da interface.
+
 
 
 
