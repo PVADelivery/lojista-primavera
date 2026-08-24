@@ -701,6 +701,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Remover todos os emojis (`🏍️`, `🚗`), substituindo por ícones Lucide modernos (`Navigation`, `User`, `MapPin`, `ArrowRight`). Implementar linha de trajeto (Origem/Destino com indicador visual de cor gradual), badge de valor em destaque e botão de ação dourado premium com animação suave.
 
+---
+
+### 75. Remoção de Email/Overlay de Cidade e Adição do WhatsApp do Cliente (`driver.deliveries.tsx`)
+* **Sintoma**: O card da corrida em rota exibia o nome da cidade fixo no mapa (`📍 Primavera do Leste - MT`) e o e-mail do passageiro entre parênteses, além de não conter um botão direto para entrar em contato no WhatsApp.
+* **Causa Raiz**:
+  Formatação bruta da string do nome do passageiro e badge estático sobreposto no componente do mapa `DriverRideMap`.
+* **Solução Padrão**:
+  1. Remover a tag sobreposta `📍 Primavera do Leste - MT` do mapa.
+  2. Limpar qualquer e-mail do nome do cliente (`String(name).replace(/\s*\(.*?\)/g, "")`).
+  3. Adicionar botão dinâmico de WhatsApp verde esmeralda (`https://wa.me/55...`) para que o motorista possa ligar ou enviar mensagem ao passageiro em 1 clique.
+
 
 
 
