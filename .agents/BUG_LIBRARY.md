@@ -815,6 +815,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Adicionar os marcadores de Embarque (Verde Esmeralda `#10b981`) e Desembarque (Vermelho `#ef4444`).
   2. Consultar ativamente a tabela `delivery_drivers` por `user_id` ou `id` para obter a posição GPS atual do motorista e subscrever às atualizações do Supabase em tempo real com `flyTo`.
 
+---
+
+### 88. Remoção do Badge Overlay e Renderização de Tiles OpenStreetMap (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O badge `GPS MapLibre Ao Vivo` poluía a visão do mapa no card da corrida e o mapa ficava com fundo branco sem exibir os nomes das ruas e avenidas.
+* **Causa Raiz**:
+  1. Presença do elemento HTML fixo com o texto `GPS MapLibre Ao Vivo` sobre o container do mapa.
+  2. O estilo vetorial remoto da CARTO falhava no carregamento das fontes/glyphs nos navegadores móveis, resultando em fundo branco.
+* **Solução Padrão**:
+  1. Deletar completamente o badge `GPS MapLibre Ao Vivo` da renderização.
+  2. Configurar a fonte de tiles raster direta do OpenStreetMap (`https://a.tile.openstreetmap.org/{z}/{x}/{y}.png`) no MapLibre GL em ambos os aplicativos, garantindo **renderização 100% visível de todas as ruas, bairros e avenidas**.
+  3. Adicionar redimensionamento assíncrono (`m.resize()`) para ajustar o container aos limites exatos da tela.
+
 
 
 
