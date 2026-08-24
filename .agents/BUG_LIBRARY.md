@@ -692,6 +692,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Atualizar a inicialização do motorista para mesclar `service_types` das tabelas `delivery_drivers` e `profiles`.
   3. Adicionar logs detalhados `console.log("[availableRides]", ...)` e `console.log("[activeRides]", ...)` e manter polling de 2000ms. Desta forma, chamadas pendentes e atribuídas surgem **instantaneamente** no App do Motorista.
 
+---
+
+### 74. Redesign Premium do Card de Corridas sem Emojis no App (`driver.index.tsx`)
+* **Sintoma**: O card de corrida no App do Motorista usava emoji de moto (`🏍️`) e um visual simplório sem linha de trajeto elegante.
+* **Causa Raiz**:
+  Design antigo usando strings genéricas com emojis embutidos.
+* **Solução Padrão**:
+  Remover todos os emojis (`🏍️`, `🚗`), substituindo por ícones Lucide modernos (`Navigation`, `User`, `MapPin`, `ArrowRight`). Implementar linha de trajeto (Origem/Destino com indicador visual de cor gradual), badge de valor em destaque e botão de ação dourado premium com animação suave.
+
 
 
 
