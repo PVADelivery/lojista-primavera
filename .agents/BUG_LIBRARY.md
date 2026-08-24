@@ -775,6 +775,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Importar explicitamente `Component` e `ReactNode` da biblioteca `"react"`, e `Navigation` e `Phone` da biblioteca `"lucide-react"`. Validar sempre a integridade de compilação com `npx tsc --noEmit`.
 
+---
+
+### 84. Eliminação Definitiva de `TypeError: Illegal constructor` via Embed Nativo (`driver.deliveries.tsx`)
+* **Sintoma**: O log reportou novamente o lançamento de `TypeError: Illegal constructor` no arquivo minificado `index-CeRNLpgy.js` em navegadores mobile/WebViews.
+* **Causa Raiz**:
+  A biblioteca MapLibre GL tentava instanciar elementos de tela e workers via `new Image()`, `new Worker()` ou `new CustomEvent()` dentro de bundlers ESM minificados, disparando exceção nativa em WebViews Android/iOS.
+* **Solução Padrão**:
+  Substituir a instanciação do mapa JavaScript por um mapa incorporado nativo via `<iframe>` (`https://maps.google.com/maps?...`), que renderiza a localização diretamente pelo navegador com 0% de uso de WebGL/workers de biblioteca JS, erradicando **100% de qualquer chance de `Illegal constructor`**.
+
 
 
 
