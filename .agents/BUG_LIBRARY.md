@@ -757,6 +757,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Configurar o redirecionamento com `statusCode: 302` no `beforeLoad` e adicionar um fallback via `useEffect` no componente da rota (`navigate({ to: "/driver", replace: true })`), garantindo redirecionamento suave em qualquer ambiente.
 
+---
+
+### 82. Proteção Geral de Globais Browser (`localStorage`, `window`) contra Erro SSR 500 (`Header.tsx`, `AuthContext.tsx`, `useDriverNotifications.ts`)
+* **Sintoma**: O servidor Cloudflare/Nitro retornava `500 Internal Server Error` na primeira carga de página e renderizava a tela `This page didn't load`.
+* **Causa Raiz**:
+  O renderizador Server-Side (SSR) do TanStack Start no Worker/Node tentava acessar a global `localStorage` sem validar `typeof window !== "undefined"`, disparando `ReferenceError: localStorage is not defined` no servidor.
+* **Solução Padrão**:
+  Proteger todas as chamadas diretas a `localStorage`, `sessionStorage` e `window` em componentes e hooks com checagens de runtime (`if (typeof window !== "undefined")`). Desta forma, o servidor compila e renderiza a página HTML inicial **100% limpa com código 200 OK**.
+
 
 
 
