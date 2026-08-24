@@ -805,6 +805,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Reinstanciar o MapLibre GL com o estilo visual padronizado de todo o sistema (`https://basemaps.cartocdn.com/gl/positron-gl-style/style.json`).
   2. Adicionar os marcadores padronizados sem sobreposição DOM: Verde para Embarque (Origem), Vermelho para Desembarque (Destino) e Amarelo para a posição em tempo real do GPS do motorista (`navigator.geolocation`).
 
+---
+
+### 87. Renderização dos Marcadores de GPS no Mapa do Cliente (`marketplace.rides.tsx`)
+* **Sintoma**: O mapa do cliente ficava centralizado na cidade sem exibir os marcadores de Origem, Destino nem o motorista a caminho.
+* **Causa Raiz**:
+  O componente do mapa do cliente renderizava apenas o motorista caso existisse um elemento HTML customizado anexado ao `activeRide.driver`, sem considerar as coordenadas de Embarque/Desembarque nem consultar a localização em tempo real no banco `delivery_drivers`.
+* **Solução Padrão**:
+  1. Adicionar os marcadores de Embarque (Verde Esmeralda `#10b981`) e Desembarque (Vermelho `#ef4444`).
+  2. Consultar ativamente a tabela `delivery_drivers` por `user_id` ou `id` para obter a posição GPS atual do motorista e subscrever às atualizações do Supabase em tempo real com `flyTo`.
+
 
 
 
