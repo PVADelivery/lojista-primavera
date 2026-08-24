@@ -730,6 +730,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Envolver o componente `DriverRideMap` dentro de uma classe de captura de erros React (`MapErrorBoundary`). Se qualquer biblioteca de mapa externa falhar em qualquer dispositivo, o erro é capturado e silenciado com segurança, permitindo que a tela e todos os botões de ação continuem funcionando **100% perfeitamente**.
 
+---
+
+### 79. Correção de `ReferenceError: User is not defined` no Card de Corridas (`driver.index.tsx`)
+* **Sintoma**: Ao abrir a tela inicial do App do Entregador (`/driver`), a página quebrava com a exceção `ReferenceError: User is not defined`.
+* **Causa Raiz**:
+  O componente `<User />` do `lucide-react` foi adicionado nos cards de corrida sem ter sido incluído na declaração de `import` do topo do arquivo.
+* **Solução Padrão**:
+  Incluir os ícones `Navigation`, `User`, `MapPin`, `ArrowRight` e `Loader2` na lista de imports do `lucide-react` no topo de `driver.index.tsx`. Desta forma, a tela inicial renderiza **100% sem erros**.
+
 
 
 
