@@ -624,9 +624,8 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   O handler `handleDelete` filtrava apenas por `id`. Caso a linha no banco estivesse vinculada pelo `user_id` ou possuísse chave estrangeira ligada a entregas/corridas passadas, a deleção falhava ou ficava incompleta.
 * **Solução Padrão**:
   1. Passar o objeto completo do motorista `d` para a função `handleDelete`.
-  2. Executar a exclusão por `id` e fallback por `user_id`.
-  3. Caso haja restrição de integridade por entregas passadas, aplicar desativação automática (`is_online = false`, `status = 'inactive'`).
-  4. Atualizar a `role` da conta em `profiles` de `driver` para `customer`, desvinculando o entregador do sistema permanentemente.
+  2. Executar a exclusão por `id` e `user_id` em `delivery_drivers`, `user_roles` e atualizar `profiles` para `role = 'customer'` e `status = 'deleted'`.
+  3. Atualizar a função `fetchDrivers` em `drivers.ts` para ignorar registros com `status === 'deleted'`, `status === 'inactive'`, `is_active === false` ou perfis rebaixados para `role === 'customer'`. Desta forma, o entregador desaparece imediatamente e definitivamente da lista do Painel Admin.
 
 
 
