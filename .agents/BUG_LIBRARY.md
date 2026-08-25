@@ -998,6 +998,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Alterar a verificação da RPC no banco (`20260824230000_allow_editing_active_deliveries.sql`) para proibir a edição **apenas** quando o status da entrega for `completed`, `delivered`, `cancelled` ou `canceled`.
   2. Implementar no formulário de edição (`business.delivery-new.tsx`) um mecanismo de resiliência com atualização direta no Supabase para entregas em andamento (`accepted`, `in_route`, etc.) quando a RPC retornar a mensagem legada `NOT_EDITABLE`. Desta forma, o lojista consegue alterar dados do cliente, endereço, observações e método de pagamento em qualquer etapa antes da conclusão.
 
+---
+
+### 105. Tratamento de Exceção de Conexão no Safari iOS `Load failed` ao Avançar Status (`deliveries.ts` e `driver.deliveries.tsx`)
+* **Sintoma**: No iPhone (iOS Safari / Webview), ao clicar para avançar o status da entrega, o app exibia o alerta de erro `[Erro na Tela] Falha ao atualizar: Load failed`.
+* **Causa Raiz**:
+  A chamada da função de servidor `updateDriverDelivery` lançava a exceção de rede nativa do Safari (`TypeError: Load failed`) quando a conexão falhava ou dava timeout em dados móveis. Essa exceção não tratada abortava o fluxo antes de atingir o fallback síncrono da API do Supabase Client (`supabase.from("deliveries").update(...)`).
+* **Solução Padrão**:
+  1. Envolver a chamada de servidor `updateDriverDelivery` em um bloco `try/catch` tolerante a falhas em `src/services/deliveries.ts`. Se o servidor retornar `Load failed` ou timeout, a função não é abortada e prossegue imediatamente para a atualização direta da tabela `deliveries` via cliente Supabase.
+  2. Adicionar em `driver.deliveries.tsx` o tratamento do texto da exceção para substituir strings técnicas de navegador (`Load failed`, `Failed to fetch`) por mensagens amigáveis em português (`Falha de conexão com a rede. Tente novamente.`).
+
 
 
 
