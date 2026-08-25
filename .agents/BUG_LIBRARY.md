@@ -1081,6 +1081,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Desenhar a silhueta preta da Motocicleta Cruiser com rodas de raio interno em branco, escapamento duplo cromado inferior, bloco de motor V-Twin, tanque gota e garfo dianteiro com farol e retrovisor.
   4. Alinhamento com `-translate-y-[85%]` para apontamento milimétrico da ponta do pino na rua.
 
+---
+
+### 112. Ajuste de Proporção e Alinhamento Preciso do Pino 3D Glossy (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O pino 3D ficava ligeiramente desproporcional ou deslocado em relação à linha da rua no mapa.
+* **Causa Raiz**:
+  O container SVG de 44x56px com `-translate-y-[85%]` apresentava uma margem superior descompensada.
+* **Solução Padrão**:
+  1. Redimensionar a caixa delimitadora do pino 3D para `40px x 50px` (`w-10 h-[50px]`).
+  2. Aplicar o deslocamento exato de ancoragem `-translate-y-[90%]`, garantindo que o vértice exato da ponta do pino de localização aponte exatamente na coordenada da rua.
+  3. Manter a silhueta da moto Harley Cruiser preta com rodas detalhadas, escapamento duplo e motor V-Twin centralizada dentro do círculo branco.
+
 
 
 
