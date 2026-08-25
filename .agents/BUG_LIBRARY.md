@@ -1058,6 +1058,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Rodas foscas com aros internos brancos, escapamento duplo paralelo, motor V-Twin, tanque gota e guidão com retrovisor.
   3. Aplicar alinhamento preciso `-translate-y-1/2` garantindo que a ponta do pino aponte exatamente para a localização do motorista.
 
+---
+
+### 110. Exibição Exclusiva do Vetor da Motocicleta Sem Pino Laranja (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: Solicitação para remover completamente o pino de localização alaranjado/dourado e utilizar **exclusivamente a silhueta da motocicleta** flutuando sobre o mapa.
+* **Causa Raiz**:
+  O envolvente do pino adicionava ruído visual que cobria partes do mapa e ruas.
+* **Solução Padrão**:
+  1. Remover o container do pino alaranjado (`svg pinGrad`) e os anéis circulares.
+  2. Renderizar diretamente o vetor da Motocicleta Custom (Heavy Cruiser) em preto (`#0f172a` / `36px x 24px`) com contorno brilhante sutil (`drop-shadow-[0_0_2px_rgba(255,255,255,0.95)]`) e sombra suave no solo sob os pneus.
+  3. Desta forma, a moto desliza diretamente pelas ruas do mapa de forma limpa, moderna e 100% visível em qualquer tema de mapa (claro, escuro ou satélite).
+
 
 
 
