@@ -1008,6 +1008,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Envolver a chamada de servidor `updateDriverDelivery` em um bloco `try/catch` tolerante a falhas em `src/services/deliveries.ts`. Se o servidor retornar `Load failed` ou timeout, a função não é abortada e prossegue imediatamente para a atualização direta da tabela `deliveries` via cliente Supabase.
   2. Adicionar em `driver.deliveries.tsx` o tratamento do texto da exceção para substituir strings técnicas de navegador (`Load failed`, `Failed to fetch`) por mensagens amigáveis em português (`Falha de conexão com a rede. Tente novamente.`).
 
+---
+
+### 106. Vetor SVG da Motocicleta Harley Fat Bob / Heavy Cruiser nos Marcadores de Mapa (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O vetor genérico da motocicleta não reproduzia fielmente o chassi da moto pesada/custom solicitada.
+* **Causa Raiz**:
+  SVG anterior utilizava linhas simplificadas sem os traços de escapamento duplo, rodas robustas e motor V-Twin.
+* **Solução Padrão**:
+  1. Desenhar o vetor SVG de alta fidelidade da motocicleta estilo Harley Fat Bob / Heavy Cruiser:
+     - Rodas largas com aros internos e discos de freio (`cx="6.5"` e `cx="21.5"`).
+     - Escapamento duplo cromado duplo sob o chassi (`M8.5 18.2H17` / `M8 20H16`).
+     - Tanque de combustível formato gota, banco baixo esportivo e motor V-Twin.
+     - Garfo inclinado com farol retangular.
+  2. Ajustar o crachá circular para `w-14 h-14` (`56px`) com gradiente dourado, borda branca e pulso de luz expandido (`w-16 h-16`).
+
 
 
 
