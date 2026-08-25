@@ -1034,6 +1034,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Pulso animado de retaguarda de `36px` (`w-9 h-9`, opacity 25%).
   3. Ícone vetorial interno nítido e legível de `20px` (`w-5 h-5`). Desta forma, o mapa fica totalmente limpo, funcional e legível sem cobrir ruas ou pinos.
 
+---
+
+### 108. Correção de Conflito de Assinatura Realtime `cannot add postgres_changes callbacks after subscribe()` (`marketplace.rides.tsx`)
+* **Sintoma**: No mapa do cliente, o console exibia a mensagem de erro `[CustomerRideMap] Erro ao inicializar MapLibre: Error: cannot add postgres_changes callbacks for realtime:driver_loc_... after subscribe()`.
+* **Causa Raiz**:
+  O código reutilizava o mesmo nome estático de canal (`driver_loc_${activeRide.driver_id}`) em múltiplas re-renderizações sem efetuar a remoção prévia do canal ativo no cliente do Supabase (`supabase.removeChannel`), gerando uma tentativa de adicionar callbacks a um canal já inscrito.
+* **Solução Padrão**:
+  1. Gerar um nome de canal único por execução (`driver_loc_${activeRide.driver_id}_${Math.random().toString(36).slice(2, 8)}`).
+  2. Implementar a limpeza rigorosa no retorno do `useEffect` cancelando o intervalo de polling (`clearInterval(pollInterval)`) e removendo a inscrição no cliente Supabase (`supabase.removeChannel(locSub)`). Desta forma, o mapa inicializa de forma 100% fluida e sem conflitos de rede.
+
 
 
 
