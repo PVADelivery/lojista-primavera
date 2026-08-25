@@ -1022,6 +1022,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Garfo inclinado com farol retangular.
   2. Ajustar o crachá circular para `w-14 h-14` (`56px`) com gradiente dourado, borda branca e pulso de luz expandido (`w-16 h-16`).
 
+---
+
+### 107. Ajuste de Proporção Elegante e Compacta do Marcador de Veículo (`32px`) (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O círculo amarelo do veículo ficava desproporcionalmente gigante no mapa, cobrindo o traçado da rota e os pinos de origem/destino.
+* **Causa Raiz**:
+  O tamanho fixo de `56px` (`w-14 h-14`) com efeito de pulso expandido para `64px` sobrepunha quase metade da tela do mapa em dispositivos móveis.
+* **Solução Padrão**:
+  Redimensionar o crachá do veículo para o padrão internacional de aplicativos de transporte (Uber, Google Maps):
+  1. Círculo dourado compacto de `32px` (`w-8 h-8`) com borda branca de `2px` e sombra sutil.
+  2. Pulso animado de retaguarda de `36px` (`w-9 h-9`, opacity 25%).
+  3. Ícone vetorial interno nítido e legível de `20px` (`w-5 h-5`). Desta forma, o mapa fica totalmente limpo, funcional e legível sem cobrir ruas ou pinos.
+
 
 
 
