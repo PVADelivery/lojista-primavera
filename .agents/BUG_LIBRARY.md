@@ -988,6 +988,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Desenhar o vetor SVG de Motocicleta com rodas nítidas (`cx="6"` e `cx="18"`), garfo dianteiro, guidão, tanque de combustível e escapamento esportivo.
   2. Ampliar o crachá circular para `w-12 h-12` (`48px`) com gradiente dourado (`from-amber-500 via-amber-400 to-yellow-300`), pulso de iluminação expandido (`w-14 h-14`) e borda branca de destaque.
 
+---
+
+### 104. Liberação da Edição de Entregas em Qualquer Etapa Ativa (`business.delivery-new.tsx` e RPC `update_delivery_with_credits`)
+* **Sintoma**: Ao tentar editar uma entrega que já havia saído do status `pending` (ex: `accepted`, `in_route`, `collecting`), o sistema exibia o erro `[Erro na Tela] Esta entrega já saiu do status pendente e não pode mais ser editada.`.
+* **Causa Raiz**:
+  A RPC do banco de dados `update_delivery_with_credits` exigia estritamente `v_delivery.status = 'pending'`.
+* **Solução Padrão**:
+  1. Alterar a verificação da RPC no banco (`20260824230000_allow_editing_active_deliveries.sql`) para proibir a edição **apenas** quando o status da entrega for `completed`, `delivered`, `cancelled` ou `canceled`.
+  2. Implementar no formulário de edição (`business.delivery-new.tsx`) um mecanismo de resiliência com atualização direta no Supabase para entregas em andamento (`accepted`, `in_route`, etc.) quando a RPC retornar a mensagem legada `NOT_EDITABLE`. Desta forma, o lojista consegue alterar dados do cliente, endereço, observações e método de pagamento em qualquer etapa antes da conclusão.
+
 
 
 
