@@ -1069,6 +1069,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Renderizar diretamente o vetor da Motocicleta Custom (Heavy Cruiser) em preto (`#0f172a` / `36px x 24px`) com contorno brilhante sutil (`drop-shadow-[0_0_2px_rgba(255,255,255,0.95)]`) e sombra suave no solo sob os pneus.
   3. Desta forma, a moto desliza diretamente pelas ruas do mapa de forma limpa, moderna e 100% visível em qualquer tema de mapa (claro, escuro ou satélite).
 
+---
+
+### 111. Marcador idêntico ao Modelo Solicitado: Pino 3D Glossy Laranja/Amarelo com Círculo Branco Interno e Silhueta de Harley Heavy Cruiser (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O marcador precisava reproduzir **exatamente** o pino 3D da foto fornecida: formato pino de localização gota com gradiente alaranjado/dourado (`#ffb703` a `#d00000`), círculo branco fosco central com borda fina laranja e a silhueta preta detalhada de motocicleta custom (Harley Fat Bob/Cruiser).
+* **Causa Raiz**:
+  Vetores anteriores sem a composição completa do pino 3D + círculo branco central + vetor detalhado de moto pesada não correspondiam à identidade visual da referência.
+* **Solução Padrão**:
+  1. Construir em SVG puro o Pino 3D Glossy com gradientes `pinBodyGrad` e `pinRingGrad`.
+  2. Inserir o círculo interior branco (`cx="22" cy="22" r="15"`).
+  3. Desenhar a silhueta preta da Motocicleta Cruiser com rodas de raio interno em branco, escapamento duplo cromado inferior, bloco de motor V-Twin, tanque gota e garfo dianteiro com farol e retrovisor.
+  4. Alinhamento com `-translate-y-[85%]` para apontamento milimétrico da ponta do pino na rua.
+
 
 
 
