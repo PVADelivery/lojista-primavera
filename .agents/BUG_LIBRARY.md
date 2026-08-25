@@ -1092,6 +1092,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Aplicar o deslocamento exato de ancoragem `-translate-y-[90%]`, garantindo que o vértice exato da ponta do pino de localização aponte exatamente na coordenada da rua.
   3. Manter a silhueta da moto Harley Cruiser preta com rodas detalhadas, escapamento duplo e motor V-Twin centralizada dentro do círculo branco.
 
+---
+
+### 113. Implementação dos Pinos Oficiais no Estilo Google Maps (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: Marcadores anteriores não correspondiam ao padrão visual limpo e minimalista dos aplicativos nativos de mapa (Google Maps / Waze).
+* **Causa Raiz**:
+  Design anterior utilizava pinos 3D volumosos que cobriam trechos das ruas e ícones de comércio.
+* **Solução Padrão**:
+  1. **Origem (Pickup)**: Ponto verde circular minimalista (`bg-emerald-500`) com borda branca e núcleo central branco, exatamente igual ao ponto de partida do Google Maps.
+  2. **Destino (Dropoff)**: Ponto vermelho circular minimalista (`bg-red-600`) com borda branca e núcleo branco.
+  3. **Veículo/Motorista**: Marcador em pílula POI estilo Google Maps (`bg-amber-500`) arredondado com borda e ponta indicadora inferior com o ícone branco do veículo centralizado no interior. Desta forma, o mapa ganha visual profissional, nativo e idêntico às referências do Google Maps.
+
 
 
 
