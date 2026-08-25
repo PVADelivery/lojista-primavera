@@ -1044,6 +1044,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Gerar um nome de canal único por execução (`driver_loc_${activeRide.driver_id}_${Math.random().toString(36).slice(2, 8)}`).
   2. Implementar a limpeza rigorosa no retorno do `useEffect` cancelando o intervalo de polling (`clearInterval(pollInterval)`) e removendo a inscrição no cliente Supabase (`supabase.removeChannel(locSub)`). Desta forma, o mapa inicializa de forma 100% fluida e sem conflitos de rede.
 
+---
+
+### 109. Marcador Estilo Pino 3D Glossy com Silhueta de Motocicleta Heavy Cruiser (`driver.deliveries.tsx` e `marketplace.rides.tsx`)
+* **Sintoma**: O marcador de veículo exigia um formato premium no estilo pino de localização (teardrop pin) com efeito 3D e silhueta preta de motocicleta custom.
+* **Causa Raiz**:
+  Design anterior utilizava badge circular plano sem a ponta de precisão para indicação da coordenada no mapa.
+* **Solução Padrão**:
+  1. Construir o vetor do Pino de Localização 3D Glossy:
+     - Formato pino gota com ponta inferior e sombra projetada no solo.
+     - Gradiente dourado/alaranjado com anel interno laranja e fundo circular branco nítido.
+  2. Inserir a silhueta em vetor preto da Motocicleta estilo Harley Fat Bob / Heavy Cruiser:
+     - Rodas foscas com aros internos brancos, escapamento duplo paralelo, motor V-Twin, tanque gota e guidão com retrovisor.
+  3. Aplicar alinhamento preciso `-translate-y-1/2` garantindo que a ponta do pino aponte exatamente para a localização do motorista.
+
 
 
 
