@@ -26,7 +26,7 @@ export function registerMapEmojis(map: any) {
   if (!map) return;
   const emojis = [
     { id: "emoji-mototaxi", emoji: "🏍️" },
-    { id: "emoji-taxi", emoji: "🚖" },
+    { id: "emoji-taxi", emoji: "🚕" },
     { id: "emoji-pin-origem", emoji: "🟢" },
     { id: "emoji-pin-destino", emoji: "🔴" },
     { id: "emoji-pin", emoji: "📍" },
@@ -94,7 +94,7 @@ export function createVehicleMarkerElement(vehicleType: string = "moto"): HTMLEl
                  vehicleType.toLowerCase().includes("car") ||
                  vehicleType.toLowerCase().includes("carro");
   
-  const emoji = isTaxi ? "🚖" : "🏍️";
+  const emoji = isTaxi ? "🚕" : "🏍️";
 
   const el = document.createElement("div");
   el.className = "vehicle-emoji-marker pointer-events-none";
