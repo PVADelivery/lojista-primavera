@@ -1103,6 +1103,38 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **Destino (Dropoff)**: Ponto vermelho circular minimalista (`bg-red-600`) com borda branca e núcleo branco.
   3. **Veículo/Motorista**: Marcador em pílula POI estilo Google Maps (`bg-amber-500`) arredondado com borda e ponta indicadora inferior com o ícone branco do veículo centralizado no interior. Desta forma, o mapa ganha visual profissional, nativo e idêntico às referências do Google Maps.
 
+---
+
+### 114. Protocolo de Segurança: Kill Switch / Bloqueio Emergencial (Lockdown do Banco de Dados)
+* **Objetivo**: Desconectar e isolar 100% o banco de dados de qualquer acesso via frontend / API REST pública (`anon` e `authenticated`) em caso de ataque, invasão ou vazamento de chaves.
+* **Script de Ativação do Lockdown (Kill Switch)**: `scripts_para_rodar/EMERGENCIA_LOCKDOWN_KILL_SWITCH.sql`
+  ```sql
+  BEGIN;
+  REVOKE USAGE ON SCHEMA public FROM anon, authenticated;
+  REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM anon, authenticated;
+  REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM anon, authenticated;
+  REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM anon, authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON FUNCTIONS FROM anon, authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public REVOKE ALL ON SEQUENCES FROM anon, authenticated;
+  SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename IN ('anon', 'authenticated') AND pid <> pg_backend_pid();
+  COMMIT;
+  ```
+* **Script de Desbloqueio / Restauração**: `scripts_para_rodar/EMERGENCIA_RESTAURAR_ACESSO.sql`
+  ```sql
+  BEGIN;
+  GRANT USAGE ON SCHEMA public TO anon, authenticated, service_role;
+  GRANT ALL ON ALL TABLES IN SCHEMA public TO authenticated;
+  GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon;
+  GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO authenticated;
+  GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA public TO anon, authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO authenticated;
+  ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT EXECUTE ON FUNCTIONS TO anon, authenticated;
+  COMMIT;
+  ```
+
+
 
 
 
