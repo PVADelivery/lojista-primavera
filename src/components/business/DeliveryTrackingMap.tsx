@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Truck, MapPin, Loader2 } from "lucide-react";
 import { geocodeAddress } from "@/utils/freight";
 import { loadMapLibre } from "@/lib/maplibre";
+import { createDropoffPinElement, createVehicleMarkerElement, registerMapEmojis } from "@/lib/map-markers";
 
 interface DeliveryTrackingMapProps {
   deliveryId: string;
@@ -47,9 +48,10 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
 
         map.addControl(new maplibregl.NavigationControl(), "bottom-right");
         mapRef.current = map;
+        registerMapEmojis(map);
 
         if (destCoords) {
-          new maplibregl.Marker({ color: "#ef4444" })
+          new maplibregl.Marker({ element: createDropoffPinElement(), anchor: "bottom" })
             .setLngLat([destCoords.lng, destCoords.lat])
             .setPopup(new maplibregl.Popup().setHTML("<b>Destino</b>"))
             .addTo(map);
@@ -86,11 +88,9 @@ export default function DeliveryTrackingMap({ deliveryId, driverId, destinationA
         const coords: [number, number] = [driver.current_longitude, driver.current_latitude];
         
         if (!driverMarkerRef.current) {
-          const el = document.createElement("div");
-          el.className = "w-8 h-8 bg-primary rounded-full flex items-center justify-center shadow-lg border-2 border-white animate-pulse";
-          el.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-truck"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-5l-4-4h-3v10"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg>';
+          const el = createVehicleMarkerElement("moto");
           
-          driverMarkerRef.current = new maplibregl.Marker(el)
+          driverMarkerRef.current = new maplibregl.Marker({ element: el, anchor: "bottom" })
             .setLngLat(coords)
             .addTo(mapRef.current!);
         } else {

@@ -300,8 +300,9 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
               align-items: center;
               justify-content: center;
               overflow: hidden;
+              font-size: 18px;
             ">
-              <span style="font-weight: 900; font-size: 16px; color: #22c55e;">M</span>
+              <span>${(driver.vehicle_type || '').toLowerCase().includes('taxi') || (driver.vehicle_type || '').toLowerCase().includes('car') ? '🚖' : '🏍️'}</span>
             </div>
           </div>
           
@@ -311,7 +312,8 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
             bottom: -25px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(4px);
             color: white;
             padding: 2px 8px;
             border-radius: 6px;
@@ -340,8 +342,8 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
           border-radius: 20px;
         ">
           <div style="display: flex; items-center; gap: 12px; margin-bottom: 12px;">
-            <div style="width: 48px; height: 48px; border-radius: 12px; background: #f0fdf4; display: flex; align-items: center; justify-content: center;">
-               <span style="font-weight: 900; font-size: 24px; color: #22c55e;">M</span>
+            <div style="width: 48px; height: 48px; border-radius: 12px; background: #f0fdf4; display: flex; align-items: center; justify-content: center; font-size: 24px;">
+               <span>${(driver.vehicle_type || '').toLowerCase().includes('taxi') || (driver.vehicle_type || '').toLowerCase().includes('car') ? '🚖' : '🏍️'}</span>
             </div>
             <div>
               <div style="font-size: 15px; font-weight: 800; color: #111827;">${escapeHtml(driver.full_name || "Entregador")}</div>
