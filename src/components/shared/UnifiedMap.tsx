@@ -260,56 +260,21 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         <div class="pin-wrapper" style="
           position: relative;
           cursor: pointer;
-          filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 38px;
+          line-height: 1;
+          user-select: none;
           transition: transform 0.2s;
-        " onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-          <!-- Pulse Effect -->
-          <div style="
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 30px;
-            height: 30px;
-            background: #22c55e;
-            border-radius: 50%;
-            opacity: 0.6;
-            animation: pinPulse 2s ease-out infinite;
-          "></div>
-          
-          <!-- Outer Circle -->
-          <div style="
-            width: 44px; 
-            height: 44px; 
-            border-radius: 50%; 
-            background: #22c55e; 
-            border: 3px solid white; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
-            position: relative;
-            z-index: 2;
-          ">
-            <!-- Icon Background -->
-            <div style="
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              background: white;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              overflow: hidden;
-              font-size: 18px;
-            ">
-              <span>${(driver.vehicle_type || '').toLowerCase().includes('taxi') || (driver.vehicle_type || '').toLowerCase().includes('car') ? '🚖' : '🏍️'}</span>
-            </div>
-          </div>
+        " onmouseover="this.style.transform='scale(1.15)'" onmouseout="this.style.transform='scale(1)'">
+          <span>${(driver.vehicle_type || '').toLowerCase().includes('taxi') || (driver.vehicle_type || '').toLowerCase().includes('car') ? '🚖' : '🏍️'}</span>
           
           <!-- Tooltip (Small and fast) -->
           <div style="
             position: absolute;
-            bottom: -25px;
+            bottom: -20px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0,0,0,0.85);
@@ -324,13 +289,6 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
           ">${escapeHtml(driver.full_name?.split(" ")[0] || "Entregador")}</div>
         </div>
-        
-        <style>
-          @keyframes pinPulse {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
-            100% { transform: translate(-50%, -50%) scale(2.2); opacity: 0; }
-          }
-        </style>
       `;
 
       const popupContent = `

@@ -169,89 +169,29 @@ export function createDropoffPinElement(): HTMLElement {
   return el;
 }
 
-// 5. Marcador de Veículo / Motorista com EMOJIS (🏍️ Moto Táxi / 🚖 Táxi)
+// 5. Marcador de Veículo / Motorista DIRETAMENTE O EMOJI (🏍️ Moto Táxi / 🚖 Táxi) SEM CÍRCULO OU CONTORNO
 export function createVehicleMarkerElement(vehicleType: string = "moto"): HTMLElement {
   const isTaxi = vehicleType.toLowerCase().includes("taxi") && !vehicleType.toLowerCase().includes("moto") ||
                  vehicleType.toLowerCase().includes("car") ||
                  vehicleType.toLowerCase().includes("carro");
   
   const emoji = isTaxi ? "🚖" : "🏍️";
-  const label = isTaxi ? "Táxi" : "Moto Táxi";
 
   const el = document.createElement("div");
-  el.className = "vehicle-marker-container pointer-events-none";
+  el.className = "vehicle-emoji-marker pointer-events-none";
   el.style.cssText = `
-    position: relative;
     display: flex;
-    flex-direction: column;
     align-items: center;
     justify-content: center;
+    font-size: 38px;
+    line-height: 1;
+    user-select: none;
+    filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
     transform: translate(-50%, -50%);
     cursor: pointer;
   `;
 
-  el.innerHTML = `
-    <div style="
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    ">
-      <!-- Pulso suave -->
-      <div style="
-        position: absolute;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: ${isTaxi ? "rgba(234, 179, 8, 0.4)" : "rgba(37, 99, 235, 0.4)"};
-        animation: markerPulse 2s cubic-bezier(0, 0, 0.2, 1) infinite;
-      "></div>
-
-      <!-- Badge Circular do Veículo com Emoji -->
-      <div style="
-        position: relative;
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: #ffffff;
-        border: 3px solid ${isTaxi ? "#eab308" : "#2563eb"};
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 24px;
-        user-select: none;
-        z-index: 2;
-      ">
-        <span style="display: block; line-height: 1; transform: translateY(-1px);">${emoji}</span>
-      </div>
-
-      <!-- Rótulo flutuante opcional -->
-      <div style="
-        position: absolute;
-        bottom: -18px;
-        background: rgba(15, 23, 42, 0.85);
-        backdrop-filter: blur(4px);
-        color: #ffffff;
-        padding: 1px 6px;
-        border-radius: 4px;
-        font-size: 9px;
-        font-weight: 800;
-        letter-spacing: 0.02em;
-        white-space: nowrap;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        z-index: 3;
-      ">${label}</div>
-    </div>
-
-    <style>
-      @keyframes markerPulse {
-        0% { transform: scale(0.85); opacity: 0.8; }
-        70% { transform: scale(1.4); opacity: 0; }
-        100% { transform: scale(1.4); opacity: 0; }
-      }
-    </style>
-  `;
+  el.innerHTML = `<span>${emoji}</span>`;
   return el;
 }
 
