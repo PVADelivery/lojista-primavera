@@ -260,11 +260,11 @@ export function UnifiedMap({ regions, centerCity: propCenterCity, interactive = 
         <div class="pin-wrapper" style="
           position: relative;
           cursor: pointer;
-          filter: drop-shadow(0 3px 6px rgba(0,0,0,0.45));
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
           display: flex;
           align-items: center;
           justify-content: center;
-          font-size: 38px;
+          font-size: 24px;
           line-height: 1;
           user-select: none;
           transition: transform 0.2s;
