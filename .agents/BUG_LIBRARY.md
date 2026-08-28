@@ -1134,6 +1134,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   COMMIT;
   ```
 
+---
+
+### 115. Erro ao Atualizar Corrida: Violação de Check Constraint `ride_requests_status_check`
+* **Sintoma**: Ao motorista clicar no botão de avanço de corrida (ex: "Cheguei no local"), o app exibia: `Erro ao atualizar corrida: new row for relation "ride_requests" violates check constraint "ride_requests_status_check"`.
+* **Causa Raiz**:
+  A tabela `ride_requests` no PostgreSQL possui a constraint `CHECK (status IN ('pending','accepted','in_progress','completed','cancelled'))`. A rota `driver.deliveries.tsx` tentava transicionar o status para `"arrived"`, que não existe na restrição do banco.
+* **Solução Padrão**:
+  Padronizar o fluxo de status em conformidade com o Postgres: `accepted` -> `in_progress` ("Iniciar Corrida") -> `completed` ("Finalizar Corrida"), com botões no frontend alinhados às transições válidas da tabela.
+
+
 
 
 
