@@ -153,12 +153,34 @@ function NewDeliveryPage() {
       }
     }
   }, [editingDelivery]);
-  // Autocomplete / Search State
   const [customerQuery, setCustomerQuery] = useState("");
   const [customerSuggestions, setCustomerSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [activeBatchSearchIdx, setActiveBatchSearchIdx] = useState<number | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string | null>(null);
+  const singleCustomerSearchRef = useRef<HTMLDivElement>(null);
+  const batchCustomerSearchRef = useRef<HTMLDivElement>(null);
+
+  // Fecha a busca automaticamente ao clicar fora
+  useEffect(() => {
+    const handleDocumentClick = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      const isInsideSingle = singleCustomerSearchRef.current?.contains(target);
+      const isInsideBatch = batchCustomerSearchRef.current?.contains(target);
+
+      if (!isInsideSingle && !isInsideBatch) {
+        setShowSuggestions(false);
+        setActiveBatchSearchIdx(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleDocumentClick);
+    document.addEventListener("touchstart", handleDocumentClick);
+    return () => {
+      document.removeEventListener("mousedown", handleDocumentClick);
+      document.removeEventListener("touchstart", handleDocumentClick);
+    };
+  }, []);
 
 
   // Map and routing State
@@ -1309,7 +1331,7 @@ function NewDeliveryPage() {
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-4">
-                    <div className="space-y-1.5 relative">
+                    <div ref={batchCustomerSearchRef} className="space-y-1.5 relative">
                       <Label className="text-xs font-bold">Nome do cliente *</Label>
                       <Input
                         value={item.customer_name}
@@ -1328,6 +1350,12 @@ function NewDeliveryPage() {
                           if (item.customer_name) setCustomerQuery(item.customer_name);
                           setActiveBatchSearchIdx(idx);
                           setShowSuggestions(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            setShowSuggestions(false);
+                            setActiveBatchSearchIdx(null);
+                          }
                         }}
                         required
                         className="rounded-xl h-11 bg-secondary/30"
@@ -1638,7 +1666,7 @@ function NewDeliveryPage() {
               Dados do Cliente
             </h3>
             <div className="grid sm:grid-cols-2 gap-4 relative">
-              <div className="space-y-1.5 relative">
+              <div ref={singleCustomerSearchRef} className="space-y-1.5 relative">
                 <Label>Nome do cliente</Label>
                 <div className="relative">
                   <Input
@@ -1654,6 +1682,11 @@ function NewDeliveryPage() {
                     onFocus={() => {
                       if (f.customer_name) setCustomerQuery(f.customer_name);
                       setShowSuggestions(true);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        setShowSuggestions(false);
+                      }
                     }}
                     required
                     className="rounded-xl h-11 bg-secondary/30"
