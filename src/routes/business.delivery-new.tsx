@@ -261,10 +261,10 @@ function NewDeliveryPage() {
         }
 
         if (phoneOrCpfClean.length >= 2 && safeClean) {
-          delQuery = delQuery.or(`customer_name.ilike."%${safeClean}%",customer_phone.ilike."%${phoneOrCpfClean}%"`);
+          delQuery = delQuery.or(`customer_name.ilike.%${safeClean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
         } else if (phoneOrCpfClean.length >= 2) {
           delQuery = delQuery.ilike("customer_phone", `%${phoneOrCpfClean}%`);
-        } else {
+        } else if (safeClean) {
           delQuery = delQuery.ilike("customer_name", `%${safeClean}%`);
         }
 
@@ -307,10 +307,10 @@ function NewDeliveryPage() {
         }
 
         if (phoneOrCpfClean.length >= 2 && safeClean) {
-          ordQuery = ordQuery.or(`customer_name.ilike."%${safeClean}%",customer_phone.ilike."%${phoneOrCpfClean}%"`);
+          ordQuery = ordQuery.or(`customer_name.ilike.%${safeClean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
         } else if (phoneOrCpfClean.length >= 2) {
           ordQuery = ordQuery.ilike("customer_phone", `%${phoneOrCpfClean}%`);
-        } else {
+        } else if (safeClean) {
           ordQuery = ordQuery.ilike("customer_name", `%${safeClean}%`);
         }
 
@@ -349,10 +349,10 @@ function NewDeliveryPage() {
           .limit(20);
 
         if (phoneOrCpfClean.length >= 2 && safeClean) {
-          custQuery = custQuery.or(`name.ilike."%${safeClean}%",phone.ilike."%${phoneOrCpfClean}%"`);
+          custQuery = custQuery.or(`name.ilike.%${safeClean}%,phone.ilike.%${phoneOrCpfClean}%`);
         } else if (phoneOrCpfClean.length >= 2) {
           custQuery = custQuery.ilike("phone", `%${phoneOrCpfClean}%`);
-        } else {
+        } else if (safeClean) {
           custQuery = custQuery.ilike("name", `%${safeClean}%`);
         }
 
