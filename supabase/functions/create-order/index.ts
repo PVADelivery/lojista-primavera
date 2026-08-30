@@ -21,14 +21,26 @@ interface CartItemInput {
 
 interface CreateOrderBody {
   items: CartItemInput[];
-  company_id: string;
-  address_id: string;
-  payment_method: 'money' | 'pix' | 'card';
+  company_id?: string;
+  store_id?: string; // alias para company_id
+  customer_id?: string | null;
+  address_id?: string | null;
+  address?: {
+    street: string;
+    number: string;
+    neighborhood: string;
+    city: string;
+    state?: string;
+    zip_code?: string;
+    complement?: string | null;
+  } | null;
+  payment_method: 'money' | 'pix' | 'card' | 'credits';
   coupon_code?: string | null;
   notes?: string | null;
   needs_change?: boolean;
   change_for?: number | null;
   idempotency_key: string;
+  fulfillment_mode?: 'delivery' | 'pickup';
 }
 
 function json(body: unknown, status = 200) {
@@ -36,10 +48,6 @@ function json(body: unknown, status = 200) {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
   });
-}
-
-function badRequest(message: string, extra?: Record<string, unknown>) {
-  return json({ error: message, ...extra }, 400);
 }
 
 function newRequestId() {
@@ -108,81 +116,167 @@ Deno.serve(async (req) => {
   };
   const fail = async (status: number, event: string, message: string, extra: Record<string, unknown> = {}) => {
     await audit(event, { error_message: message, ...extra }, status);
-    return json({ error: message, request_id: requestId, ...((extra as any).public ?? {}) }, status);
+    return json({ error: message, message, request_id: requestId, ...extra }, status);
   };
 
   try {
     body = (await req.json()) as CreateOrderBody;
   } catch {
-    return fail(400, 'create_order.bad_json', 'Invalid JSON body.');
+    return fail(400, 'create_order.bad_json', 'Invalid JSON body.', { field: 'body' });
   }
 
   // --- ANTI-SPAM / RATE LIMITING ---
-  // Bloqueia a criação de mais de 2 pedidos por minuto pelo mesmo usuário
+  // Bloqueia a criação de mais de 5 pedidos por minuto pelo mesmo usuário
   const { count: recentOrdersCount } = await adminClient
     .from('orders')
     .select('id', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .gt('created_at', new Date(Date.now() - 60000).toISOString());
 
-  if (recentOrdersCount !== null && recentOrdersCount >= 2) {
+  if (recentOrdersCount !== null && recentOrdersCount >= 5) {
     return fail(429, 'create_order.rate_limit', 'Você está fazendo pedidos muito rápido. Por favor, aguarde alguns instantes.');
   }
   // ---------------------------------
 
+  const companyId = body.company_id || body.store_id;
+  const fulfillmentMode = body.fulfillment_mode === 'pickup' ? 'pickup' : 'delivery';
+
   if (!body || !Array.isArray(body.items) || body.items.length === 0) {
-    return fail(400, 'create_order.validation', 'items is required and must be non-empty.');
+    return fail(400, 'create_order.validation', 'items is required and must be non-empty.', { field: 'items' });
   }
-  if (!body.company_id) return fail(400, 'create_order.validation', 'company_id is required.');
-  if (!body.address_id) return fail(400, 'create_order.validation', 'address_id is required.');
-  if (!['money', 'pix', 'card'].includes(body.payment_method)) {
-    return fail(400, 'create_order.validation', 'payment_method must be money|pix|card.');
+  if (!companyId) {
+    return fail(400, 'create_order.validation', 'company_id (ou store_id) is required.', { field: 'company_id' });
+  }
+  if (fulfillmentMode === 'delivery' && !body.address_id && !body.address) {
+    return fail(400, 'create_order.validation', 'address_id ou address é obrigatório para entrega.', { field: 'address_id' });
+  }
+  if (!['money', 'pix', 'card', 'credits'].includes(body.payment_method)) {
+    return fail(400, 'create_order.validation', 'payment_method must be money|pix|card|credits.', { field: 'payment_method' });
   }
   if (!body.idempotency_key || typeof body.idempotency_key !== 'string') {
-    return fail(400, 'create_order.validation', 'idempotency_key is required.');
+    return fail(400, 'create_order.validation', 'idempotency_key is required.', { field: 'idempotency_key' });
   }
   for (const it of body.items) {
-    if (!it.product_id || !Number.isInteger(it.quantity) || it.quantity <= 0) {
-      return fail(400, 'create_order.validation', 'each item must have product_id and integer quantity > 0.');
+    if (!it.product_id || typeof it.product_id !== 'string') {
+      return fail(400, 'create_order.validation', 'each item must have a valid product_id.', { field: 'items.product_id' });
+    }
+    if (!it.quantity || !Number.isInteger(it.quantity) || it.quantity <= 0) {
+      return fail(400, 'create_order.validation', 'each item must have integer quantity > 0.', { field: 'items.quantity' });
     }
   }
 
+  // Garante / localiza o customer_id seguro do usuário autenticado
+  let customerId: string | null = null;
+  const { data: existingCustomer } = await adminClient
+    .from('customers')
+    .select('id')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (existingCustomer?.id) {
+    customerId = existingCustomer.id;
+  } else {
+    // Cria customer caso ainda não exista
+    const { data: newCustomer, error: newCustErr } = await adminClient
+      .from('customers')
+      .insert({
+        user_id: user.id,
+        name: (user.user_metadata as any)?.full_name || user.email?.split('@')[0] || 'Cliente',
+        phone: (user.user_metadata as any)?.phone || null,
+      })
+      .select('id')
+      .single();
+
+    if (!newCustErr && newCustomer?.id) {
+      customerId = newCustomer.id;
+    } else {
+      return fail(500, 'create_order.customer_failed', 'Failed to resolve customer profile.');
+    }
+  }
+
+  // Se o frontend passou customer_id no body, valida se corresponde ao customer do usuário
+  if (body.customer_id && body.customer_id !== customerId) {
+    const { data: custMatch } = await adminClient
+      .from('customers')
+      .select('id')
+      .eq('id', body.customer_id)
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!custMatch) {
+      return fail(403, 'create_order.customer_forbidden', 'customer_id does not belong to authenticated user.', { field: 'customer_id' });
+    }
+    customerId = custMatch.id;
+  }
+
   await audit('create_order.attempt', {
-    payload: { company_id: body.company_id, address_id: body.address_id, items: body.items, coupon: body.coupon_code ?? null, payment_method: body.payment_method },
+    payload: { company_id: companyId, address_id: body.address_id, items: body.items, coupon: body.coupon_code ?? null, payment_method: body.payment_method },
   });
 
-  // 1) Address pertence ao usuário
-  const { data: address, error: addrErr } = await adminClient
-    .from('addresses')
-    .select('id, user_id, street, number, neighborhood, city, latitude, longitude')
-    .eq('id', body.address_id)
-    .maybeSingle();
-  if (addrErr || !address || address.user_id !== user.id) {
-    return fail(403, 'create_order.address_forbidden', 'Address not found for this user.');
+  // 1) Validação de Endereço (se entrega)
+  let address: any = null;
+  let deliveryAddress = '[RETIRADA NO LOCAL]';
+
+  if (fulfillmentMode === 'delivery') {
+    if (body.address_id) {
+      const { data: addrData, error: addrErr } = await adminClient
+        .from('addresses')
+        .select('id, user_id, customer_id, street, number, neighborhood, city, state, zip_code, complement, latitude, longitude')
+        .eq('id', body.address_id)
+        .maybeSingle();
+
+      if (addrErr || !addrData) {
+        return fail(404, 'create_order.address_not_found', 'Address not found for this user.', { field: 'address_id' });
+      }
+
+      const isOwner = addrData.user_id === user.id || addrData.customer_id === customerId;
+      if (!isOwner) {
+        // Valida se customer_id do endereço pertence ao usuário
+        const { data: custCheck } = await adminClient
+          .from('customers')
+          .select('id')
+          .eq('id', addrData.customer_id)
+          .eq('user_id', user.id)
+          .maybeSingle();
+        if (!custCheck) {
+          return fail(403, 'create_order.address_forbidden', 'Address not found for this user.', { field: 'address_id' });
+        }
+      }
+      address = addrData;
+    } else if (body.address) {
+      address = body.address;
+    }
+
+    if (!address || !address.street || !address.number || !address.neighborhood || !address.city) {
+      return fail(400, 'create_order.address_incomplete', 'Dados de endereço incompletos (Rua, Número, Bairro e Cidade são obrigatórios).', { field: 'address' });
+    }
+
+    deliveryAddress = `${address.street}, ${address.number}${address.complement ? ` (${address.complement})` : ''} - ${address.neighborhood}, ${address.city}`;
   }
 
   // 2) Company existe
   const { data: company, error: compErr } = await adminClient
     .from('companies')
     .select('id, name, address, latitude, longitude, delivery_fee')
-    .eq('id', body.company_id)
+    .eq('id', companyId)
     .maybeSingle();
-  if (compErr || !company) return fail(400, 'create_order.company_missing', 'Company not found.');
+  if (compErr || !company) return fail(400, 'create_order.company_missing', 'Company not found.', { field: 'company_id' });
 
   // 3) Re-fetch produtos canonicamente
   const productIds = Array.from(new Set(body.items.map((i) => i.product_id)));
   const { data: products, error: prodErr } = await adminClient
     .from('products')
-    .select('id, name, price, company_id, available')
+    .select('id, name, price, company_id, available, is_active')
     .in('id', productIds);
   if (prodErr || !products) return fail(500, 'create_order.products_load_failed', 'Failed to load products.');
 
   const byId = new Map(products.map((p) => [p.id, p]));
   for (const it of body.items) {
     const p = byId.get(it.product_id);
-    if (!p) return fail(400, 'create_order.product_missing', `Product ${it.product_id} not found.`);
-    if (p.company_id !== company.id) return fail(400, 'create_order.product_wrong_company', 'Item does not belong to the company.');
-    if (p.available === false) return fail(400, 'create_order.product_unavailable', `Product ${p.name} is unavailable.`);
+    if (!p) return fail(400, 'create_order.product_missing', `Product ${it.product_id} not found.`, { field: 'items.product_id', product_id: it.product_id });
+    if (p.company_id !== company.id) return fail(400, 'create_order.product_wrong_company', 'Item does not belong to the company.', { field: 'items.product_id' });
+    if (p.available === false || p.is_active === false) return fail(400, 'create_order.product_unavailable', `Product ${p.name} is unavailable.`, { field: 'items.product_id' });
   }
 
   // 4) Subtotal canônico
@@ -211,15 +305,15 @@ Deno.serve(async (req) => {
       .eq('code', code)
       .eq('active', true)
       .maybeSingle();
-    if (!coupon) return fail(400, 'create_order.coupon_invalid', 'Invalid or inactive coupon.');
+    if (!coupon) return fail(400, 'create_order.coupon_invalid', 'Invalid or inactive coupon.', { field: 'coupon_code' });
     if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
-      return fail(400, 'create_order.coupon_expired', 'Coupon expired.');
+      return fail(400, 'create_order.coupon_expired', 'Coupon expired.', { field: 'coupon_code' });
     }
     if (coupon.min_order_value && subtotal < Number(coupon.min_order_value)) {
-      return fail(400, 'create_order.coupon_below_min', 'Order below coupon minimum.');
+      return fail(400, 'create_order.coupon_below_min', 'Order below coupon minimum.', { field: 'coupon_code' });
     }
     if (coupon.company_id && coupon.company_id !== company.id) {
-      return fail(400, 'create_order.coupon_other_store', 'Coupon belongs to another store.');
+      return fail(400, 'create_order.coupon_other_store', 'Coupon belongs to another store.', { field: 'coupon_code' });
     }
     const { data: links } = await adminClient
       .from('coupon_products')
@@ -243,14 +337,17 @@ Deno.serve(async (req) => {
     appliedCoupon = coupon;
   }
 
-  // 6) Frete: usa company.delivery_fee se existir; senão tenta região por lat/lng.
+  // 6) Frete
   let deliveryFee = 0;
   let regionId: string | null = null;
   let regionName: string | null = null;
   let outOfRegion = false;
-  if (company.delivery_fee !== null && company.delivery_fee !== undefined) {
+
+  if (fulfillmentMode === 'pickup') {
+    deliveryFee = 0;
+  } else if (company.delivery_fee !== null && company.delivery_fee !== undefined) {
     deliveryFee = Number(company.delivery_fee) || 0;
-  } else if (address.latitude && address.longitude) {
+  } else if (address?.latitude && address?.longitude) {
     const { data: regions } = await adminClient
       .from('regions')
       .select('id, name, price, delivery_fee, geometry');
@@ -266,35 +363,12 @@ Deno.serve(async (req) => {
     }
   }
   if (outOfRegion) {
-    return fail(400, 'create_order.out_of_region', 'Delivery unavailable for this address (out of region).');
+    return fail(400, 'create_order.out_of_region', 'Delivery unavailable for this address (out of region).', { field: 'address' });
   }
 
   const total = Math.max(0, subtotal - discount) + deliveryFee;
 
-  // 7) Garante customers vinculado
-  let customerId: string | null = null;
-  const { data: customer } = await adminClient
-    .from('customers')
-    .select('id')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (customer?.id) {
-    customerId = customer.id;
-  } else {
-    const { data: created, error: createErr } = await adminClient
-      .from('customers')
-      .insert({
-        user_id: user.id,
-        name: (user.user_metadata as any)?.full_name || user.email || 'Cliente',
-        phone: (user.user_metadata as any)?.phone || null,
-      })
-      .select('id')
-      .single();
-    if (createErr || !created) return fail(500, 'create_order.customer_provision_failed', 'Failed to provision customer.');
-    customerId = created.id;
-  }
-
-  // 8) Idempotência
+  // 7) Idempotência
   const { data: existing } = await adminClient
     .from('orders')
     .select('id')
@@ -305,16 +379,14 @@ Deno.serve(async (req) => {
     return json({ order_id: existing.id, idempotent: true });
   }
 
-  // 9) Notas (inclui troco)
+  // 8) Notas (inclui troco)
   let finalNotes = body.notes?.trim() || null;
   if (body.payment_method === 'money' && body.needs_change && body.change_for) {
     const note = `Troco para R$ ${Number(body.change_for).toFixed(2)}`;
     finalNotes = finalNotes ? `${finalNotes} • ${note}` : note;
   }
 
-  const deliveryAddress = `${address.street}, ${address.number} - ${address.neighborhood}, ${address.city}`;
-
-  // 10) Insert order
+  // 9) Insert order
   const { data: order, error: orderErr } = await adminClient
     .from('orders')
     .insert({
@@ -329,11 +401,12 @@ Deno.serve(async (req) => {
       notes: finalNotes,
       idempotency_key: body.idempotency_key,
       region_id: regionId,
-      delivery_latitude: address.latitude,
-      delivery_longitude: address.longitude,
+      delivery_latitude: address?.latitude ?? null,
+      delivery_longitude: address?.longitude ?? null,
     })
     .select('id')
     .single();
+
   if (orderErr || !order) {
     if ((orderErr as any)?.code === '23505') {
       const { data: dup } = await adminClient
@@ -351,7 +424,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 11) Insert items
+  // 10) Insert items
   const itemsRow = enrichedItems.map((i) => ({
     order_id: order.id,
     product_id: i.product_id,
@@ -369,7 +442,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 12) Cupom usado
+  // 11) Cupom usado
   if (appliedCoupon) {
     await adminClient.from('user_coupons').insert({
       user_id: user.id,
@@ -379,21 +452,23 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 13) Delivery
-  await adminClient.from('deliveries').insert({
-    order_id: order.id,
-    company_id: company.id,
-    pickup_address: company.address || company.name,
-    delivery_address: deliveryAddress,
-    pickup_latitude: company.latitude,
-    pickup_longitude: company.longitude,
-    delivery_latitude: address.latitude,
-    delivery_longitude: address.longitude,
-    status: 'pending',
-    value: total,
-    price: deliveryFee,
-    region_id: regionId,
-  });
+  // 12) Delivery (apenas para entrega)
+  if (fulfillmentMode === 'delivery') {
+    await adminClient.from('deliveries').insert({
+      order_id: order.id,
+      company_id: company.id,
+      pickup_address: company.address || company.name,
+      delivery_address: deliveryAddress,
+      pickup_latitude: company.latitude,
+      pickup_longitude: company.longitude,
+      delivery_latitude: address?.latitude ?? null,
+      delivery_longitude: address?.longitude ?? null,
+      status: 'pending',
+      value: total,
+      price: deliveryFee,
+      region_id: regionId,
+    });
+  }
 
   await audit(
     'create_order.success',
