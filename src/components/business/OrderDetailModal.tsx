@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import DeliveryTrackingMap from "./DeliveryTrackingMap";
 
 interface OrderDetailModalProps {
@@ -308,39 +309,39 @@ export default function OrderDetailModal({
                                     <div className="flex-1 min-w-0">
                                         <div className="flex justify-between items-start gap-3">
                                             <div>
-                                              <p className="font-bold text-foreground text-sm leading-tight">{item.product_name || item.products?.name || "Produto"}</p>
-                                              <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Un: R$ {item.price?.toFixed(2).replace('.', ',')}</p>
-                                              
-                                              {/* Descrição do Produto */}
-                                              {item.products?.description && (
-                                                <p className="text-sm text-foreground/80 mt-2 leading-relaxed bg-muted/40 p-4 rounded-xl border border-border/50 italic">
-                                                  {item.products.description}
-                                                </p>
-                                              )}
+                                               <p className="font-bold text-foreground text-sm leading-tight">{item.product_name || item.products?.name || "Produto"}</p>
+                                               <p className="text-[10px] text-muted-foreground font-semibold mt-0.5">Un: R$ {item.price?.toFixed(2).replace('.', ',')}</p>
+                                               
+                                               {/* Descrição do Produto */}
+                                               {item.products?.description && (
+                                                 <p className="text-sm text-foreground/80 mt-2 leading-relaxed bg-muted/40 p-4 rounded-xl border border-border/50 italic">
+                                                   {item.products.description}
+                                                 </p>
+                                               )}
 
-                                              {/* Detalhes/Ingredientes/Observações */}
-                                              {(item.choices || item.notes || item.observation) && (
-                                                <div className="mt-2 space-y-1">
-                                                  {item.choices && (
-                                                    <p className="text-[10px] text-foreground/80 leading-snug bg-muted/50 px-2 py-1 rounded-md">
-                                                      <span className="font-bold text-foreground/90">Opções:</span> {
-                                                        typeof item.choices === 'string' ? item.choices : 
-                                                        Array.isArray(item.choices) ? item.choices.map((c:any) => c.name || c).join(', ') :
-                                                        JSON.stringify(item.choices)
-                                                      }
-                                                    </p>
-                                                  )}
-                                                  {(item.notes || item.observation) && (
-                                                    <p className="text-[10px] text-warning-foreground bg-warning/10 px-2 py-1 rounded-md inline-block leading-snug mt-1">
-                                                      <span className="font-bold">Obs:</span> {item.notes || item.observation}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              )}
+                                               {/* Detalhes/Ingredientes/Observações */}
+                                               {(item.choices || item.notes || item.observation) && (
+                                                 <div className="mt-2 space-y-1">
+                                                   {item.choices && (
+                                                     <p className="text-[10px] text-foreground/80 leading-snug bg-muted/50 px-2 py-1 rounded-md">
+                                                       <span className="font-bold text-foreground/90">Opções:</span> {
+                                                         typeof item.choices === 'string' ? item.choices : 
+                                                         Array.isArray(item.choices) ? item.choices.map((c:any) => c.name || c).join(', ') :
+                                                         JSON.stringify(item.choices)
+                                                       }
+                                                     </p>
+                                                   )}
+                                                   {(item.notes || item.observation) && (
+                                                     <p className="text-[10px] text-warning-foreground bg-warning/10 px-2 py-1 rounded-md inline-block leading-snug mt-1">
+                                                       <span className="font-bold">Obs:</span> {item.notes || item.observation}
+                                                     </p>
+                                                   )}
+                                                 </div>
+                                               )}
                                             </div>
                                             <div className="flex flex-col items-end shrink-0">
-                                              <p className="text-[10px] font-black text-primary uppercase mb-0.5 bg-primary/10 px-1.5 py-0.5 rounded-md">{item.quantity}x</p>
-                                              <p className="font-black text-base text-foreground mt-1">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
+                                               <p className="text-[10px] font-black text-primary uppercase mb-0.5 bg-primary/10 px-1.5 py-0.5 rounded-md">{item.quantity}x</p>
+                                               <p className="font-black text-base text-foreground mt-1">R$ {(item.price * item.quantity).toFixed(2).replace('.', ',')}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -364,17 +365,17 @@ export default function OrderDetailModal({
         {/* Footer Actions */}
         <div className="p-6 md:p-8 border-t border-border flex flex-wrap gap-4 items-center justify-between bg-muted/10 shrink-0">
             <div className="flex items-center gap-4">
-              <button 
-                onClick={() => window.print()} 
-                className="h-12 w-12 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-muted transition-all text-muted-foreground print:hidden shadow-sm"
-                title="Imprimir Pedido"
-              >
-                 <Printer className="h-5 w-5" />
-              </button>
-              <div className="flex flex-col text-left">
-                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Total do Pedido</p>
-                 <p className="text-2xl font-black text-primary italic leading-none mt-0.5">R$ {order.total?.toFixed(2).replace('.', ',')}</p>
-              </div>
+               <button 
+                 onClick={() => window.print()} 
+                 className="h-12 w-12 rounded-xl bg-white border border-border flex items-center justify-center hover:bg-muted transition-all text-muted-foreground print:hidden shadow-sm"
+                 title="Imprimir Pedido"
+               >
+                  <Printer className="h-5 w-5" />
+               </button>
+               <div className="flex flex-col text-left">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">Total do Pedido</p>
+                  <p className="text-2xl font-black text-primary italic leading-none mt-0.5">R$ {order.total?.toFixed(2).replace('.', ',')}</p>
+               </div>
             </div>
 
             <div className="flex gap-3 flex-1 md:flex-none print:hidden">
@@ -438,6 +439,3 @@ export default function OrderDetailModal({
     </Dialog>
   );
 }
-
-
-
