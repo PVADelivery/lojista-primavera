@@ -20,8 +20,6 @@ import { brl } from "@/lib/format";
 import { useMyCompany } from "@/services/companies";
 import { useCredits } from "@/services/credits";
 
-
-
 interface Company {
   id: string; name: string; logo_url: string | null; is_open: boolean;
 }
@@ -77,7 +75,6 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
 
   const { data: company } = useMyCompany();
   const { balance: creditBalance, isLow: creditsLow } = useCredits();
-
 
   const { data: pendingOrders = [] } = useQuery({
     queryKey: ["pending-orders", company?.id],
@@ -261,7 +258,6 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               <span className="font-black text-sm">MT 24horas express</span>
             </div>
 
-
             {/* Back / Forward arrows */}
             <div className="hidden sm:flex items-center gap-1">
               <button
@@ -280,19 +276,14 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
               </button>
             </div>
 
-            {/* Top Navigation Removed as requested */}
-
             <div className="flex-1" />
 
             {/* Right actions */}
             <div className="flex items-center gap-2">
-              {/* Credit balance chip removed as requested */}
-
               {/* Search */}
               <button className="h-10 w-10 rounded-full bg-secondary hover:bg-accent/10 flex items-center justify-center transition" aria-label="Pesquisar">
                 <Search className="h-4 w-4" />
               </button>
-
 
               {/* Store open/close */}
               <div className="hidden sm:flex items-center gap-2 px-3 h-10 rounded-full bg-secondary">
@@ -394,7 +385,6 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8">
             {children ?? <Outlet />}
           </main>
-
 
           {/* Mobile bottom nav */}
           <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-card/95 backdrop-blur-xl border border-border rounded-3xl shadow-2xl px-2 py-2 flex items-center justify-between">
