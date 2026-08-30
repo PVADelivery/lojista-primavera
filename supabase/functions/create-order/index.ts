@@ -33,6 +33,8 @@ interface CreateOrderBody {
     state?: string;
     zip_code?: string;
     complement?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
   } | null;
   payment_method: 'money' | 'pix' | 'card' | 'credits';
   coupon_code?: string | null;
@@ -85,7 +87,7 @@ Deno.serve(async (req) => {
   }
   const user = userData.user;
 
-  // Service role para escrever orders (cliente direto está bloqueado pela policy).
+  // Service role para operações no banco com privilégios de sistema
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
@@ -93,6 +95,7 @@ Deno.serve(async (req) => {
   const requestId = newRequestId();
   const t0 = Date.now();
   let body: CreateOrderBody | undefined;
+
   const audit = async (
     event: string,
     extra: Record<string, unknown> = {},
@@ -114,6 +117,7 @@ Deno.serve(async (req) => {
       console.warn('[create-order][audit] failed', (e as Error).message);
     }
   };
+
   const fail = async (status: number, event: string, message: string, extra: Record<string, unknown> = {}) => {
     await audit(event, { error_message: message, ...extra }, status);
     return json({ error: message, message, request_id: requestId, ...extra }, status);
@@ -126,7 +130,6 @@ Deno.serve(async (req) => {
   }
 
   // --- ANTI-SPAM / RATE LIMITING ---
-  // Bloqueia a criação de mais de 5 pedidos por minuto pelo mesmo usuário
   const { count: recentOrdersCount } = await adminClient
     .from('orders')
     .select('id', { count: 'exact', head: true })
@@ -136,7 +139,6 @@ Deno.serve(async (req) => {
   if (recentOrdersCount !== null && recentOrdersCount >= 5) {
     return fail(429, 'create_order.rate_limit', 'Você está fazendo pedidos muito rápido. Por favor, aguarde alguns instantes.');
   }
-  // ---------------------------------
 
   const companyId = body.company_id || body.store_id;
   const fulfillmentMode = body.fulfillment_mode === 'pickup' ? 'pickup' : 'delivery';
@@ -178,7 +180,7 @@ Deno.serve(async (req) => {
   if (existingCustomer?.id) {
     customerId = existingCustomer.id;
   } else {
-    // Cria customer caso ainda não exista
+    // Provisiona customer caso ainda não exista
     const { data: newCustomer, error: newCustErr } = await adminClient
       .from('customers')
       .insert({
@@ -196,7 +198,7 @@ Deno.serve(async (req) => {
     }
   }
 
-  // Se o frontend passou customer_id no body, valida se corresponde ao customer do usuário
+  // Se o frontend passou customer_id, valida que pertence ao usuário
   if (body.customer_id && body.customer_id !== customerId) {
     const { data: custMatch } = await adminClient
       .from('customers')
@@ -232,7 +234,6 @@ Deno.serve(async (req) => {
 
       const isOwner = addrData.user_id === user.id || addrData.customer_id === customerId;
       if (!isOwner) {
-        // Valida se customer_id do endereço pertence ao usuário
         const { data: custCheck } = await adminClient
           .from('customers')
           .select('id')
@@ -263,20 +264,28 @@ Deno.serve(async (req) => {
     .maybeSingle();
   if (compErr || !company) return fail(400, 'create_order.company_missing', 'Company not found.', { field: 'company_id' });
 
-  // 3) Re-fetch produtos canonicamente
+  // 3) Re-fetch produtos canonicamente da tabela public.products (apenas colunas existentes no schema)
   const productIds = Array.from(new Set(body.items.map((i) => i.product_id)));
   const { data: products, error: prodErr } = await adminClient
     .from('products')
-    .select('id, name, price, company_id, available, is_active')
+    .select('id, name, price, company_id, is_active')
     .in('id', productIds);
-  if (prodErr || !products) return fail(500, 'create_order.products_load_failed', 'Failed to load products.');
+
+  if (prodErr || !products) {
+    return fail(500, 'create_order.products_load_failed', `Failed to load products: ${prodErr?.message || 'Database error'}`, {
+      field: 'items',
+      db_error: prodErr?.message,
+      db_code: prodErr?.code,
+      requested_product_ids: productIds,
+    });
+  }
 
   const byId = new Map(products.map((p) => [p.id, p]));
   for (const it of body.items) {
     const p = byId.get(it.product_id);
     if (!p) return fail(400, 'create_order.product_missing', `Product ${it.product_id} not found.`, { field: 'items.product_id', product_id: it.product_id });
     if (p.company_id !== company.id) return fail(400, 'create_order.product_wrong_company', 'Item does not belong to the company.', { field: 'items.product_id' });
-    if (p.available === false || p.is_active === false) return fail(400, 'create_order.product_unavailable', `Product ${p.name} is unavailable.`, { field: 'items.product_id' });
+    if (p.is_active === false) return fail(400, 'create_order.product_unavailable', `Product ${p.name} is unavailable.`, { field: 'items.product_id' });
   }
 
   // 4) Subtotal canônico
@@ -386,6 +395,8 @@ Deno.serve(async (req) => {
     finalNotes = finalNotes ? `${finalNotes} • ${note}` : note;
   }
 
+  const customerFullName = (user.user_metadata as any)?.full_name || user.email?.split('@')[0] || 'Cliente';
+
   // 9) Insert order
   const { data: order, error: orderErr } = await adminClient
     .from('orders')
@@ -393,16 +404,14 @@ Deno.serve(async (req) => {
       customer_id: customerId,
       user_id: user.id,
       company_id: company.id,
+      customer_name: customerFullName,
+      delivery_address: deliveryAddress,
       status: 'pending',
       total,
       delivery_fee: deliveryFee,
-      delivery_address: deliveryAddress,
       payment_method: body.payment_method,
       notes: finalNotes,
       idempotency_key: body.idempotency_key,
-      region_id: regionId,
-      delivery_latitude: address?.latitude ?? null,
-      delivery_longitude: address?.longitude ?? null,
     })
     .select('id')
     .single();
@@ -421,24 +430,23 @@ Deno.serve(async (req) => {
     }
     return fail(500, 'create_order.insert_failed', orderErr?.message || 'Failed to create order.', {
       error_code: (orderErr as any)?.code ?? null,
+      details: orderErr?.details ?? null,
     });
   }
 
-  // 10) Insert items
+  // 10) Insert items (apenas colunas existentes na tabela public.order_items)
   const itemsRow = enrichedItems.map((i) => ({
     order_id: order.id,
     product_id: i.product_id,
+    product_name: i.product_name,
     quantity: i.quantity,
     price: i.unit_price,
-    unit_price: i.unit_price,
-    product_name: i.product_name,
-    notes: i.notes,
-    options: i.options,
   }));
   const { error: itemsErr } = await adminClient.from('order_items').insert(itemsRow);
   if (itemsErr) {
     return fail(500, 'create_order.items_insert_failed', itemsErr.message, {
       context: { order_id: order.id },
+      details: itemsErr.details,
     });
   }
 
@@ -452,21 +460,18 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 12) Delivery (apenas para entrega)
+  // 12) Delivery (apenas para entrega; colunas compatíveis com public.deliveries)
   if (fulfillmentMode === 'delivery') {
     await adminClient.from('deliveries').insert({
       order_id: order.id,
       company_id: company.id,
-      pickup_address: company.address || company.name,
-      delivery_address: deliveryAddress,
-      pickup_latitude: company.latitude,
-      pickup_longitude: company.longitude,
-      delivery_latitude: address?.latitude ?? null,
-      delivery_longitude: address?.longitude ?? null,
+      customer_name: customerFullName,
+      address: deliveryAddress,
       status: 'pending',
       value: total,
-      price: deliveryFee,
       region_id: regionId,
+      latitude: address?.latitude ?? null,
+      longitude: address?.longitude ?? null,
     });
   }
 
@@ -499,8 +504,7 @@ Deno.serve(async (req) => {
   });
 });
 
-// Point-in-polygon ray casting; aceita polygon como GeoJSON {coordinates:[[[lng,lat]...]]}
-// ou array de {lat,lng}.
+// Point-in-polygon ray casting
 function pickRegion(regions: any[], lat: number, lng: number) {
   for (const r of regions) {
     const poly = normalizePolygon(r.geometry);
