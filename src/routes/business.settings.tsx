@@ -9,7 +9,7 @@ import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
   Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, 
   Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair, AlertTriangle,
-  Trash2, Plus, ArrowRight, ShieldAlert, Sparkles
+  Trash2, Plus, ArrowRight, ShieldAlert, Sparkles, RefreshCw
 } from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";
@@ -189,7 +189,8 @@ function BusinessSettingsPage() {
         .from("regions")
         .select("*")
         .eq("is_active", true)
-        .order("name");
+        .order("sort_order", { ascending: true })
+        .order("name", { ascending: true });
       if (regionsData) {
         setAllRegions(regionsData);
       }
@@ -399,7 +400,7 @@ function BusinessSettingsPage() {
   };
 
   const handleRegionPriceChange = (regionId: string, value: string) => {
-    const cleanVal = value.replace(/[^0-9.,]/g, "").replace(",", ".");
+    const cleanVal = value.replace(/[^0-9.,]/g, "");
     setDeliveryRegionsPricing((prev) => {
       const exists = prev.some((p) => p.region_id === regionId);
       if (exists) {
@@ -410,9 +411,28 @@ function BusinessSettingsPage() {
     });
   };
 
-  const getRegionPriceValue = (regionId: string) => {
-    const match = deliveryRegionsPricing.find((p) => p.region_id === regionId);
-    return match ? match.price : "";
+  const handleFillDefaultPrices = () => {
+    const defaultPricing = allRegions.map((region) => {
+      const priceStr = Number(region.price || 0).toFixed(2).replace(".", ",");
+      return {
+        region_id: region.id,
+        price: priceStr,
+      };
+    });
+    setDeliveryRegionsPricing(defaultPricing);
+    toast.success("Valores padrão do sistema carregados com sucesso!");
+  };
+
+  const getRegionPriceValue = (region: any) => {
+    const match = deliveryRegionsPricing.find((p) => p.region_id === region.id);
+    if (match && match.price !== undefined && match.price !== null && match.price !== "") {
+      return String(match.price).replace(".", ",");
+    }
+    if (region.price !== undefined && region.price !== null) {
+      const num = Number(region.price);
+      return isNaN(num) ? "" : num.toFixed(2).replace(".", ",");
+    }
+    return "";
   };
 
   const handleSave = async (e?: React.FormEvent) => {
@@ -420,6 +440,20 @@ function BusinessSettingsPage() {
     setSaving(true);
 
     try {
+      // Garantir que a tabela de regiões tenha todos os preços preenchidos (personalizados ou padrão do admin)
+      const completeRegionsPricing = allRegions.map((region) => {
+        const match = deliveryRegionsPricing.find((p) => p.region_id === region.id);
+        let rawVal = match?.price;
+        if (rawVal === undefined || rawVal === null || rawVal === "") {
+          rawVal = region.price !== undefined && region.price !== null ? String(region.price) : "0";
+        }
+        const numericVal = parseFloat(String(rawVal).replace(/\./g, "").replace(",", ".")) || 0;
+        return {
+          region_id: region.id,
+          price: numericVal.toFixed(2),
+        };
+      });
+
       const payload = {
           name: storeName,
           phone: phone.replace(/[^0-9]/g, ""),
@@ -430,7 +464,7 @@ function BusinessSettingsPage() {
           category: category,
           delivery_mode: deliveryMode,
           delivery_fee: deliveryMode === "fixed_fee" ? parseFloat(deliveryFee.replace(',', '.')) || 0 : 0,
-          delivery_regions_pricing: deliveryRegionsPricing,
+          delivery_regions_pricing: completeRegionsPricing,
           is_open: isOpen,
           show_in_marketplace: showInMarketplace,
           business_hours: JSON.stringify(workingDays),
@@ -867,24 +901,48 @@ function BusinessSettingsPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Tabela de Preços por Bairro</label>
-              <div className="space-y-2 max-h-96 overflow-y-auto pr-2">
-                {allRegions.map((region) => (
-                  <div key={region.id} className="flex items-center justify-between gap-4 p-3.5 rounded-xl bg-secondary/40 border border-border/50">
-                    <span className="text-sm font-bold text-foreground">{region.name}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-muted-foreground">R$</span>
-                      <input
-                        type="text"
-                        value={getRegionPriceValue(region.id)}
-                        onChange={(e) => handleRegionPriceChange(region.id, e.target.value)}
-                        placeholder="0,00"
-                        className="w-24 h-9 px-3 rounded-lg border border-border bg-background text-right font-black text-xs outline-none"
-                      />
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-primary/5 border border-primary/20 p-4 rounded-2xl">
+                <div>
+                  <h3 className="text-sm font-black text-foreground">Tabela de Preços por Bairro / Região</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Os valores padrão do sistema já foram preenchidos como referência. Ajuste conforme necessário.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleFillDefaultPrices}
+                  className="px-4 py-2 bg-primary text-black font-black text-xs uppercase tracking-wider rounded-xl hover:scale-105 transition-all shadow-sm flex items-center gap-1.5 shrink-0 self-start sm:self-auto cursor-pointer"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Restaurar Padrão do Admin
+                </button>
+              </div>
+
+              <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {allRegions.map((region) => {
+                  const defaultPrice = Number(region.price || 0).toFixed(2).replace(".", ",");
+                  return (
+                    <div key={region.id} className="flex items-center justify-between gap-4 p-3.5 rounded-2xl bg-secondary/40 border border-border/50 hover:border-primary/30 transition-all">
+                      <div className="min-w-0 flex-1">
+                        <span className="text-sm font-bold text-foreground block truncate">{region.name}</span>
+                        <span className="text-[10px] font-bold text-muted-foreground">
+                          Valor Padrão (Admin): <strong className="text-primary font-black">R$ {defaultPrice}</strong>
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs font-bold text-muted-foreground">R$</span>
+                        <input
+                          type="text"
+                          value={getRegionPriceValue(region)}
+                          onChange={(e) => handleRegionPriceChange(region.id, e.target.value)}
+                          placeholder={defaultPrice}
+                          className="w-28 h-10 px-3 rounded-xl border border-border bg-background text-right font-black text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
