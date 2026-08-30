@@ -62,7 +62,7 @@ const MOBILE_NAV = [
   { to: "/business/orders", label: "Pedidos", icon: ShoppingBag },
   { to: "/business/products", label: "Cardápio", icon: UtensilsCrossed },
   { to: "/business/finance", label: "Finanças", icon: Wallet },
-  { to: "/business/profile", label: "Perfil", icon: UserIcon },
+  { to: "/business/settings", label: "Configurações", icon: Settings },
 ];
 
 export function BusinessLayout({ children }: { children?: React.ReactNode }) {
@@ -354,9 +354,6 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => nav({ to: "/business/profile" as any })}>
-                    <UserIcon className="h-4 w-4 mr-2" /> Perfil
-                  </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => nav({ to: "/business/settings" })}>
                     <Settings className="h-4 w-4 mr-2" /> Configurações
                   </DropdownMenuItem>
