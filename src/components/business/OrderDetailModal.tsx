@@ -138,27 +138,50 @@ export default function OrderDetailModal({
 
   const status = statusMap[order.status] || { label: order.status, color: "bg-muted", next: undefined, nextLabel: undefined, prev: undefined, prevLabel: undefined };
   
-  const handleAdvance = () => {
-    if (status.next) {
-      if (onAdvance) {
-        onAdvance(order.id, status.next);
-      } else if (updateStatus) {
-        updateStatus(order.id, status.next).then(() => {
-          onStatusUpdate?.();
-        });
+  const updateStatusDirectly = async (targetStatus: string) => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.from("orders").update({ status: targetStatus }).eq("id", order.id);
+      if (error) {
+        toast.error("Erro ao atualizar status: " + error.message);
+        return;
       }
+      toast.success(`Pedido atualizado para ${statusMap[targetStatus]?.label || targetStatus}!`);
+      order.status = targetStatus;
+      onStatusUpdate?.();
+      onClose();
+    } catch (err: any) {
+      toast.error("Erro ao atualizar status.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePrev = () => {
-    if (status.prev) {
-      if (onAdvance) {
-        onAdvance(order.id, status.prev);
-      } else if (updateStatus) {
-        updateStatus(order.id, status.prev).then(() => {
-          onStatusUpdate?.();
-        });
-      }
+  const handleAdvance = async () => {
+    if (!status.next) return;
+    if (onAdvance) {
+      onAdvance(order.id, status.next);
+      onClose();
+    } else if (updateStatus) {
+      await updateStatus(order.id, status.next);
+      onStatusUpdate?.();
+      onClose();
+    } else {
+      await updateStatusDirectly(status.next);
+    }
+  };
+
+  const handlePrev = async () => {
+    if (!status.prev) return;
+    if (onAdvance) {
+      onAdvance(order.id, status.prev);
+      onClose();
+    } else if (updateStatus) {
+      await updateStatus(order.id, status.prev);
+      onStatusUpdate?.();
+      onClose();
+    } else {
+      await updateStatusDirectly(status.prev);
     }
   };
 
@@ -166,9 +189,13 @@ export default function OrderDetailModal({
     if (confirm("Deseja cancelar este pedido?")) {
       if (onAdvance) {
         onAdvance(order.id, "cancelled");
+        onClose();
       } else if (updateStatus) {
         await updateStatus(order.id, "cancelled");
         onStatusUpdate?.();
+        onClose();
+      } else {
+        await updateStatusDirectly("cancelled");
       }
     }
   };

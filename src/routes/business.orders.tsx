@@ -550,6 +550,34 @@ function OrdersPage() {
           order={detailOrder}
           isOpen={isDetailModalOpen}
           onClose={() => setIsDetailModalOpen(false)}
+          onAdvance={async (orderId, nextStatus) => {
+            if (nextStatus === "ready_dispatch" || (detailOrder.status === "ready" && nextStatus === "ready")) {
+              setIsDetailModalOpen(false);
+              setSelectedOrder(detailOrder);
+              setDeliveryFee("0,00");
+              setIsDispatchModalOpen(true);
+              return;
+            }
+            try {
+              const { error } = await supabase
+                .from("orders")
+                .update({ status: nextStatus })
+                .eq("id", orderId);
+              if (error) {
+                toast.error(`Erro ao atualizar pedido: ${error.message}`);
+              } else {
+                toast.success(`Pedido atualizado com sucesso!`);
+                qc.invalidateQueries({ queryKey: ["orders"] });
+                qc.invalidateQueries({ queryKey: ["pending-orders"] });
+              }
+            } catch (err: any) {
+              toast.error("Erro ao atualizar status.");
+            }
+          }}
+          onStatusUpdate={() => {
+            qc.invalidateQueries({ queryKey: ["orders"] });
+            qc.invalidateQueries({ queryKey: ["pending-orders"] });
+          }}
         />
       )}
     </div>
