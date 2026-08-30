@@ -199,10 +199,21 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                           {/* Subtle active glow */}
                           {active && <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent pointer-events-none" />}
                           
-                          <it.icon className={`h-5 w-5 min-w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
+                          <div className="relative flex items-center justify-center">
+                            <it.icon className={`h-5 w-5 min-w-5 ${active ? "text-primary-foreground" : "text-sidebar-foreground/50 group-hover:text-primary transition-colors"}`} />
+                            {it.to === "/business/orders" && pendingOrders.length > 0 && !isSidebarExpanded && (
+                              <span className="absolute -top-1 -right-1 h-3.5 w-3.5 rounded-full bg-destructive border-2 border-sidebar animate-pulse" />
+                            )}
+                          </div>
                           
                           {isSidebarExpanded && (
-                            <span className="truncate whitespace-nowrap">{it.label}</span>
+                            <span className="truncate whitespace-nowrap flex-1">{it.label}</span>
+                          )}
+
+                          {it.to === "/business/orders" && pendingOrders.length > 0 && isSidebarExpanded && (
+                            <span className="h-5 min-w-5 px-1.5 rounded-full bg-destructive text-destructive-foreground text-[11px] font-black flex items-center justify-center animate-pulse shadow-sm">
+                              {pendingOrders.length}
+                            </span>
                           )}
                         </Link>
                       </TooltipTrigger>
@@ -393,11 +404,18 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                 <Link
                   key={it.to}
                   to={it.to}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition ${
+                  className={`relative flex flex-col items-center gap-0.5 px-3 py-2 rounded-2xl transition ${
                     active ? "bg-primary text-primary-foreground scale-105" : "text-muted-foreground"
                   }`}
                 >
-                  <it.icon className="h-5 w-5" />
+                  <div className="relative">
+                    <it.icon className="h-5 w-5" />
+                    {it.to === "/business/orders" && pendingOrders.length > 0 && (
+                      <span className="absolute -top-1 -right-2 h-4 min-w-4 px-1 rounded-full bg-destructive text-destructive-foreground text-[9px] font-black flex items-center justify-center animate-pulse">
+                        {pendingOrders.length}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-[10px] font-bold">{it.label}</span>
                 </Link>
               );
