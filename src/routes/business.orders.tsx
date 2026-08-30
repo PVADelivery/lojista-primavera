@@ -24,7 +24,6 @@ const COLUMNS = [
   { status: "preparing", label: "Na Cozinha", icon: ChefHat, color: "blue-500" },
   { status: "ready", label: "Prontos", icon: PackageCheck, color: "success" },
   { status: "in_route", label: "Em Rota", icon: Truck, color: "purple-500" },
-  { status: "delivered", label: "Concluídos", icon: CheckCircle2, color: "success" },
 ];
 
 const STATUS_LABELS: Record<string, string> = {
@@ -162,7 +161,11 @@ function OrdersPage() {
         return false;
       }
       
-      toast.success(`Pedido movido para ${STATUS_LABELS[allowedNextStatus]}`);
+      if (allowedNextStatus === "delivered") {
+        toast.success("Pedido concluído com sucesso e arquivado no Histórico!");
+      } else {
+        toast.success(`Pedido movido para ${STATUS_LABELS[allowedNextStatus]}`);
+      }
       qc.invalidateQueries({ queryKey: ["orders"] });
       return true;
     } catch (err) {
