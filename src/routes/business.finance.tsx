@@ -7,7 +7,7 @@ import {
   DollarSign, TrendingUp, TrendingDown, Calendar, RefreshCw,
   ShoppingBag, ArrowUpRight, ArrowDownRight, Wallet, BarChart3,
   Package, Clock, CheckCircle2, XCircle, Filter, Download,
-  Plus, Trash2, ArrowUpCircle, ArrowDownCircle
+  Plus, Trash2, ArrowUpCircle, ArrowDownCircle, ArrowLeftRight
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -472,26 +472,49 @@ function BusinessFinancePage() {
           </div>
 
           {/* Tabs */}
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="bg-muted/50 border border-border/50 rounded-xl p-1 flex-wrap h-auto gap-1">
-              <TabsTrigger value="overview" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Visão Geral
+          <Tabs value={tab} onValueChange={setTab} className="space-y-6">
+            <TabsList className="bg-card border border-border/70 rounded-2xl p-1.5 flex flex-wrap h-auto gap-1.5 shadow-sm w-full md:w-auto">
+              <TabsTrigger 
+                value="overview" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <BarChart3 className="h-4 w-4" />
+                <span>Visão Geral</span>
               </TabsTrigger>
-              <TabsTrigger value="orders" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Pedidos
+              <TabsTrigger 
+                value="orders" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <ShoppingBag className="h-4 w-4" />
+                <span>Pedidos</span>
               </TabsTrigger>
-              <TabsTrigger value="credit_payouts" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
-                <Coins className="h-3.5 w-3.5" />
-                Vendas em Créditos (Repasses)
+              <TabsTrigger 
+                value="credit_payouts" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <Coins className="h-4 w-4" />
+                <span>Vendas em Créditos (Repasses)</span>
               </TabsTrigger>
-              <TabsTrigger value="analysis" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Análise
+              <TabsTrigger 
+                value="analysis" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <TrendingUp className="h-4 w-4" />
+                <span>Análise</span>
               </TabsTrigger>
-              <TabsTrigger value="cashflow" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Fluxo de Caixa
+              <TabsTrigger 
+                value="cashflow" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeftRight className="h-4 w-4" />
+                <span>Fluxo de Caixa</span>
               </TabsTrigger>
-              <TabsTrigger value="credits" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Saldo Pré-pago (Entregas)
+              <TabsTrigger 
+                value="credits" 
+                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+              >
+                <Wallet className="h-4 w-4" />
+                <span>Saldo Pré-pago (Entregas)</span>
               </TabsTrigger>
             </TabsList>
 
