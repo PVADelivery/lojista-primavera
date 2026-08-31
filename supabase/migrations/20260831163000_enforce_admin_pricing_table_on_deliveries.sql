@@ -244,13 +244,13 @@ CREATE TRIGGER trg_enforce_admin_pricing
   FOR EACH ROW
   EXECUTE FUNCTION public.trg_enforce_admin_pricing_on_deliveries();
 
--- 4. Corrigir entregas recentes com status pending/accepted que foram criadas com valor incorreto
+-- 4. Corrigir entregas recentes com status pendente/aberto que foram criadas com valor incorreto
 UPDATE public.deliveries d
    SET value = public.calculate_delivery_fee_for_company(d.company_id, d.address, d.region_id, COALESCE(d.vehicle_type, 'moto')),
        delivery_fee = public.calculate_delivery_fee_for_company(d.company_id, d.address, d.region_id, COALESCE(d.vehicle_type, 'moto')),
        price = public.calculate_delivery_fee_for_company(d.company_id, d.address, d.region_id, COALESCE(d.vehicle_type, 'moto'))
  WHERE d.company_id IS NOT NULL
    AND d.created_at > now() - interval '24 hours'
-   AND d.status IN ('pending', 'accepted', 'in_transit');
+   AND d.status::text NOT IN ('cancelled', 'completed');
 
 NOTIFY pgrst, 'reload schema';
