@@ -150,12 +150,39 @@ function OrdersPage() {
         .eq("company_id", company!.id)
         .order("created_at", { ascending: false }).limit(200);
       
+      const rawOrders = data ?? [];
+      const userIds = Array.from(new Set(rawOrders.map((o: any) => o.user_id).filter(Boolean))) as string[];
+      const profilesMap = new Map<string, { full_name: string | null; phone: string | null }>();
+
+      if (userIds.length > 0) {
+        try {
+          const { data: profs } = await supabase
+            .from("profiles")
+            .select("id, full_name, phone")
+            .in("id", userIds);
+          (profs ?? []).forEach((p: any) => {
+            profilesMap.set(p.id, { full_name: p.full_name || null, phone: p.phone || null });
+          });
+        } catch (e) {
+          console.warn("[business.orders] Erro ao carregar perfis:", e);
+        }
+      }
+
       const today = new Date();
       today.setHours(0,0,0,0);
-      return (data ?? []).filter(o => {
-        if (["delivered", "cancelled"].includes(o.status) && new Date(o.created_at) < today) return false;
-        return true;
-      });
+      return rawOrders
+        .filter(o => {
+          if (["delivered", "cancelled"].includes(o.status) && new Date(o.created_at) < today) return false;
+          return true;
+        })
+        .map((o: any) => {
+          const prof = o.user_id ? profilesMap.get(o.user_id) : null;
+          return {
+            ...o,
+            customer_name: o.customers?.name || prof?.full_name || o.customer_name || "Cliente",
+            customer_phone: o.customer_phone || o.customers?.phone || prof?.phone || "",
+          };
+        });
     },
     refetchOnWindowFocus: false,
   });
