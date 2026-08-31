@@ -34,12 +34,12 @@ export interface RegionPricingOptions {
 }
 
 export function resolveRegionDeliveryFee(options: RegionPricingOptions): number {
-  const { region, vehicleType, companySettings, pricingRules } = options;
+  const { region, vehicleType, pricingRules } = options;
   if (!region) return 10.00;
 
   const isCar = String(vehicleType || "").toLowerCase().includes("car");
 
-  // Base fallback prices from official region record
+  // Preço base oficial padrão da região cadastrado no Admin
   const motoDefault = Number(region.price ?? 0);
   const carDefault = Number((region.delivery_fee && Number(region.delivery_fee) > 0) 
     ? region.delivery_fee 
@@ -47,16 +47,7 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
 
   const officialRegionPrice = isCar ? (carDefault > 0 ? carDefault : 25.00) : (motoDefault > 0 ? motoDefault : 10.00);
 
-  // 1. Fixed Fee Mode for Store
-  if (
-    companySettings?.delivery_mode === "fixed_fee" &&
-    companySettings?.delivery_fee != null &&
-    Number(companySettings.delivery_fee) > 0
-  ) {
-    return Number(companySettings.delivery_fee);
-  }
-
-  // 2. Custom Pricing Table Rules (pricing_rules)
+  // 1. Tabela Personalizada do Admin vinculada à Loja (pricing_rules da tabela da loja)
   if (Array.isArray(pricingRules) && pricingRules.length > 0) {
     const matchedRule = pricingRules.find(
       (rule) =>
@@ -79,24 +70,6 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
     }
   }
 
-  // 3. Legacy Custom Pricing Matrix (delivery_regions_pricing)
-  const legacyMatrix = companySettings?.delivery_regions_pricing;
-  if (legacyMatrix) {
-    let parsed = legacyMatrix;
-    if (typeof parsed === "string") {
-      try { parsed = JSON.parse(parsed); } catch {}
-    }
-    if (parsed && typeof parsed === "object" && !Array.isArray(parsed) && parsed.matrix) {
-      parsed = parsed.matrix;
-    }
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      const match = parsed.find((m: any) => (m.region_id === region.id || m.to === region.id) && Number(m.price) > 0);
-      if (match && match.price != null && match.price !== "" && Number(match.price) > 0) {
-        return Number(match.price);
-      }
-    }
-  }
-
-  // 4. Default Region Pricing (padrão da região)
+  // 2. Tabela Padrão Oficial da Região definida pelo Admin
   return officialRegionPrice;
 }

@@ -74,13 +74,22 @@ function OrdersPage() {
   });
 
   const { data: pricingRules = [] } = useQuery({
-    queryKey: ["pricing_rules", company?.id],
+    queryKey: ["pricing_rules", company?.id, company?.pricing_table_id],
     enabled: !!company?.id,
     queryFn: async () => {
       try {
         const { data } = await supabase.rpc("get_company_pricing_rules", { p_company_id: company!.id });
-        if (data && Array.isArray(data)) return data;
+        if (data && Array.isArray(data) && data.length > 0) return data;
       } catch {}
+
+      if (company?.pricing_table_id) {
+        const { data } = await supabase
+          .from("pricing_rules")
+          .select("*")
+          .eq("pricing_table_id", company.pricing_table_id);
+        if (data && data.length > 0) return data;
+      }
+
       const { data } = await supabase.from("pricing_rules").select("*");
       return data || [];
     },
