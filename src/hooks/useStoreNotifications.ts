@@ -7,8 +7,11 @@ import { PushNotifications } from "@capacitor/push-notifications";
 import { LocalNotifications } from "@capacitor/local-notifications";
 import { toast } from "sonner";
 
+import { useAudioAlert } from "./useAudioAlert";
+
 export function useStoreNotifications() {
   const { user } = useAuth();
+  const { playAlert } = useAudioAlert();
   const channelsRef = useRef<any[]>([]);
 
   useEffect(() => {
@@ -47,7 +50,6 @@ export function useStoreNotifications() {
         };
 
         PushNotifications.addListener("registration", (token) => {
-          console.log("[FCM Lojista] Token:", token.value);
           syncFcmToken(token.value);
         }).catch(() => {});
 
@@ -66,6 +68,7 @@ export function useStoreNotifications() {
           const title = notification.title || "🔔 Novo Pedido Recebido!";
           const body = notification.body || notification.data?.message || "Novo pedido chegou para preparo!";
           toast.success(title, { description: body });
+          playAlert(true);
         }).catch(() => {});
 
         PushNotifications.addListener("pushNotificationActionPerformed", () => {
@@ -101,9 +104,11 @@ export function useStoreNotifications() {
           (payload) => {
             const ord = payload.new as any;
             const title = "🔔 NOVO PEDIDO RECEBIDO!";
-            const desc = `Pedido #${ord.id?.slice(0, 5) || ""} recebido! Total: R$ ${Number(ord.total_amount || 0).toFixed(2)}`;
+            const totalVal = Number(ord.total ?? ord.total_amount ?? 0);
+            const desc = `Pedido #${ord.id?.slice(0, 6)?.toUpperCase() || ""} recebido! Total: R$ ${totalVal.toFixed(2)}`;
 
             toast.success(title, { description: desc });
+            playAlert(true);
 
             if (Capacitor.isNativePlatform()) {
               LocalNotifications.schedule({

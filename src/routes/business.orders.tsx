@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { cn } from "@/lib/utils";
 
 import OrderDetailModal from "@/components/business/OrderDetailModal";
+import { useAudioAlert } from "@/hooks/useAudioAlert";
 
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
@@ -45,7 +46,7 @@ function OrdersPage() {
   const { data: company } = useMyCompany();
   const qc = useQueryClient();
   const [muted, setMuted] = useState(false);
-  const audio = useRef<HTMLAudioElement | null>(null);
+  const { playAlert, stopAlert } = useAudioAlert();
 
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
@@ -134,13 +135,12 @@ function OrdersPage() {
   const pendingCount = orders.filter((o: any) => o.status === "pending").length;
 
   useEffect(() => {
-    if (!audio.current) {
-      audio.current = new Audio("data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=");
-    }
     if (pendingCount > 0 && !muted) {
-      audio.current?.play().catch(() => {});
+      playAlert(true);
+    } else {
+      stopAlert();
     }
-  }, [pendingCount, muted]);
+  }, [pendingCount, muted, playAlert, stopAlert]);
 
   const advance = async (orderId: string, expectedStatus: string) => {
     if (!acquireLock(orderId)) return false;
