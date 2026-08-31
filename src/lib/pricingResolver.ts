@@ -49,12 +49,26 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
 
   // 1. Tabela Personalizada do Admin vinculada à Loja (pricing_rules da tabela da loja)
   if (Array.isArray(pricingRules) && pricingRules.length > 0) {
+    const regId = String(region.id || "").toLowerCase().trim();
+    const regName = String(region.name || "").toLowerCase().trim();
+
     const matchedRule = pricingRules.find(
-      (rule) =>
-        (rule.origin_region_id === region.id || rule.destination_region_id === region.id) &&
-        rule.base_value != null &&
-        rule.base_value !== "" &&
-        Number(rule.base_value) > 0
+      (rule: any) => {
+        const orig = String(rule.origin_region_id || "").toLowerCase().trim();
+        const dest = String(rule.destination_region_id || "").toLowerCase().trim();
+        const gen = String(rule.region_id || "").toLowerCase().trim();
+        const rName = String(rule.region_name || rule.name || "").toLowerCase().trim();
+        
+        const hasValidValue = rule.base_value != null && rule.base_value !== "" && Number(rule.base_value) > 0;
+        if (!hasValidValue) return false;
+
+        return (
+          (orig && orig === regId) ||
+          (dest && dest === regId) ||
+          (gen && gen === regId) ||
+          (regName && rName && (rName === regName || regName.includes(rName) || rName.includes(regName)))
+        );
+      }
     );
 
     if (matchedRule) {

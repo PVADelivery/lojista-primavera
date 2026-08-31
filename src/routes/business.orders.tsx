@@ -230,20 +230,59 @@ function OrdersPage() {
     let resolvedRegionId = order.region_id || "";
     let targetRegion: any = null;
 
-    const addrText = (order.delivery_address || "").toLowerCase();
-    if (!resolvedRegionId && addrText && hoods.length > 0) {
-      const matchedHood = hoods.find((h: any) => h.name && addrText.includes(h.name.toLowerCase().trim()));
+    const rawAddr = String(order.delivery_address || "");
+    const cleanAddr = rawAddr
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+    // Função de normalização de termos brasileiros
+    const norm = (s: string) => s
+      .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\bjardim\b/g, "jd")
+      .replace(/\bsanto\b/g, "sto")
+      .replace(/\bsanta\b/g, "sta")
+      .replace(/\bsao\b/g, "s")
+      .replace(/\bparque\b/g, "pq")
+      .replace(/\bdistrito industrial\b/g, "industrial")
+      .replace(/[^a-z0-9]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const normAddr = norm(rawAddr);
+
+    if (!resolvedRegionId && normAddr && hoods.length > 0) {
+      const matchedHood = hoods.find((h: any) => {
+        if (!h.name) return false;
+        const normH = norm(h.name);
+        const cleanH = h.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        return (
+          (normH && normAddr.includes(normH)) ||
+          (cleanH && cleanAddr.includes(cleanH)) ||
+          (normAddr && normH.includes(normAddr))
+        );
+      });
       if (matchedHood) {
         resolvedRegionId = matchedHood.region_id;
       }
     }
 
     if (resolvedRegionId && regions.length > 0) {
-      targetRegion = regions.find((r: any) => r.id === resolvedRegionId);
+      targetRegion = regions.find((r: any) => String(r.id).toLowerCase() === String(resolvedRegionId).toLowerCase());
     }
 
     if (!targetRegion && regions.length > 0) {
-      const matchedReg = regions.find((r: any) => r.name && addrText.includes(r.name.toLowerCase().trim()));
+      const matchedReg = regions.find((r: any) => {
+        if (!r.name) return false;
+        const normReg = norm(r.name);
+        const cleanReg = r.name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+        const parts = r.name.split("/").map((p: string) => norm(p)).filter(Boolean);
+        return (
+          (normReg && normAddr.includes(normReg)) ||
+          (cleanReg && cleanAddr.includes(cleanReg)) ||
+          parts.some((p: string) => p && normAddr.includes(p))
+        );
+      });
       if (matchedReg) {
         resolvedRegionId = matchedReg.id;
         targetRegion = matchedReg;
