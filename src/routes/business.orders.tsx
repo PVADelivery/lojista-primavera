@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 
 import OrderDetailModal from "@/components/business/OrderDetailModal";
 import { useAudioAlert } from "@/hooks/useAudioAlert";
+import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
 
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
@@ -68,6 +69,19 @@ function OrdersPage() {
     queryKey: ["region_neighborhoods"],
     queryFn: async () => {
       const { data } = await supabase.from("region_neighborhoods").select("*");
+      return data || [];
+    },
+  });
+
+  const { data: pricingRules = [] } = useQuery({
+    queryKey: ["pricing_rules", company?.id],
+    enabled: !!company?.id,
+    queryFn: async () => {
+      try {
+        const { data } = await supabase.rpc("get_company_pricing_rules", { p_company_id: company!.id });
+        if (data && Array.isArray(data)) return data;
+      } catch {}
+      const { data } = await supabase.from("pricing_rules").select("*");
       return data || [];
     },
   });
@@ -203,11 +217,10 @@ function OrdersPage() {
       return;
     }
 
-    // 1. Tenta obter a taxa já definida/cobrada no pedido
-    let resolvedFee = Number(order.delivery_fee || 0);
+    // 1. Identifica a região do endereço de entrega
     let resolvedRegionId = order.region_id || "";
+    let targetRegion: any = null;
 
-    // 2. Se a região não estiver definida, tenta resolver pelo bairro no endereço
     const addrText = (order.delivery_address || "").toLowerCase();
     if (!resolvedRegionId && addrText && hoods.length > 0) {
       const matchedHood = hoods.find((h: any) => h.name && addrText.includes(h.name.toLowerCase().trim()));
@@ -216,30 +229,41 @@ function OrdersPage() {
       }
     }
 
-    // 3. Se a região foi resolvida, busca o valor cadastrado pelo Admin para a região
     if (resolvedRegionId && regions.length > 0) {
-      const rObj = regions.find((r: any) => r.id === resolvedRegionId);
-      if (rObj) {
-        if (resolvedFee <= 0) {
-          resolvedFee = Number(rObj.price ?? rObj.delivery_fee ?? 0);
-        }
-      }
+      targetRegion = regions.find((r: any) => r.id === resolvedRegionId);
     }
 
-    // 4. Se ainda não achou frete, tenta buscar por nome de região no endereço
-    if (resolvedFee <= 0 && regions.length > 0) {
+    if (!targetRegion && regions.length > 0) {
       const matchedReg = regions.find((r: any) => r.name && addrText.includes(r.name.toLowerCase().trim()));
       if (matchedReg) {
         resolvedRegionId = matchedReg.id;
-        resolvedFee = Number(matchedReg.price ?? matchedReg.delivery_fee ?? 0);
+        targetRegion = matchedReg;
       }
     }
 
-    // Se o valor do frete foi identificado (> 0), dispara a entrega direto com o valor da região!
+    if (!targetRegion && regions.length > 0) {
+      targetRegion = regions[0];
+      resolvedRegionId = regions[0].id;
+    }
+
+    // 2. Calcula o valor oficial que a LOJA repassa ao sistema e ao entregador conforme a tabela do Admin
+    let resolvedFee = 10.0;
+    if (targetRegion) {
+      resolvedFee = resolveRegionDeliveryFee({
+        region: targetRegion,
+        vehicleType: "moto",
+        companySettings: company,
+        pricingRules: pricingRules,
+      });
+    } else if (company.delivery_fee && Number(company.delivery_fee) > 0) {
+      resolvedFee = Number(company.delivery_fee);
+    }
+
+    // Se o valor do frete da tabela do Admin foi identificado (> 0), dispara a entrega direto com o valor oficial!
     if (resolvedFee > 0) {
       await executeDispatch(order, resolvedFee, resolvedRegionId);
     } else {
-      // Fallback: se nenhum valor ou região foi identificado, abre o modal pre-preenchido
+      // Fallback: abre modal pre-preenchido
       setSelectedOrder(order);
       setDeliveryFee(resolvedFee > 0 ? resolvedFee.toFixed(2).replace(".", ",") : "10,00");
       setSelectedRegionId(resolvedRegionId);
@@ -621,7 +645,20 @@ function OrdersPage() {
               </div>
               <select
                 value={selectedRegionId}
-                onChange={(e) => setSelectedRegionId(e.target.value)}
+                onChange={(e) => {
+                  const regId = e.target.value;
+                  setSelectedRegionId(regId);
+                  const regObj = regions.find((r: any) => r.id === regId);
+                  if (regObj) {
+                    const price = resolveRegionDeliveryFee({
+                      region: regObj,
+                      vehicleType: "moto",
+                      companySettings: company,
+                      pricingRules: pricingRules,
+                    });
+                    setDeliveryFee(price.toFixed(2).replace(".", ","));
+                  }
+                }}
                 className="w-full h-14 px-4 rounded-[1.25rem] bg-secondary/30 border-2 border-transparent focus:border-primary/20 focus:bg-white transition-all text-sm font-bold tracking-tight outline-none appearance-none"
               >
                 <option value="">Selecione uma região...</option>
