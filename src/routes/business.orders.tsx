@@ -74,21 +74,52 @@ function OrdersPage() {
   });
 
   const { data: pricingRules = [] } = useQuery({
-    queryKey: ["pricing_rules", company?.id, company?.pricing_table_id],
+    queryKey: ["pricing_rules", company?.id],
     enabled: !!company?.id,
     queryFn: async () => {
+      // 1. Sempre busca o pricing_table_id mais recente da empresa no banco
+      let activeTableId = company?.pricing_table_id;
       try {
-        const { data } = await supabase.rpc("get_company_pricing_rules", { p_company_id: company!.id });
-        if (data && Array.isArray(data) && data.length > 0) return data;
+        const { data: compData } = await supabase
+          .from("companies")
+          .select("id, pricing_table_id")
+          .eq("id", company!.id)
+          .maybeSingle();
+        if (compData?.pricing_table_id) {
+          activeTableId = compData.pricing_table_id;
+        }
       } catch {}
 
-      if (company?.pricing_table_id) {
-        const { data } = await supabase
+      // 2. Se a empresa tem tabela personalizada vinculada no Admin
+      if (activeTableId) {
+        const { data: rules } = await supabase
           .from("pricing_rules")
           .select("*")
-          .eq("pricing_table_id", company.pricing_table_id);
-        if (data && data.length > 0) return data;
+          .eq("pricing_table_id", activeTableId);
+        if (rules && rules.length > 0) return rules;
       }
+
+      // 3. Fallback RPC
+      try {
+        const { data: rpcRules } = await supabase.rpc("get_company_pricing_rules", { p_company_id: company!.id });
+        if (rpcRules && Array.isArray(rpcRules) && rpcRules.length > 0) return rpcRules;
+      } catch {}
+
+      // 4. Fallback tabela padrão
+      try {
+        const { data: defTable } = await supabase
+          .from("pricing_tables")
+          .select("id")
+          .eq("is_default", true)
+          .maybeSingle();
+        if (defTable?.id) {
+          const { data: defRules } = await supabase
+            .from("pricing_rules")
+            .select("*")
+            .eq("pricing_table_id", defTable.id);
+          if (defRules && defRules.length > 0) return defRules;
+        }
+      } catch {}
 
       const { data } = await supabase.from("pricing_rules").select("*");
       return data || [];
@@ -300,11 +331,8 @@ function OrdersPage() {
       resolvedFee = resolveRegionDeliveryFee({
         region: targetRegion,
         vehicleType: "moto",
-        companySettings: company,
         pricingRules: pricingRules,
       });
-    } else if (company.delivery_fee && Number(company.delivery_fee) > 0) {
-      resolvedFee = Number(company.delivery_fee);
     }
 
     // Se o valor do frete da tabela do Admin foi identificado (> 0), dispara a entrega direto com o valor oficial!
