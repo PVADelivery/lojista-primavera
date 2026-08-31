@@ -1143,6 +1143,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Padronizar o fluxo de status em conformidade com o Postgres: `accepted` -> `in_progress` ("Iniciar Corrida") -> `completed` ("Finalizar Corrida"), com botões no frontend alinhados às transições válidas da tabela.
 
+---
+
+### 116. Despacho Manual Indevido em Pedidos Marketplace com Taxa e Região Definidas
+* **Sintoma**: Ao marcar um pedido do Marketplace como "Pronto" e clicar em "Chamar Entregador" no painel do lojista (`/business/orders`), o sistema abria um modal em branco solicitando ao lojista digitar manualmente a taxa de entrega (`R$ 0,00`) e escolher a região, ignorando que o cliente já preencheu o bairro/endereço e a taxa da região já foi configurada pelo Admin.
+* **Causa Raiz**:
+  O botão "Chamar Entregador" em `business.orders.tsx` abria o modal de despacho manual (`setIsDispatchModalOpen(true)`) com campos zerados de forma incondicional, sem consultar a taxa previamente cobrada no pedido (`order.delivery_fee`), sem cruzar o bairro do endereço com a tabela `region_neighborhoods` e sem verificar o valor cadastrado pelo Admin para a região em `regions`.
+* **Solução Padrão**:
+  1. No manipulador `handleDispatchOrder`, verificar se o pedido é `pickup` (Retirada no Local) para avançar sem acionar motoboy.
+  2. Para entregas, recuperar a taxa `order.delivery_fee` e resolver o `region_id` automaticamente a partir do endereço cruzado com `region_neighborhoods` e `regions`.
+  3. Se a taxa de entrega estiver definida/resolvida (> 0), disparar a solicitação de entrega (`deliveries`) imediatamente no banco com o valor e a região corretos cadastrados pelo Admin, alterando o status do pedido para `in_route` com 1 único clique, sem exibir modal de digitação manual desnecessário.
+  4. Manter o modal apenas como fallback pre-preenchido se nenhum valor ou região for detectado no endereço.
+
+
 
 
 
