@@ -99,8 +99,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:type", content: "website" },
       { name: "twitter:title", content: "MT 24horas express — Painel do Lojista" },
       { name: "twitter:description", content: "Gerencie pedidos, entregas, cardápio e clientes em um só lugar." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e7305768-7376-4194-8957-ddc5c57f9513/id-preview-f0fcf7ef--07693a9f-6bbb-44dc-a90a-a75d7c82b358.lovable.app-1780187006807.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/e7305768-7376-4194-8957-ddc5c57f9513/id-preview-f0fcf7ef--07693a9f-6bbb-44dc-a90a-a75d7c82b358.lovable.app-1780187006807.png" },
+      { property: "og:image", content: "https://lojista.mt24horasexpress.com/pwa-512x512-v3.png" },
+      { name: "twitter:image", content: "https://lojista.mt24horasexpress.com/pwa-512x512-v3.png" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
