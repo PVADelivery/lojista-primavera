@@ -301,6 +301,8 @@ export function useReassignDelivery() {
   });
 }
 
+import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
+
 /**
  * INTEGRAÇÕES COM PAINEL LOJISTA
  */
@@ -322,7 +324,7 @@ export async function createDeliveryRequest(orderId: string) {
     .maybeSingle();
 
   const a = address as any;
-  const dropoff = a ? `${a.street ?? ""}, ${a.number ?? ""} - ${a.neighborhood ?? ""}` : "Endereço não cadastrado";
+  const dropoff = a ? `${a.street ?? ""}, ${a.number ?? ""} - ${a.neighborhood ?? ""}` : (order.delivery_address || "Endereço não cadastrado");
 
   // VERIFICAÇÃO DE DUPLICIDADE
   const { data: existingDelivery } = await supabase
@@ -337,16 +339,75 @@ export async function createDeliveryRequest(orderId: string) {
     return existingDelivery;
   }
 
-  const fee = Number(order.delivery_fee ?? order.fee ?? 10);
+  // 1. Busca dados da empresa para regras da tabela do Admin
+  const { data: company } = await supabase
+    .from("companies")
+    .select("id, pricing_table_id, delivery_mode, delivery_fee")
+    .eq("id", order.company_id)
+    .maybeSingle();
+
+  // 2. Busca região do endereço de entrega
+  let regionId = (order as any).region_id || a?.region_id;
+  let targetRegion: any = null;
+
+  if (regionId) {
+    const { data: reg } = await supabase.from("regions").select("*").eq("id", regionId).maybeSingle();
+    targetRegion = reg;
+  } else if (a?.neighborhood) {
+    const { data: nh } = await supabase
+      .from("region_neighborhoods")
+      .select("region_id, regions(*)")
+      .ilike("name", `%${a.neighborhood.trim()}%`)
+      .limit(1)
+      .maybeSingle();
+    if (nh) {
+      regionId = nh.region_id;
+      targetRegion = (nh as any).regions;
+    }
+  }
+
+  if (!targetRegion) {
+    const { data: defaultReg } = await supabase
+      .from("regions")
+      .select("*")
+      .order("price", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    targetRegion = defaultReg;
+    regionId = defaultReg?.id;
+  }
+
+  // 3. Busca regras de precificação customizadas da tabela do Admin
+  let pricingRules: any[] = [];
+  if (company?.id) {
+    try {
+      const { data: rules } = await supabase.rpc("get_company_pricing_rules", { p_company_id: company.id });
+      if (rules && Array.isArray(rules)) pricingRules = rules;
+    } catch {}
+  }
+
+  // 4. Calcula o valor que o Lojista paga ao sistema e ao entregador de acordo com a tabela do Admin
+  let deliveryValue = 10.0;
+  if (targetRegion) {
+    deliveryValue = resolveRegionDeliveryFee({
+      region: targetRegion,
+      vehicleType: "moto",
+      companySettings: company,
+      pricingRules: pricingRules,
+    });
+  } else if (company?.delivery_fee && Number(company.delivery_fee) > 0) {
+    deliveryValue = Number(company.delivery_fee);
+  }
 
   const { data: delivery, error: deliveryError } = await supabase
     .from("deliveries")
     .insert({
       company_id: order.company_id,
       order_id: orderId,
-      customer_name: "Cliente",
+      customer_name: (order as any).customer_name || "Cliente",
       address: dropoff,
-      value: fee,
+      value: deliveryValue,
+      region_id: regionId || null,
       status: "pending",
     })
     .select()
