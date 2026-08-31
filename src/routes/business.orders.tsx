@@ -371,6 +371,8 @@ function OrdersPage() {
           customer_phone: customerPhone,
           address: order.delivery_address || "Não informado",
           value: fee,
+          price: fee,
+          delivery_fee: fee,
           region_id: regionId || null,
           status: "pending"
         }).select("id").single();
@@ -386,6 +388,8 @@ function OrdersPage() {
         // Se já tinha ID de entrega mas o pedido ainda não estava em rota, atualiza a entrega
         await supabase.from("deliveries").update({
           value: fee,
+          price: fee,
+          delivery_fee: fee,
           region_id: regionId || null,
           status: "pending"
         }).eq("id", deliveryRecordId);
