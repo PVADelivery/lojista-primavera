@@ -473,48 +473,48 @@ function BusinessFinancePage() {
 
           {/* Tabs */}
           <Tabs value={tab} onValueChange={setTab} className="space-y-6">
-            <TabsList className="bg-card border border-border/70 rounded-2xl p-1.5 flex flex-wrap h-auto gap-1.5 shadow-sm w-full md:w-auto">
+            <TabsList className="bg-card border border-border/70 rounded-2xl p-1.5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto gap-2 shadow-sm w-full">
               <TabsTrigger 
                 value="overview" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <BarChart3 className="h-4 w-4" />
-                <span>Visão Geral</span>
+                <BarChart3 className="h-4 w-4 shrink-0" />
+                <span className="truncate">Visão Geral</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="orders" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <ShoppingBag className="h-4 w-4" />
-                <span>Pedidos</span>
+                <ShoppingBag className="h-4 w-4 shrink-0" />
+                <span className="truncate">Pedidos</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="credit_payouts" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <Coins className="h-4 w-4" />
-                <span>Vendas em Créditos (Repasses)</span>
+                <Coins className="h-4 w-4 shrink-0" />
+                <span className="truncate">Vendas em Créditos</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="analysis" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <TrendingUp className="h-4 w-4" />
-                <span>Análise</span>
+                <TrendingUp className="h-4 w-4 shrink-0" />
+                <span className="truncate">Análise</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="cashflow" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <ArrowLeftRight className="h-4 w-4" />
-                <span>Fluxo de Caixa</span>
+                <ArrowLeftRight className="h-4 w-4 shrink-0" />
+                <span className="truncate">Fluxo de Caixa</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="credits" 
-                className="flex items-center gap-2 px-5 py-3 rounded-xl text-xs md:text-sm font-extrabold transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground"
+                className="flex items-center justify-center gap-2 px-3 py-3 rounded-xl text-xs md:text-sm font-black transition-all data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md text-muted-foreground hover:text-foreground truncate"
               >
-                <Wallet className="h-4 w-4" />
-                <span>Saldo Pré-pago (Entregas)</span>
+                <Wallet className="h-4 w-4 shrink-0" />
+                <span className="truncate">Saldo Pré-pago</span>
               </TabsTrigger>
             </TabsList>
 
