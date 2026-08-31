@@ -255,15 +255,29 @@ function OrdersPage() {
     setBusyDispatch(true);
 
     try {
-      // Re-validar se o pedido ainda está Pronto e sem entrega
-      const { data: checkData, error: checkError } = await supabase
+      // 1. Consulta o estado atual do pedido no banco
+      const { data: checkData } = await supabase
         .from("orders")
-        .select("status, delivery_id")
+        .select("id, status, delivery_id")
         .eq("id", orderId)
         .maybeSingle();
 
-      if (checkError || !checkData || checkData.status !== "ready" || checkData.delivery_id) {
-        toast.warning("Não é possível solicitar motoboy: pedido alterado em outra sessão.");
+      const currentStatus = checkData?.status || order.status;
+      const currentDeliveryId = checkData?.delivery_id || order.delivery_id;
+
+      // Se o pedido já foi concluído ou cancelado
+      if (currentStatus === "delivered" || currentStatus === "cancelled") {
+        toast.warning("Este pedido já foi finalizado ou cancelado.");
+        setBusyDispatch(false);
+        setIsDispatchModalOpen(false);
+        releaseLock(orderId);
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        return;
+      }
+
+      // Se já possui uma entrega vinculada e o pedido já está em rota
+      if (currentStatus === "in_route" && currentDeliveryId) {
+        toast.info("O entregador já foi solicitado para este pedido!");
         setBusyDispatch(false);
         setIsDispatchModalOpen(false);
         releaseLock(orderId);
@@ -274,36 +288,53 @@ function OrdersPage() {
       const customerName = order.customers?.name || order.customer_name || "Cliente";
       const customerPhone = order.customers?.phone || order.customer_phone || "";
 
-      const { data: d, error: e1 } = await supabase.from("deliveries").insert({
-        company_id: company.id,
-        order_id: order.id,
-        customer_name: customerName,
-        customer_phone: customerPhone,
-        address: order.delivery_address || "Não informado",
-        value: fee,
-        region_id: regionId || null,
-        status: "pending"
-      }).select().single();
+      let deliveryRecordId = currentDeliveryId;
 
-      if (e1) {
-        toast.error(e1.message);
-        setBusyDispatch(false);
-        releaseLock(orderId);
-        return;
+      // Se ainda não tiver entrega criada no banco, insere em deliveries
+      if (!deliveryRecordId) {
+        const { data: d, error: e1 } = await supabase.from("deliveries").insert({
+          company_id: company.id,
+          order_id: order.id,
+          customer_name: customerName,
+          customer_phone: customerPhone,
+          address: order.delivery_address || "Não informado",
+          value: fee,
+          region_id: regionId || null,
+          status: "pending"
+        }).select("id").single();
+
+        if (e1) {
+          toast.error("Erro ao registrar entrega: " + e1.message);
+          setBusyDispatch(false);
+          releaseLock(orderId);
+          return;
+        }
+        deliveryRecordId = d.id;
+      } else {
+        // Se já tinha ID de entrega mas o pedido ainda não estava em rota, atualiza a entrega
+        await supabase.from("deliveries").update({
+          value: fee,
+          region_id: regionId || null,
+          status: "pending"
+        }).eq("id", deliveryRecordId);
       }
 
-      // Compare-and-Set na hora de associar a entrega e passar pra Em Rota
-      await supabase
+      // Atualiza o pedido para "in_route" com o delivery_id
+      const { error: updateErr } = await supabase
         .from("orders")
-        .update({ status: "in_route", delivery_id: d.id })
-        .eq("id", order.id)
-        .eq("status", "ready");
+        .update({ status: "in_route", delivery_id: deliveryRecordId })
+        .eq("id", order.id);
+
+      if (updateErr) {
+        console.error("[Orders] Erro ao atualizar status do pedido para in_route:", updateErr);
+      }
       
       qc.invalidateQueries({ queryKey: ["orders"] });
-      toast.success(`Entregador solicitado! Taxa da região: ${fee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+      qc.invalidateQueries({ queryKey: ["pending-orders"] });
+      toast.success(`Entregador solicitado com sucesso! Taxa da região: ${fee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
       setIsDispatchModalOpen(false);
     } catch (err: any) {
-      toast.error("Erro ao solicitar entregador: " + err.message);
+      toast.error("Erro ao solicitar entregador: " + (err?.message || "Tente novamente"));
     } finally {
       setBusyDispatch(false);
       releaseLock(orderId);
