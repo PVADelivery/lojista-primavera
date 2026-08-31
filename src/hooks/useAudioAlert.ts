@@ -54,7 +54,15 @@ if (typeof window !== "undefined") {
       if (ctx && ctx.state === "suspended") {
         ctx.resume().catch(() => {});
       }
-      if (isAlertActiveGlobal) return;
+
+      if (isAlertActiveGlobal) {
+        if (globalAudio) {
+          globalAudio.volume = 1.0;
+          globalAudio.loop = true;
+          globalAudio.play().catch(() => {});
+        }
+        return;
+      }
 
       if (globalAudio && globalAudio.paused && (navigator as any).userActivation?.hasBeenActive) {
         const origVol = globalAudio.volume;

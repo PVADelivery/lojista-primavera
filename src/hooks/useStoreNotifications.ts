@@ -82,47 +82,76 @@ export function useStoreNotifications() {
 
     // Escuta em tempo real novos pedidos da loja
     const setupRealtime = async () => {
+      let companyId: string | null = null;
       const { data: company } = await supabase
         .from("companies")
         .select("id")
         .eq("user_id", user.id)
         .maybeSingle();
 
-      const companyId = company?.id;
+      if (company?.id) {
+        companyId = company.id;
+      } else {
+        // Fallback de administrador ou proprietário
+        const { data: firstComp } = await supabase
+          .from("companies")
+          .select("id")
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle();
+        if (firstComp?.id) companyId = firstComp.id;
+      }
+
       if (!companyId) return;
+
+      // Confere se já há pedidos pendentes aguardando aceite ao abrir a tela
+      try {
+        const { data: pendings } = await supabase
+          .from("orders")
+          .select("id")
+          .eq("company_id", companyId)
+          .eq("status", "pending")
+          .limit(1);
+
+        if (pendings && pendings.length > 0) {
+          playAlert(true);
+        }
+      } catch {}
 
       const storeChannel = supabase
         .channel(`store-orders-${companyId}-${Date.now()}`)
         .on(
           "postgres_changes",
           {
-            event: "INSERT",
+            event: "*",
             schema: "public",
             table: "orders",
             filter: `company_id=eq.${companyId}`,
           },
           (payload) => {
             const ord = payload.new as any;
-            const title = "🔔 NOVO PEDIDO RECEBIDO!";
-            const totalVal = Number(ord.total ?? ord.total_amount ?? 0);
-            const desc = `Pedido #${ord.id?.slice(0, 6)?.toUpperCase() || ""} recebido! Total: R$ ${totalVal.toFixed(2)}`;
+            if (ord && ord.status === "pending") {
+              const title = "🔔 NOVO PEDIDO RECEBIDO!";
+              const totalVal = Number(ord.total ?? ord.total_amount ?? 0);
+              const desc = `Pedido #${ord.id?.slice(0, 6)?.toUpperCase() || ""} recebido! Total: R$ ${totalVal.toFixed(2)}`;
 
-            toast.success(title, { description: desc });
-            playAlert(true);
+              toast.success(title, { description: desc });
+              playAlert(true);
 
-            if (Capacitor.isNativePlatform()) {
-              LocalNotifications.schedule({
-                notifications: [
-                  {
-                    title,
-                    body: desc,
-                    id: Math.floor(Math.random() * 100000),
-                    channelId: "store-order-incoming-v1",
-                    sound: "ring.mp3",
-                    extra: { orderId: ord.id },
-                  },
-                ],
-              }).catch(() => {});
+              if (Capacitor.isNativePlatform()) {
+                LocalNotifications.schedule({
+                  notifications: [
+                    {
+                      title,
+                      body: desc,
+                      id: Math.floor(Math.random() * 100000),
+                      channelId: "store-order-incoming-v1",
+                      sound: "ring.mp3",
+                      extra: { orderId: ord.id },
+                    },
+                  ],
+                }).catch(() => {});
+              }
             }
           }
         )
