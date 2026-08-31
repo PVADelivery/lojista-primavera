@@ -22,6 +22,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar as CalendarUI } from "@/components/ui/calendar";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { CreditsPanel } from "@/components/business/CreditsPanel";
+import { CreditSalesPayoutsPanel } from "@/components/business/CreditSalesPayoutsPanel";
+import { Coins } from "lucide-react";
 
 
 type DateRange = { from: Date; to: Date };
@@ -471,12 +473,16 @@ function BusinessFinancePage() {
 
           {/* Tabs */}
           <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="bg-muted/50 border border-border/50 rounded-xl p-1">
+            <TabsList className="bg-muted/50 border border-border/50 rounded-xl p-1 flex-wrap h-auto gap-1">
               <TabsTrigger value="overview" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Visão Geral
               </TabsTrigger>
               <TabsTrigger value="orders" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Pedidos
+              </TabsTrigger>
+              <TabsTrigger value="credit_payouts" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+                <Coins className="h-3.5 w-3.5" />
+                Vendas em Créditos (Repasses)
               </TabsTrigger>
               <TabsTrigger value="analysis" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
                 Análise
@@ -485,9 +491,13 @@ function BusinessFinancePage() {
                 Fluxo de Caixa
               </TabsTrigger>
               <TabsTrigger value="credits" className="rounded-lg text-xs font-bold data-[state=active]:shadow-sm">
-                Créditos
+                Saldo Pré-pago (Entregas)
               </TabsTrigger>
             </TabsList>
+
+            <TabsContent value="credit_payouts" className="mt-4">
+              {companyId && <CreditSalesPayoutsPanel companyId={companyId} />}
+            </TabsContent>
 
             <TabsContent value="credits" className="mt-4">
               <CreditsPanel />
