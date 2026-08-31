@@ -63,6 +63,14 @@ function OrdersPage() {
     },
   });
 
+  const { data: hoods = [] } = useQuery({
+    queryKey: ["region_neighborhoods"],
+    queryFn: async () => {
+      const { data } = await supabase.from("region_neighborhoods").select("*");
+      return data || [];
+    },
+  });
+
   // Controle Transacional Rigoroso (Kanban Loop Bug Fix)
   const processingOrderIdsRef = useRef<Set<string>>(new Set());
   const [processingOrderIds, setProcessingOrderIds] = useState<Set<string>>(new Set());
@@ -185,66 +193,131 @@ function OrdersPage() {
     releaseLock(orderId);
   };
 
-  const confirmDispatch = async () => {
-    if (!selectedOrder || !company) return;
-    const orderId = selectedOrder.id;
+  const handleDispatchOrder = async (order: any) => {
+    if (!company) return;
+
+    // Se for Retirada no Local, avança o status direto sem chamar motoboy
+    const isPickup = order.fulfillment_mode === "pickup" || (order.notes && order.notes.includes("[RETIRADA NO LOCAL]"));
+    if (isPickup) {
+      await advance(order.id, order.status);
+      return;
+    }
+
+    // 1. Tenta obter a taxa já definida/cobrada no pedido
+    let resolvedFee = Number(order.delivery_fee || 0);
+    let resolvedRegionId = order.region_id || "";
+
+    // 2. Se a região não estiver definida, tenta resolver pelo bairro no endereço
+    const addrText = (order.delivery_address || "").toLowerCase();
+    if (!resolvedRegionId && addrText && hoods.length > 0) {
+      const matchedHood = hoods.find((h: any) => h.name && addrText.includes(h.name.toLowerCase().trim()));
+      if (matchedHood) {
+        resolvedRegionId = matchedHood.region_id;
+      }
+    }
+
+    // 3. Se a região foi resolvida, busca o valor cadastrado pelo Admin para a região
+    if (resolvedRegionId && regions.length > 0) {
+      const rObj = regions.find((r: any) => r.id === resolvedRegionId);
+      if (rObj) {
+        if (resolvedFee <= 0) {
+          resolvedFee = Number(rObj.price ?? rObj.delivery_fee ?? 0);
+        }
+      }
+    }
+
+    // 4. Se ainda não achou frete, tenta buscar por nome de região no endereço
+    if (resolvedFee <= 0 && regions.length > 0) {
+      const matchedReg = regions.find((r: any) => r.name && addrText.includes(r.name.toLowerCase().trim()));
+      if (matchedReg) {
+        resolvedRegionId = matchedReg.id;
+        resolvedFee = Number(matchedReg.price ?? matchedReg.delivery_fee ?? 0);
+      }
+    }
+
+    // Se o valor do frete foi identificado (> 0), dispara a entrega direto com o valor da região!
+    if (resolvedFee > 0) {
+      await executeDispatch(order, resolvedFee, resolvedRegionId);
+    } else {
+      // Fallback: se nenhum valor ou região foi identificado, abre o modal pre-preenchido
+      setSelectedOrder(order);
+      setDeliveryFee(resolvedFee > 0 ? resolvedFee.toFixed(2).replace(".", ",") : "10,00");
+      setSelectedRegionId(resolvedRegionId);
+      setIsDispatchModalOpen(true);
+    }
+  };
+
+  const executeDispatch = async (order: any, fee: number, regionId?: string) => {
+    if (!company) return;
+    const orderId = order.id;
     if (!acquireLock(orderId)) return;
 
+    setBusyDispatch(true);
+
+    try {
+      // Re-validar se o pedido ainda está Pronto e sem entrega
+      const { data: checkData, error: checkError } = await supabase
+        .from("orders")
+        .select("status, delivery_id")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      if (checkError || !checkData || checkData.status !== "ready" || checkData.delivery_id) {
+        toast.warning("Não é possível solicitar motoboy: pedido alterado em outra sessão.");
+        setBusyDispatch(false);
+        setIsDispatchModalOpen(false);
+        releaseLock(orderId);
+        qc.invalidateQueries({ queryKey: ["orders"] });
+        return;
+      }
+
+      const customerName = order.customers?.name || order.customer_name || "Cliente";
+      const customerPhone = order.customers?.phone || order.customer_phone || "";
+
+      const { data: d, error: e1 } = await supabase.from("deliveries").insert({
+        company_id: company.id,
+        order_id: order.id,
+        customer_name: customerName,
+        customer_phone: customerPhone,
+        address: order.delivery_address || "Não informado",
+        value: fee,
+        region_id: regionId || null,
+        status: "pending"
+      }).select().single();
+
+      if (e1) {
+        toast.error(e1.message);
+        setBusyDispatch(false);
+        releaseLock(orderId);
+        return;
+      }
+
+      // Compare-and-Set na hora de associar a entrega e passar pra Em Rota
+      await supabase
+        .from("orders")
+        .update({ status: "in_route", delivery_id: d.id })
+        .eq("id", order.id)
+        .eq("status", "ready");
+      
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      toast.success(`Entregador solicitado! Taxa da região: ${fee.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`);
+      setIsDispatchModalOpen(false);
+    } catch (err: any) {
+      toast.error("Erro ao solicitar entregador: " + err.message);
+    } finally {
+      setBusyDispatch(false);
+      releaseLock(orderId);
+    }
+  };
+
+  const confirmDispatch = async () => {
+    if (!selectedOrder || !company) return;
     const fee = parseFloat(deliveryFee.replace(/\./g, "").replace(",", "."));
     if (isNaN(fee) || fee <= 0) {
       toast.error("Valor inválido");
-      releaseLock(orderId);
       return;
     }
-    
-    setBusyDispatch(true);
-
-    // Re-validar se o pedido ainda está Pronto e sem entrega
-    const { data: checkData, error: checkError } = await supabase
-      .from("orders")
-      .select("status, delivery_id")
-      .eq("id", orderId)
-      .maybeSingle();
-
-    if (checkError || !checkData || checkData.status !== "ready" || checkData.delivery_id) {
-      toast.warning("Não é possível solicitar motoboy: pedido alterado em outra sessão.");
-      setBusyDispatch(false);
-      setIsDispatchModalOpen(false);
-      releaseLock(orderId);
-      qc.invalidateQueries({ queryKey: ["orders"] });
-      return;
-    }
-
-    const { data: d, error: e1 } = await supabase.from("deliveries").insert({
-      company_id: company.id,
-      order_id: selectedOrder.id,
-      customer_name: selectedOrder.customers?.name || selectedOrder.customer_name || "Cliente",
-      customer_phone: selectedOrder.customers?.phone || selectedOrder.customer_phone,
-      address: selectedOrder.delivery_address || "Não informado",
-      value: fee,
-      region_id: selectedRegionId || null,
-      status: "pending"
-    }).select().single();
-
-    if (e1) {
-      toast.error(e1.message);
-      setBusyDispatch(false);
-      releaseLock(orderId);
-      return;
-    }
-
-    // Compare-and-Set na hora de associar a entrega e passar pra Em Rota
-    await supabase
-      .from("orders")
-      .update({ status: "in_route", delivery_id: d.id })
-      .eq("id", selectedOrder.id)
-      .eq("status", "ready");
-    
-    qc.invalidateQueries({ queryKey: ["orders"] });
-    toast.success("Entregador solicitado!");
-    setIsDispatchModalOpen(false);
-    setBusyDispatch(false);
-    releaseLock(orderId);
+    await executeDispatch(selectedOrder, fee, selectedRegionId);
   };
 
   const handlePrint = (order: any) => {
@@ -443,9 +516,7 @@ function OrdersPage() {
                               disabled={isProcessing}
                               onClick={() => {
                                 if (order.status === "ready") {
-                                  setSelectedOrder(order);
-                                  setDeliveryFee("0,00");
-                                  setIsDispatchModalOpen(true);
+                                  handleDispatchOrder(order);
                                 } else {
                                   advance(order.id, order.status);
                                 }
@@ -556,9 +627,7 @@ function OrdersPage() {
           onAdvance={async (orderId, nextStatus) => {
             if (nextStatus === "ready_dispatch" || (detailOrder.status === "ready" && nextStatus === "ready")) {
               setIsDetailModalOpen(false);
-              setSelectedOrder(detailOrder);
-              setDeliveryFee("0,00");
-              setIsDispatchModalOpen(true);
+              handleDispatchOrder(detailOrder);
               return;
             }
             try {
