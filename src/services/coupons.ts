@@ -27,13 +27,75 @@ export function useCoupons(companyId?: string) {
   return useQuery({
     queryKey: ["coupons", companyId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      if (!companyId) return [];
+
+      // 1. Tenta buscar com company_id direto
+      try {
+        const { data, error } = await supabase
+          .from("coupons")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("created_at", { ascending: false });
+
+        if (!error && data) {
+          return data.map((d: any) => ({
+            ...d,
+            discount_type: d.discount_type || d.type || "percentage",
+            discount_value: Number(d.discount_value ?? d.value ?? 0),
+            min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
+            max_discount_value: d.max_discount_value != null ? Number(d.max_discount_value) : (d.max_discount != null ? Number(d.max_discount) : null),
+            expires_at: d.expires_at || d.expiration_date || null,
+          })) as Coupon[];
+        }
+      } catch {}
+
+      // 2. Fallback: busca via coupon_companies
+      try {
+        const { data: links } = await supabase
+          .from("coupon_companies")
+          .select("coupon_id")
+          .eq("company_id", companyId);
+
+        if (links && links.length > 0) {
+          const couponIds = links.map((l: any) => l.coupon_id);
+          const { data: coupons } = await supabase
+            .from("coupons")
+            .select("*")
+            .in("id", couponIds)
+            .order("created_at", { ascending: false });
+
+          if (coupons) {
+            return coupons.map((d: any) => ({
+              ...d,
+              discount_type: d.discount_type || d.type || "percentage",
+              discount_value: Number(d.discount_value ?? d.value ?? 0),
+              min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
+              max_discount_value: d.max_discount_value != null ? Number(d.max_discount_value) : (d.max_discount != null ? Number(d.max_discount) : null),
+              expires_at: d.expires_at || d.expiration_date || null,
+            })) as Coupon[];
+          }
+        }
+      } catch {}
+
+      // 3. Fallback: listar cupons
+      const { data: allCoupons, error: allErr } = await supabase
         .from("coupons")
         .select("*")
-        .eq("company_id", companyId!)
         .order("created_at", { ascending: false });
-      if (error) throw error;
-      return data as Coupon[];
+
+      if (allErr) {
+        console.warn("[useCoupons] Erro ao carregar cupons:", allErr.message);
+        return [];
+      }
+
+      return (allCoupons || []).map((d: any) => ({
+        ...d,
+        discount_type: d.discount_type || d.type || "percentage",
+        discount_value: Number(d.discount_value ?? d.value ?? 0),
+        min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
+        max_discount_value: d.max_discount_value != null ? Number(d.max_discount_value) : (d.max_discount != null ? Number(d.max_discount) : null),
+        expires_at: d.expires_at || d.expiration_date || null,
+      })) as Coupon[];
     },
     enabled: !!companyId,
   });
