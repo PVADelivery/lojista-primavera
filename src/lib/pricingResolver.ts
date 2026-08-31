@@ -52,7 +52,7 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
     const regId = String(region.id || "").toLowerCase().trim();
     const regName = String(region.name || "").toLowerCase().trim();
 
-    const matchedRule = pricingRules.find(
+    let matchedRule = pricingRules.find(
       (rule: any) => {
         const orig = String(rule.origin_region_id || "").toLowerCase().trim();
         const dest = String(rule.destination_region_id || "").toLowerCase().trim();
@@ -70,6 +70,15 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
         );
       }
     );
+
+    // Fallback: se não tiver regra específica por região, usa a regra geral da tabela
+    if (!matchedRule) {
+      matchedRule = pricingRules.find((rule: any) => {
+        const hasValidValue = rule.base_value != null && rule.base_value !== "" && Number(rule.base_value) > 0;
+        const isGeneral = !rule.origin_region_id && !rule.destination_region_id && !rule.region_id;
+        return hasValidValue && (isGeneral || pricingRules.length === 1);
+      }) || pricingRules.find((rule: any) => Number(rule.base_value) > 0);
+    }
 
     if (matchedRule) {
       const ruleMoto = Number(matchedRule.base_value);
