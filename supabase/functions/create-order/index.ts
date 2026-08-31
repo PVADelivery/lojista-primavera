@@ -460,20 +460,8 @@ Deno.serve(async (req) => {
     });
   }
 
-  // 12) Delivery (apenas para entrega; colunas compatíveis com public.deliveries)
-  if (fulfillmentMode === 'delivery') {
-    await adminClient.from('deliveries').insert({
-      order_id: order.id,
-      company_id: company.id,
-      customer_name: customerFullName,
-      address: deliveryAddress,
-      status: 'pending',
-      value: total,
-      region_id: regionId,
-      latitude: address?.latitude ?? null,
-      longitude: address?.longitude ?? null,
-    });
-  }
+  // 12) A entrega não é mais criada antecipadamente aqui.
+  // A entrega é gerada e despachada exclusivamente quando o lojista clica em "Chamar Entregador" no Kanban (após o preparo na cozinha).
 
   await audit(
     'create_order.success',
