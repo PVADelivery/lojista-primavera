@@ -29,27 +29,8 @@ export function useCoupons(companyId?: string) {
     queryFn: async () => {
       if (!companyId) return [];
 
-      // 1. Tenta buscar com company_id direto
-      try {
-        const { data, error } = await supabase
-          .from("coupons")
-          .select("*")
-          .eq("company_id", companyId)
-          .order("created_at", { ascending: false });
-
-        if (!error && data) {
-          return data.map((d: any) => ({
-            ...d,
-            discount_type: d.discount_type || d.type || "percentage",
-            discount_value: Number(d.discount_value ?? d.value ?? 0),
-            min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
-            max_discount_value: d.max_discount_value != null ? Number(d.max_discount_value) : (d.max_discount != null ? Number(d.max_discount) : null),
-            expires_at: d.expires_at || d.expiration_date || null,
-          })) as Coupon[];
-        }
-      } catch {}
-
-      // 2. Fallback: busca via coupon_companies
+      // 1. Busca cupons vinculados em coupon_companies
+      let linkedCouponIds = new Set<string>();
       try {
         const { data: links } = await supabase
           .from("coupon_companies")
@@ -57,27 +38,11 @@ export function useCoupons(companyId?: string) {
           .eq("company_id", companyId);
 
         if (links && links.length > 0) {
-          const couponIds = links.map((l: any) => l.coupon_id);
-          const { data: coupons } = await supabase
-            .from("coupons")
-            .select("*")
-            .in("id", couponIds)
-            .order("created_at", { ascending: false });
-
-          if (coupons) {
-            return coupons.map((d: any) => ({
-              ...d,
-              discount_type: d.discount_type || d.type || "percentage",
-              discount_value: Number(d.discount_value ?? d.value ?? 0),
-              min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
-              max_discount_value: d.max_discount_value != null ? Number(d.max_discount_value) : (d.max_discount != null ? Number(d.max_discount) : null),
-              expires_at: d.expires_at || d.expiration_date || null,
-            })) as Coupon[];
-          }
+          links.forEach((l: any) => linkedCouponIds.add(l.coupon_id));
         }
       } catch {}
 
-      // 3. Fallback: listar cupons
+      // 2. Busca todos os cupons (sem filtro de coluna inexistente para evitar 400)
       const { data: allCoupons, error: allErr } = await supabase
         .from("coupons")
         .select("*")
@@ -88,8 +53,19 @@ export function useCoupons(companyId?: string) {
         return [];
       }
 
-      return (allCoupons || []).map((d: any) => ({
+      if (!allCoupons || allCoupons.length === 0) return [];
+
+      // 3. Filtra no cliente por company_id ou vínculo de coupon_companies ou cupons globais
+      const filtered = allCoupons.filter((c: any) => {
+        if (c.company_id && c.company_id === companyId) return true;
+        if (linkedCouponIds.has(c.id)) return true;
+        if (!c.company_id && linkedCouponIds.size === 0 && (c.scope === "global" || !c.scope)) return true;
+        return false;
+      });
+
+      return filtered.map((d: any) => ({
         ...d,
+        company_id: d.company_id || companyId,
         discount_type: d.discount_type || d.type || "percentage",
         discount_value: Number(d.discount_value ?? d.value ?? 0),
         min_order_value: Number(d.min_order_value ?? d.min_purchase ?? 0),
@@ -202,21 +178,34 @@ export async function validateCoupon(code: string, companyId: string) {
   const { data, error } = await supabase
     .from("coupons")
     .select("*")
-    .eq("company_id", companyId)
     .eq("code", code.toUpperCase().trim())
-    .eq("active", true)
-    .maybeSingle();
+    .eq("active", true);
 
-  if (error) throw error;
-  if (!data) return { valid: false, message: "Cupom não encontrado." } as const;
+  if (error || !data || data.length === 0) {
+    return { valid: false, message: "Cupom não encontrado." } as const;
+  }
 
-  const coupon = data as Coupon;
+  const coupon = data[0] as any;
+  if (coupon.company_id && coupon.company_id !== companyId) {
+    // Check coupon_companies
+    const { data: link } = await supabase
+      .from("coupon_companies")
+      .select("company_id")
+      .eq("coupon_id", coupon.id)
+      .eq("company_id", companyId)
+      .maybeSingle();
+
+    if (!link) {
+      return { valid: false, message: "Cupom não aplicável a esta loja." } as const;
+    }
+  }
+
   const now = new Date();
-
-  if (coupon.expires_at && new Date(coupon.expires_at) < now) {
+  const expDate = coupon.expires_at || coupon.expiration_date;
+  if (expDate && new Date(expDate) < now) {
     return { valid: false, message: "Cupom expirado." } as const;
   }
-  if (coupon.usage_limit && coupon.used_count >= coupon.usage_limit) {
+  if (coupon.usage_limit && (coupon.used_count || 0) >= coupon.usage_limit) {
     return { valid: false, message: "Cupom esgotado." } as const;
   }
 
@@ -228,7 +217,17 @@ export async function validateCoupon(code: string, companyId: string) {
   
   const productIds = (links || []).map((l: any) => l.product_id);
 
-  return { valid: true, coupon, productIds } as const;
+  const formattedCoupon: Coupon = {
+    ...coupon,
+    company_id: coupon.company_id || companyId,
+    discount_type: coupon.discount_type || coupon.type || "percentage",
+    discount_value: Number(coupon.discount_value ?? coupon.value ?? 0),
+    min_order_value: Number(coupon.min_order_value ?? coupon.min_purchase ?? 0),
+    max_discount_value: coupon.max_discount_value != null ? Number(coupon.max_discount_value) : (coupon.max_discount != null ? Number(coupon.max_discount) : null),
+    expires_at: expDate || null,
+  };
+
+  return { valid: true, coupon: formattedCoupon, productIds } as const;
 }
 
 /** Calculate discount for cart items */
