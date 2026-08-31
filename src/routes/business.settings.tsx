@@ -578,7 +578,8 @@ function BusinessSettingsPage() {
         <div className="space-y-6 animate-in fade-in duration-200">
           {/* Banner & Logo Card */}
           <div className="bg-card border border-border rounded-3xl overflow-hidden shadow-sm">
-            <div className="relative h-48 sm:h-64 bg-muted group/banner">
+            {/* Banner de Capa */}
+            <div className="relative h-44 sm:h-56 bg-muted group/banner overflow-hidden">
               {coverUrl ? (
                 <img src={coverUrl} className="w-full h-full object-cover" alt="Banner" />
               ) : (
@@ -589,36 +590,67 @@ function BusinessSettingsPage() {
               )}
               
               <button 
+                type="button"
                 onClick={() => { setIsEditingCover(true); setTempUrl(coverUrl); }}
-                className="absolute top-4 right-4 px-4 py-2 bg-black/70 hover:bg-black/90 text-white rounded-xl text-xs font-bold flex items-center gap-2 backdrop-blur-sm transition-all shadow-lg"
+                className="absolute top-4 right-4 px-3.5 py-2 bg-black/70 hover:bg-black/90 text-white rounded-xl text-xs font-bold flex items-center gap-2 backdrop-blur-md transition-all shadow-lg hover:scale-105"
               >
                 <Camera className="h-4 w-4" /> Alterar Capa
               </button>
+            </div>
 
-              {/* Logo Flutuante */}
-              <div className="absolute -bottom-10 left-6 sm:left-8">
-                <div className="relative group/avatar">
-                  <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-card p-1.5 shadow-xl border-2 border-border overflow-hidden">
-                    {logoUrl ? (
-                      <img src={logoUrl} className="w-full h-full object-cover rounded-xl" alt="Logo" />
-                    ) : (
-                      <div className="w-full h-full bg-secondary rounded-xl flex items-center justify-center text-muted-foreground">
-                        <Store className="h-8 w-8 opacity-40" />
-                      </div>
-                    )}
+            {/* Cabeçalho do Perfil (Logo + Identificação da Loja) */}
+            <div className="px-6 sm:px-8 pb-6 border-b border-border/60 bg-card">
+              <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 -mt-12 sm:-mt-14">
+                <div className="flex items-end gap-4">
+                  {/* Logo com botão de edição */}
+                  <div className="relative group/avatar shrink-0">
+                    <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl bg-card p-1.5 shadow-xl border-4 border-card ring-1 ring-border/50 overflow-hidden">
+                      {logoUrl ? (
+                        <img src={logoUrl} className="w-full h-full object-cover rounded-xl" alt="Logo" />
+                      ) : (
+                        <div className="w-full h-full bg-secondary rounded-xl flex items-center justify-center text-muted-foreground">
+                          <Store className="h-8 w-8 opacity-40" />
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setIsEditingLogo(true); setTempUrl(logoUrl); }}
+                      className="absolute -bottom-1 -right-1 p-2 bg-primary text-black font-bold rounded-xl shadow-md hover:scale-110 active:scale-95 transition-transform"
+                      title="Alterar Logo"
+                    >
+                      <Camera className="h-4 w-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={() => { setIsEditingLogo(true); setTempUrl(logoUrl); }}
-                    className="absolute -bottom-2 -right-2 p-2 bg-primary text-black font-bold rounded-xl shadow-md hover:scale-105 transition-transform"
-                    title="Alterar Logo"
-                  >
-                    <Camera className="h-4 w-4" />
-                  </button>
+
+                  <div className="pb-1">
+                    <h2 className="text-xl sm:text-2xl font-black text-foreground">{storeName || "Nome da Loja"}</h2>
+                    <p className="text-xs text-muted-foreground font-medium capitalize flex items-center gap-2 mt-0.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary" />
+                      {category || "Restaurante"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-start sm:self-end pb-1">
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-xs font-bold border",
+                    isOpen ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : "bg-muted text-muted-foreground border-border"
+                  )}>
+                    {isOpen ? "Loja Aberta" : "Loja Fechada"}
+                  </span>
+                  <span className={cn(
+                    "px-3 py-1 rounded-full text-xs font-bold border",
+                    showInMarketplace ? "bg-primary/10 text-foreground border-primary/20" : "bg-muted text-muted-foreground border-border"
+                  )}>
+                    {showInMarketplace ? "No Marketplace" : "Oculta"}
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="pt-14 p-6 sm:p-8 space-y-6">
+            {/* Formulário com espaçamento generoso e sem sobreposição */}
+            <div className="p-6 sm:p-8 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">Nome do Estabelecimento</label>
@@ -669,7 +701,7 @@ function BusinessSettingsPage() {
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left",
                     isOpen
-                      ? "bg-emerald-500/10 border-emerald-500/30"
+                      ? "bg-emerald-500/10 border-emerald-500/30 shadow-sm"
                       : "bg-muted/40 border-border"
                   )}
                 >
@@ -682,10 +714,10 @@ function BusinessSettingsPage() {
                     </p>
                   </div>
                   <div className={cn(
-                    "w-12 h-7 rounded-full p-1 transition-colors",
+                    "w-12 h-7 rounded-full p-1 transition-colors shrink-0",
                     isOpen ? "bg-emerald-500" : "bg-muted-foreground/30"
                   )}>
-                    <div className={cn("w-5 h-5 rounded-full bg-white transition-transform", isOpen ? "translate-x-5" : "translate-x-0")} />
+                    <div className={cn("w-5 h-5 rounded-full bg-white transition-transform shadow-sm", isOpen ? "translate-x-5" : "translate-x-0")} />
                   </div>
                 </button>
 
@@ -695,7 +727,7 @@ function BusinessSettingsPage() {
                   className={cn(
                     "flex items-center justify-between p-4 rounded-2xl border-2 transition-all cursor-pointer text-left",
                     showInMarketplace
-                      ? "bg-primary/10 border-primary/30"
+                      ? "bg-primary/10 border-primary/30 shadow-sm"
                       : "bg-muted/40 border-border"
                   )}
                 >
@@ -708,10 +740,10 @@ function BusinessSettingsPage() {
                     </p>
                   </div>
                   <div className={cn(
-                    "w-12 h-7 rounded-full p-1 transition-colors",
+                    "w-12 h-7 rounded-full p-1 transition-colors shrink-0",
                     showInMarketplace ? "bg-primary" : "bg-muted-foreground/30"
                   )}>
-                    <div className={cn("w-5 h-5 rounded-full bg-white transition-transform", showInMarketplace ? "translate-x-5" : "translate-x-0")} />
+                    <div className={cn("w-5 h-5 rounded-full bg-white transition-transform shadow-sm", showInMarketplace ? "translate-x-5" : "translate-x-0")} />
                   </div>
                 </button>
               </div>
