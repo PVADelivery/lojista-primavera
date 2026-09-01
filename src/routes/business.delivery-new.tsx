@@ -1041,13 +1041,11 @@ function NewDeliveryPage() {
         if (rpcErr) throw rpcErr;
 
         const res: any = rpcRes;
-        let updateSuccess = false;
 
         if (res?.success) {
           qc.invalidateQueries({ queryKey: ["credits"] });
           qc.invalidateQueries({ queryKey: ["credit-transactions"] });
           deliveryWrite = { data: { id: editId }, error: null };
-          updateSuccess = true;
         } else if (res?.error === "INSUFFICIENT_CREDITS") {
           toast.error(
             `Saldo de créditos insuficiente para a nova taxa. Saldo: ${brl(Number(res.balance || 0))} · Diferença necessária: ${brl(Number(res.required || 0))}. Solicite uma recarga em Financeiro > Créditos.`,
@@ -1059,50 +1057,14 @@ function NewDeliveryPage() {
           toast.error("Você não tem permissão para editar entregas desta empresa.", { duration: 8000 });
           setBusy(false);
           return;
+        } else if (res?.error === "NOT_EDITABLE") {
+          toast.error("Esta entrega já foi concluída ou cancelada e não pode mais ser editada.", { duration: 8000 });
+          setBusy(false);
+          return;
         } else {
-          // Se a RPC no banco tiver a restrição antiga de status pendente, realiza a atualização direta no banco para entregas ativas (não concluídas/canceladas)
-          const currentStatus = String(editingDelivery?.status || "").toLowerCase();
-          const isFinished = ["completed", "delivered", "cancelled", "canceled", "concluida", "cancelada"].includes(currentStatus);
-
-          if (isFinished) {
-            toast.error("Esta entrega já foi concluída ou cancelada e não pode mais ser editada.", { duration: 8000 });
-            setBusy(false);
-            return;
-          }
-
-          const { error: directErr } = await supabase
-            .from("deliveries")
-            .update({
-              delivery_type: f.delivery_type || "NORMAL",
-              customer_id: custId || null,
-              customer_name: f.customer_name,
-              customer_phone: f.customer_phone,
-              customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
-              address: fullAddress,
-              customer_address_number: deliveryMode === "rapida" ? "S/N" : f.customer_address_number,
-              customer_neighborhood: f.customer_neighborhood,
-              customer_address_complement: f.customer_address_complement,
-              payment_method: f.is_paid ? "pago" : f.payment_method,
-              order_value: f.is_paid ? 0 : Number(f.order_value || 0),
-              change_for: f.is_paid ? 0 : Number(f.change_for || 0),
-              vehicle_type: f.vehicle_type,
-              region_id: f.region_id === "none" ? null : f.region_id,
-              value: Number(f.value || 0),
-              delivery_fee: Number(f.value || 0),
-              notes: f.notes,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", editId);
-
-          if (directErr) {
-            throw directErr;
-          }
-
-          qc.invalidateQueries({ queryKey: ["credits"] });
-          qc.invalidateQueries({ queryKey: ["credit-transactions"] });
-          deliveryWrite = { data: { id: editId }, error: null };
-          updateSuccess = true;
+          throw new Error(res?.error || "Erro ao atualizar entrega.");
         }
+
       } else {
         const condicionalPickup = (f.delivery_type === "BUSCA_CONDICIONAL" && f.condicional_destination === "CUSTOM")
           ? (f.condicional_custom_address || company.address || company.name || "Endereço Solicitado")
