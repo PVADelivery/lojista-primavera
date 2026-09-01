@@ -30,6 +30,7 @@ export type Database = {
           region_id: string | null
           state: string
           street: string
+          user_id: string | null
           zip_code: string | null
         }
         Insert: {
@@ -47,6 +48,7 @@ export type Database = {
           region_id?: string | null
           state?: string
           street: string
+          user_id?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -64,6 +66,7 @@ export type Database = {
           region_id?: string | null
           state?: string
           street?: string
+          user_id?: string | null
           zip_code?: string | null
         }
         Relationships: [
@@ -416,6 +419,57 @@ export type Database = {
           },
         ]
       }
+      company_cash_flow: {
+        Row: {
+          amount: number
+          category: string
+          company_id: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          company_id: string
+          created_at?: string
+          date?: string
+          description: string
+          id?: string
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          company_id?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_cash_flow_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_cash_flow_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       company_credit_transactions: {
         Row: {
           amount: number
@@ -605,10 +659,17 @@ export type Database = {
         Row: {
           active: boolean | null
           code: string
+          company_id: string | null
           created_at: string | null
+          description: string | null
+          discount_type: string | null
+          discount_value: number | null
           expiration_date: string | null
+          expires_at: string | null
           id: string
           max_discount: number | null
+          max_discount_value: number | null
+          min_order_value: number | null
           min_purchase: number | null
           scope: string | null
           type: string
@@ -619,10 +680,17 @@ export type Database = {
         Insert: {
           active?: boolean | null
           code: string
+          company_id?: string | null
           created_at?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           expiration_date?: string | null
+          expires_at?: string | null
           id?: string
           max_discount?: number | null
+          max_discount_value?: number | null
+          min_order_value?: number | null
           min_purchase?: number | null
           scope?: string | null
           type?: string
@@ -633,10 +701,17 @@ export type Database = {
         Update: {
           active?: boolean | null
           code?: string
+          company_id?: string | null
           created_at?: string | null
+          description?: string | null
+          discount_type?: string | null
+          discount_value?: number | null
           expiration_date?: string | null
+          expires_at?: string | null
           id?: string
           max_discount?: number | null
+          max_discount_value?: number | null
+          min_order_value?: number | null
           min_purchase?: number | null
           scope?: string | null
           type?: string
@@ -644,7 +719,22 @@ export type Database = {
           used_count?: number | null
           value?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "coupons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "coupons_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+        ]
       }
       credit_purchase_requests: {
         Row: {
@@ -764,6 +854,90 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_credit_transactions: {
+        Row: {
+          amount: number
+          bonus_amount: number | null
+          created_at: string
+          created_by: string | null
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          description: string
+          id: string
+          paid_amount: number | null
+          reference_id: string | null
+          type: string
+        }
+        Insert: {
+          amount: number
+          bonus_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description: string
+          id?: string
+          paid_amount?: number | null
+          reference_id?: string | null
+          type: string
+        }
+        Update: {
+          amount?: number
+          bonus_amount?: number | null
+          created_at?: string
+          created_by?: string | null
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          description?: string
+          id?: string
+          paid_amount?: number | null
+          reference_id?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
+      customer_credits: {
+        Row: {
+          balance: number
+          created_at: string
+          customer_id: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          id: string
+          total_bonus: number
+          total_recharged: number
+          total_spent: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          total_bonus?: number
+          total_recharged?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          customer_id?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          id?: string
+          total_bonus?: number
+          total_recharged?: number
+          total_spent?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       customers: {
         Row: {
@@ -1471,6 +1645,66 @@ export type Database = {
         }
         Relationships: []
       }
+      merchant_credit_payouts: {
+        Row: {
+          amount: number
+          company_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          order_ids: Json | null
+          paid_at: string
+          pix_key: string | null
+          receipt_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          company_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_ids?: Json | null
+          paid_at?: string
+          pix_key?: string | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          company_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          order_ids?: Json | null
+          paid_at?: string
+          pix_key?: string | null
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "merchant_credit_payouts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "merchant_credit_payouts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "view_financial_summary"
+            referencedColumns: ["company_id"]
+          },
+        ]
+      }
       merchant_invoices: {
         Row: {
           company_id: string
@@ -1707,6 +1941,9 @@ export type Database = {
           idempotency_key: string | null
           notes: string | null
           payment_method: string | null
+          payout_at: string | null
+          payout_id: string | null
+          payout_status: string | null
           status: Database["public"]["Enums"]["order_status"]
           total: number
           updated_at: string
@@ -1724,6 +1961,9 @@ export type Database = {
           idempotency_key?: string | null
           notes?: string | null
           payment_method?: string | null
+          payout_at?: string | null
+          payout_id?: string | null
+          payout_status?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
           updated_at?: string
@@ -1741,6 +1981,9 @@ export type Database = {
           idempotency_key?: string | null
           notes?: string | null
           payment_method?: string | null
+          payout_at?: string | null
+          payout_id?: string | null
+          payout_status?: string | null
           status?: Database["public"]["Enums"]["order_status"]
           total?: number
           updated_at?: string
@@ -1780,6 +2023,13 @@ export type Database = {
             columns: ["delivery_id"]
             isOneToOne: false
             referencedRelation: "view_financial_summary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_payout_id_fkey"
+            columns: ["payout_id"]
+            isOneToOne: false
+            referencedRelation: "merchant_credit_payouts"
             referencedColumns: ["id"]
           },
         ]
@@ -2610,6 +2860,15 @@ export type Database = {
         Args: { p_company_id: string; p_deliveries: Json }
         Returns: Json
       }
+      calculate_delivery_fee_for_company: {
+        Args: {
+          p_address: string
+          p_company_id: string
+          p_region_id?: string
+          p_vehicle_type?: string
+        }
+        Returns: number
+      }
       create_admin_user:
         | {
             Args: {
@@ -2673,6 +2932,7 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_company_cascade: { Args: { p_company_id: string }; Returns: Json }
       driver_can_read_company:
         | { Args: { _company_id: string }; Returns: boolean }
         | { Args: { _company_id: string; _user_id: string }; Returns: boolean }
@@ -2713,6 +2973,10 @@ export type Database = {
         Returns: {
           role: string
         }[]
+      }
+      get_or_create_customer: {
+        Args: { p_name?: string; p_phone?: string }
+        Returns: string
       }
       get_public_companies: {
         Args: never
@@ -2755,8 +3019,41 @@ export type Database = {
       is_admin_safe: { Args: never; Returns: boolean }
       is_company_safe: { Args: never; Returns: boolean }
       is_driver: { Args: { _user_id: string }; Returns: boolean }
+      process_merchant_credit_payout: {
+        Args: {
+          p_amount: number
+          p_company_id: string
+          p_notes?: string
+          p_order_ids: string[]
+          p_pix_key?: string
+          p_receipt_url?: string
+        }
+        Returns: Json
+      }
       refund_delivery_credit: { Args: { p_delivery_id: string }; Returns: Json }
       request_wallet_withdrawal: { Args: { _amount: number }; Returns: Json }
+      rpc_add_customer_credits: {
+        Args: {
+          p_admin_identifier: string
+          p_bonus_amount: number
+          p_customer_id: string
+          p_customer_name: string
+          p_customer_phone: string
+          p_description: string
+          p_paid_amount: number
+        }
+        Returns: Json
+      }
+      rpc_deduct_customer_credits: {
+        Args: {
+          p_amount: number
+          p_customer_id: string
+          p_description: string
+          p_reference_id: string
+          p_type: string
+        }
+        Returns: Json
+      }
       set_company_pricing_table: {
         Args: { p_company_id: string; p_pricing_table_id: string }
         Returns: Json
