@@ -1212,6 +1212,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Aplicar explicitamente `rel="noopener noreferrer"` no link.
   3. Adicionar manipulador `onClick` com `window.open(url, "_blank", "noopener,noreferrer")` e fallback automático para redirecionamento do navegador caso o popup seja interceptado pelo sandbox do iframe.
 
+---
+
+### 122. Gestão Completa da Central de Negócios (Imóveis e Veículos) no Painel Admin
+* **Sintoma**: O app do cliente possuía a tela de "Central de Negócios" (`/marketplace/business`), mas não havia interface no Painel Admin para cadastrar, editar, pausar e excluir anúncios de imóveis e veículos. Além disso, as tabelas `public.properties` e `public.vehicles` não estavam provisionadas no Supabase (retornando 404).
+* **Causa Raiz**:
+  Inexistência das tabelas no banco de dados e ausência da rota administrativa `/admin/business` com navegação na barra lateral.
+* **Solução Padrão**:
+  1. Criar o script SQL `scripts_para_rodar/create_central_negocios_tables.sql` com enums (`property_deal`, `property_type`, `vehicle_type`), tabelas com RLS e carga inicial dos imóveis de Primavera do Leste.
+  2. Implementar a rota `/admin/business` em `painel-primavera/src/routes/admin/business.tsx` com tabs de Imóveis e Veículos, filtros por modalidade/tipo, métricas em tempo real, switch de ativo/pausado e modais completos de cadastro/edição.
+  3. Adicionar o item "Central de Negócios" na `AdminSidebar.tsx` logo após o PPP.
+
+
 
 
 
