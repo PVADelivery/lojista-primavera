@@ -1201,6 +1201,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Utilizar o componente SVG oficial `WhatsappIcon` (`src/components/icons/WhatsappIcon.tsx`) com a silhueta autêntica (balão curvo com fone no interior) e cor oficial da marca (`#25D366`), garantindo consistência visual em filtros, botões de ação direta e dados de contato.
 
+---
+
+### 121. Bloqueio "www.google.com recusou a conexão / ERR_BLOCKED_BY_RESPONSE" ao Clicar em Endereços
+* **Sintoma**: Ao clicar no endereço do prestador no PPP, o navegador exibia a tela de erro `www.google.com está bloqueado. A conexão com www.google.com foi recusada. ERR_BLOCKED_BY_RESPONSE`.
+* **Causa Raiz**:
+  O link utilizava o endpoint estrito `https://www.google.com/maps/search/?api=1&query=...` com `rel="noreferrer"` (sem `noopener`). Esse endpoint envia cabeçalhos `X-Frame-Options: SAMEORIGIN`, bloqueando a abertura caso o app esteja rodando dentro de iframes (como o preview da Lovable), WebViews ou abas secundárias.
+* **Solução Padrão**:
+  1. Utilizar a URL universal de navegação `https://maps.google.com/?q=${encodeURIComponent(addr + ', Primavera do Leste - MT')}`.
+  2. Aplicar explicitamente `rel="noopener noreferrer"` no link.
+  3. Adicionar manipulador `onClick` com `window.open(url, "_blank", "noopener,noreferrer")` e fallback automático para redirecionamento do navegador caso o popup seja interceptado pelo sandbox do iframe.
+
+
 
 
 
