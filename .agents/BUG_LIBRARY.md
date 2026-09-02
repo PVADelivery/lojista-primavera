@@ -1192,6 +1192,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Fornecer um objeto de fallback seguro (`defaultAuthValue`) com `user: null, loading: true` diretamente em `useAuth()`. Desta forma, hooks dependentes (como `useCustomerNotifications`) aguardam a montagem do provider sem disparar exceções não tratadas nem telas de erro.
 
+---
+
+### 120. Uso Incorreto de Ícones Genéricos (`MessageCircle` / `Phone`) no Lugar do Símbolo Oficial do WhatsApp
+* **Sintoma**: O app exibia balões de chat genéricos (`MessageCircle`) ou fones de telefone (`Phone`) nos botões de contato, filtros rápidos e cards do WhatsApp.
+* **Causa Raiz**:
+  Utilização de ícones genéricos da biblioteca Lucide em vez do vetor oficial da marca do WhatsApp.
+* **Solução Padrão**:
+  Utilizar o componente SVG oficial `WhatsappIcon` (`src/components/icons/WhatsappIcon.tsx`) com a silhueta autêntica (balão curvo com fone no interior) e cor oficial da marca (`#25D366`), garantindo consistência visual em filtros, botões de ação direta e dados de contato.
+
+
 
 
 
