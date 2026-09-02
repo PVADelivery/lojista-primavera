@@ -1183,6 +1183,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Blindar `driver.chat.tsx` com captura graciosa de erro (`PGRST205` / 404), mantendo fallback de mensagens instantâneas via `localStorage` sem travar a interface.
   3. Adicionar botão e atalho direto em destaque para o WhatsApp oficial da Central (`+55 66 9719-6937`), garantindo canal imediato de comunicação para o motorista/entregador.
 
+---
+
+### 119. Erro "useAuth must be used inside <AuthProvider>" no App do Cliente
+* **Sintoma**: O app falhava com `Error: useAuth must be used inside <AuthProvider>` ao carregar o marketplace ou componentes ponte como `NotificationsBridge`.
+* **Causa Raiz**:
+  O hook `useAuth()` lançava uma exceção rígida (`throw new Error(...)`) caso o contexto estivesse nulo durante montagens assíncronas, HMR (Hot Module Replacement) ou renderizações prévias à hidratação completa de `<AuthProvider>`.
+* **Solução Padrão**:
+  Fornecer um objeto de fallback seguro (`defaultAuthValue`) com `user: null, loading: true` diretamente em `useAuth()`. Desta forma, hooks dependentes (como `useCustomerNotifications`) aguardam a montagem do provider sem disparar exceções não tratadas nem telas de erro.
+
+
 
 
 
