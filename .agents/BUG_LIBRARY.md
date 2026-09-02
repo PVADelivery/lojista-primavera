@@ -1155,6 +1155,22 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Se a taxa de entrega estiver definida/resolvida (> 0), disparar a solicitação de entrega (`deliveries`) imediatamente no banco com o valor e a região corretos cadastrados pelo Admin, alterando o status do pedido para `in_route` com 1 único clique, sem exibir modal de digitação manual desnecessário.
   4. Manter o modal apenas como fallback pre-preenchido se nenhum valor ou região for detectado no endereço.
 
+---
+
+### 117. Dados de Entregas Incompletos, Corte de 1.000 Linhas e Saldos Distorcidos no Painel Admin (`/admin/reports`)
+* **Sintoma**: O Painel Admin não puxava todas as entregas do mês correto para realizar o pagamento/repasse dos entregadores, ou exibia entregadores com saldo a pagar zerado (`R$ 0,00` / `✅ Quitado`) indevidamente.
+* **Causa Raiz**:
+  1. A query de busca de entregas no Supabase não utilizava paginação por `.range()`, sendo truncada pelo limite máximo de 1.000 linhas do PostgREST.
+  2. O período rápido `"Este Mês"` definia a data final como o dia de hoje (`now.getDate()`) em vez do último dia do mês, e não havia seletor de mês/ano específico.
+  3. O mapeamento `driverPaymentsMap` somava todos os pagamentos de `platform_cash_flow` de todos os tempos sem filtrar por `dateFrom`/`dateTo`, fazendo com que repasses pagos em meses anteriores subtraíssem e zerassem os ganhos das entregas do mês atual.
+  4. O mapeamento de entregadores ignorava IDs vinculados diretamente via `user_id` em vez de `delivery_drivers.id`, agrupando corridas no perfil genérico `"Motoboy Base"`.
+* **Solução Padrão**:
+  1. Implementar paginação em loop com `.range(from, to)` em blocos de 1.000 registros para garantir que 100% das entregas do banco sejam carregadas.
+  2. Adicionar o seletor dropdown dinâmico de **Mês Específico** e ajustar os períodos (`"month"`, `"last_month"`, `"month_before_last"`, `"year"`) para cobrirem do dia 1º ao último dia do mês completo.
+  3. Filtrar os lançamentos de `driverPaymentsMap` estritamente pelo intervalo de datas (`dateFrom` e `dateTo`) ativo.
+  4. Utilizar `driverByIdMap` e `driverByUserIdMap` para resolver o nome e taxas de todos os motoristas sem cair em "Motoboy Base".
+
+
 
 
 
