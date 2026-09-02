@@ -1170,6 +1170,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Filtrar os lançamentos de `driverPaymentsMap` estritamente pelo intervalo de datas (`dateFrom` e `dateTo`) ativo.
   4. Utilizar `driverByIdMap` e `driverByUserIdMap` para resolver o nome e taxas de todos os motoristas sem cair em "Motoboy Base".
 
+---
+
+### 118. Erro HTTP 404 (Not Found) em `chat_messages` no Aplicativo do Entregador
+* **Sintoma**: O console do navegador exibia `GET https://owlbzwsdcognrgolvnzg.supabase.co/rest/v1/chat_messages?select=*&or=... 404 (Not Found)` repetidamente ao carregar o chat do entregador.
+* **Causa Raiz**:
+  1. A tabela `chat_messages` não havia sido criada no banco de dados do Supabase.
+  2. A rota `driver.chat.tsx` executava a query sem tratamento de erro resiliente, disparando exceções de console contínuas.
+  3. Não havia integração direta com o WhatsApp de suporte oficial da Central (`+55 66 9719-6937`).
+* **Solução Padrão**:
+  1. Criar o script SQL de migração `scripts_para_rodar/create_chat_messages_table.sql` com todos os campos, permissões públicas e realtime para publicação da tabela `chat_messages`.
+  2. Blindar `driver.chat.tsx` com captura graciosa de erro (`PGRST205` / 404), mantendo fallback de mensagens instantâneas via `localStorage` sem travar a interface.
+  3. Adicionar botão e atalho direto em destaque para o WhatsApp oficial da Central (`+55 66 9719-6937`), garantindo canal imediato de comunicação para o motorista/entregador.
+
+
 
 
 
