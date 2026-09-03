@@ -1245,6 +1245,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Adicionar área de upload com ícone `UploadCloud` e `<input type="file" multiple accept="image/*">` nos modais de Imóveis e Veículos.
   3. Adicionar galeria de pré-visualização instantânea (grid de miniaturas), com badge automática de **"Capa"** na primeira foto e botão de exclusão individual (`X`) para remover fotos indesejadas.
 
+---
+
+### 125. Erro RLS "new row violates row-level security policy" no Upload de Imagens no Storage
+* **Sintoma**: Ao tentar fazer upload de fotos para a Central de Negócios ou Prestadores no Painel Admin, a tela exibia `Erro ao enviar imagem: new row violates row-level security policy` com HTTP 400.
+* **Causa Raiz**:
+  A política RLS do bucket `avatars` no Supabase Storage restringe uploads exigindo que o primeiro diretório do caminho do arquivo seja obrigatoriamente o UID do usuário (`(storage.foldername(name))[1] = auth.uid()::text`). O código tentava enviar para `business/${fileName}`, violando a regra de segurança.
+* **Solução Padrão**:
+  1. Prefixar o caminho de upload com o ID do usuário autenticado: `${currentUserId}/${fileName}`, satisfazendo a validação RLS do bucket `avatars`.
+  2. Implementar fallback automático de contingência para o bucket `store-assets`.
+  3. Criar script SQL `scripts_para_rodar/fix_storage_business_policy.sql` liberando permissões diretas de gravação no storage.
+
+
 
 
 
