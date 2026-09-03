@@ -1279,6 +1279,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Aplicar `e.stopPropagation()` e `e.preventDefault()` nos controles de navegação para permitir navegar entre as fotos sem disparar acidentalmente o clique do card que abre a página de detalhes.
   3. Mudar a cor de todos os preços de amarelo para preto destacado (`text-black dark:text-white font-black text-xl`) nos imóveis, detalhes e veículos.
 
+---
+
+### 128. Prefixo Duplicado "Valor: Valor:" e Fluxo de Mensalidade / Tempo de Ativação do Anúncio com o Admin
+* **Sintoma**: O card exibia "Valor: Valor: R$ 850,00 /mês" duplicado, e o envio de anúncio pelo cliente não especificava o período de permanência nem informava a necessidade de combinar o pagamento da mensalidade com a administração.
+* **Causa Raiz**:
+  1. A função `formatPrice` em `property.ts` já retornava a string prefixada com `"Valor: "`, e o card também continha `<p>Valor:</p>`.
+  2. O modal de anúncio não continha seletor de meses nem card informativo explicando a cobrança da mensalidade para ativação.
+* **Solução Padrão**:
+  1. Simplificar `formatPrice` para retornar puramente o valor formatado em BRL (`price.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })`), eliminando a duplicação visual.
+  2. Adicionar seletor interativo de meses de permanência (`1 mês`, `2 meses`, `3 meses`, `6 meses`, `1 ano`) e card verde destacado informando as regras de ativação e pagamento de mensalidade via Pix.
+  3. No WhatsApp, estruturar a mensagem solicitando diretamente o valor da mensalidade e a chave Pix para ativação do anúncio conforme os meses selecionados.
+
+
 
 
 
