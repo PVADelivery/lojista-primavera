@@ -1338,6 +1338,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Corrigir o calculo da taxa de entrega para priorizar d.delivery_fee > 0, depois d.value, depois d.price.
   2. Implementar motor inteligente de casamento em driverPaymentsMap combinando tags [ID: ...], busca por nome normalizado (cleanStr), e agrupamento canonico por motorista.
   3. Adicionar toggle de Saldo Acumulado vs Apenas Periodo no relatorio para flexibilizar a conferencia de saldos.
-  4. Adicionar campo de Data do Pagamento no modal de baixa, botoes de atalho (Quitar Total, 50%), e gravar [ID: ...] na descricao.
-  5. Adicionar Modal de Extrato de Baixas & Pagamentos para cada entregador, com lista detalhada e botao de estorno/exclusao de lancamentos incorretos.
-  6. Disponibilizar script SQL fix_baixas_pagamentos_entregadores.sql para desativar RLS na tabela platform_cash_flow e garantir permissoes totais para as baixas.
+### 131. Dificuldade de Quitação de Entregadores — Necessidade de "Jogar a Data para o Último Dia do Mês"
+* **Sintoma**: A cliente relatava extrema dificuldade para pagar e quitar o saldo dos entregadores, afirmando que "só conseguia quitar o que devia se jogasse a data do filtro para o último dia do mês".
+* **Causa Raiz**:
+  1. O `<Select>` de seleção de entregadores dentro do modal "Dar Baixa" alimentava-se unicamente de `driverBreakdown`, que por sua vez continha apenas motoristas com entregas no período filtrado da tela. Se o filtro estivesse em "Hoje" ou em um intervalo que não cobrisse as entregas do motorista, ele **não aparecia na lista para ser selecionado e pago**.
+  2. No modo "Saldo Acumulado" anterior, o faturamento `totalEarned` vinha das entregas filtradas no período, enquanto `paidAmount` subtraía os pagamentos de todo o histórico, gerando distorções graves de saldos.
+  3. No modo "Apenas Período", repasses pagos com data posterior ao `dateTo` do filtro eram descartados (`cf.date > dateTo`), fazendo com que pagamentos feitos no dia seguinte ao fechamento fossem ignorados.
+  4. O campo de data do pagamento no modal forçava `dateTo` como sugestão em vez da data de hoje.
+* **Solução Padrão**:
+  1. Criar lista unificada `allDriversForPayout` contendo todos os motoristas cadastrados na plataforma (`drivers`) combinados com os registros históricos da tabela `allDeliveries` e do Fluxo de Caixa.
+  2. Alimentar o `<Select>` do modal de baixa com `allDriversForPayout`, garantindo que qualquer entregador possa ser selecionado e quitado independentemente do filtro da tela.
+  3. Sugerir por padrão a **data de hoje** (`new Date()`) no campo de pagamento do modal.
+  4. Corrigir o cálculo do "Saldo Acumulado" para confrontar faturamento total de toda a base (`allTimeEarned`) com pagamentos de toda a base (`allTimePaid`), gerando o saldo devedor real em aberto hoje.
+  5. Fazer o botão geral de topo "Pagar Entregador (Repasse)" pré-selecionar automaticamente o primeiro entregador que tiver saldo devido pendente (`due > 0`).
+
