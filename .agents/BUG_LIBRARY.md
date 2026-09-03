@@ -1234,6 +1234,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Adicionar o telefone de contato `(66) 9719-6937` visível no card com o ícone oficial.
   3. Promover a "Central de Negócios" para a seção de atalhos principais do topo da Home (`marketplace.index.tsx`), junto com "Solicitar Entrega" e "PPP".
 
+---
+
+### 124. Ausência de Upload Direto de Imagens nos Modais da Central de Negócios
+* **Sintoma**: Os modais de cadastro e edição de imóveis e veículos no Painel Admin possuíam apenas um campo de texto para digitar URL manual, impossibilitando que o administrador anexasse arquivos de fotos direto do celular ou computador.
+* **Causa Raiz**:
+  Falta de integração com o Supabase Storage (`supabase.storage.from("avatars").upload(...)`) e ausência de componente com drag & drop/seletor de arquivos múltiplos.
+* **Solução Padrão**:
+  1. Implementar função de upload em lote `uploadFilesToStorage` enviando imagens com nomes únicos para a pasta `business/` do Supabase Storage público.
+  2. Adicionar área de upload com ícone `UploadCloud` e `<input type="file" multiple accept="image/*">` nos modais de Imóveis e Veículos.
+  3. Adicionar galeria de pré-visualização instantânea (grid de miniaturas), com badge automática de **"Capa"** na primeira foto e botão de exclusão individual (`X`) para remover fotos indesejadas.
+
+
 
 
 
