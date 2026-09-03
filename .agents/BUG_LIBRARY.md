@@ -1326,7 +1326,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 
 
-
-
-
-
+### 130. Falhas e Inconsistencias nas Baixas dos Pagamentos de Repasses aos Entregadores no Painel Admin
+* **Sintoma**: A administradora/cliente relata que as baixas de pagamentos dos entregadores estao erradas. Mesmo apos efetuar o pagamento do repasse, o entregador continuava aparecendo como devedor/a pagar, ou o sistema impedia pagamentos com erro de duplicidade indevida, ou zerava o valor da corrida se value estivesse nulo no banco.
+* **Causa Raiz**:
+  1. A taxa de entrega deliveryFee em reports.tsx usava Number(d.value ?? d.price ?? 0), ignorando a coluna oficial d.delivery_fee quando value era 0 ou nulo.
+  2. O mapeamento de repasses pagos (driverPaymentsMap) usava um regex rigido /Repasse Entregador:\s*([^(]+)/i que falhava se a descricao estivesse em outro padrao (ex: Repasse Motoboy - Nome, Repasse: Nome, etc.), ou se houvesse acentos/espacos divergentes.
+  3. A filtragem restritiva por data descartava repasses pagos hoje referente a entregas de ontem ou da semana passada, fazendo parecer que a baixa nunca foi dada.
+  4. O validador isDuplicate bloqueava permanentemente novos repasses no mesmo dia com valores semelhantes.
+  5. Nao havia um campo editavel de Data do Pagamento no modal nem uma visao de Extrato de Baixas com opcao de estorno.
+* **Solucao Padrao**:
+  1. Corrigir o calculo da taxa de entrega para priorizar d.delivery_fee > 0, depois d.value, depois d.price.
+  2. Implementar motor inteligente de casamento em driverPaymentsMap combinando tags [ID: ...], busca por nome normalizado (cleanStr), e agrupamento canonico por motorista.
+  3. Adicionar toggle de Saldo Acumulado vs Apenas Periodo no relatorio para flexibilizar a conferencia de saldos.
+  4. Adicionar campo de Data do Pagamento no modal de baixa, botoes de atalho (Quitar Total, 50%), e gravar [ID: ...] na descricao.
+  5. Adicionar Modal de Extrato de Baixas & Pagamentos para cada entregador, com lista detalhada e botao de estorno/exclusao de lancamentos incorretos.
+  6. Disponibilizar script SQL fix_baixas_pagamentos_entregadores.sql para desativar RLS na tabela platform_cash_flow e garantir permissoes totais para as baixas.
