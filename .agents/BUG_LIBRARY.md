@@ -1223,6 +1223,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Implementar a rota `/admin/business` em `painel-primavera/src/routes/admin/business.tsx` com tabs de Imóveis e Veículos, filtros por modalidade/tipo, métricas em tempo real, switch de ativo/pausado e modais completos de cadastro/edição.
   3. Adicionar o item "Central de Negócios" na `AdminSidebar.tsx` logo após o PPP.
 
+---
+
+### 123. Cards Incompletos da Central de Negócios no App do Cliente
+* **Sintoma**: Os imóveis cadastrados apareciam apenas como links de texto básico no app do cliente, sem fotos de capa, sem telefone de contato e sem o botão verde oficial do WhatsApp, diferentemente do visual detalhado no Painel Admin. Além disso, a Central de Negócios ficava oculta no rodapé da Home.
+* **Causa Raiz**:
+  O componente de listagem `marketplace.business.index.tsx` não renderizava imagens, não lia o campo `contact_phone` para renderizar o botão de WhatsApp e não estava presente na grade de atalhos rápidos do topo da Home.
+* **Solução Padrão**:
+  1. Atualizar os cards de `marketplace.business.index.tsx` com banner de foto/placeholder, badges coloridas, atributos e botão direto `WhatsappIcon` com mensagem predefinida.
+  2. Adicionar o telefone de contato `(66) 9719-6937` visível no card com o ícone oficial.
+  3. Promover a "Central de Negócios" para a seção de atalhos principais do topo da Home (`marketplace.index.tsx`), junto com "Solicitar Entrega" e "PPP".
+
+
 
 
 
