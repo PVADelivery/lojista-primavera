@@ -1256,6 +1256,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Implementar fallback automático de contingência para o bucket `store-assets`.
   3. Criar script SQL `scripts_para_rodar/fix_storage_business_policy.sql` liberando permissões diretas de gravação no storage.
 
+---
+
+### 126. Fluxo de Anúncio de Imóveis e Veículos pelo Cliente com Moderação e WhatsApp do Admin
+* **Sintoma**: Os clientes não tinham como anunciar seus próprios imóveis na Central de Negócios e o anúncio de veículos não continha fotos nem mecanismo de moderação pelo administrador.
+* **Causa Raiz**:
+  Inexistência do modal de anúncio de imóveis no app do cliente (`NewPropertySheet`), falta de upload de fotos pelo cliente e ausência de status de moderação (`is_active: false`).
+* **Solução Padrão**:
+  1. No app do cliente (`marketplace.business.index.tsx` e `marketplace.business.vehicles.tsx`), criar os modais completos de anúncio permitindo upload de múltiplas fotos diretamente do celular/computador.
+  2. Gravar os anúncios com `is_active: false` (anúncio pendente). A listagem pública filtra exclusivamente `.eq("is_active", true)`, garantindo que só fique visível após a aprovação do administrador.
+  3. Ao concluir o envio, redirecionar o cliente automaticamente para o WhatsApp da Administração (`556697196937`) com mensagem detalhada formatada contendo todas as especificações do anúncio para validação.
+  4. No Painel Admin (`painel-primavera`), exibir a badge animada **"Aguardando Aprovação"** e o botão de 1 clique **"Aprovar Anúncio"** para ativação imediata.
+
+
 
 
 
