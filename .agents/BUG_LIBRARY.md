@@ -1268,6 +1268,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Ao concluir o envio, redirecionar o cliente automaticamente para o WhatsApp da Administração (`556697196937`) com mensagem detalhada formatada contendo todas as especificações do anúncio para validação.
   4. No Painel Admin (`painel-primavera`), exibir a badge animada **"Aguardando Aprovação"** e o botão de 1 clique **"Aprovar Anúncio"** para ativação imediata.
 
+---
+
+### 127. Exibição de Múltiplas Fotos (Carrossel Interativo) e Cor do Valor nos Anúncios
+* **Sintoma**: Os cards de imóveis e veículos só exibiam a primeira foto (`images?.[0]`), impossibilitando os usuários de visualizarem as demais fotos cadastradas, e o valor do anúncio estava na cor amarela (`text-primary`), dificultando a leitura.
+* **Causa Raiz**:
+  O layout renderizava uma tag `<img>` estática apontando apenas para `p.images?.[0]` e o estilo do preço usava a cor amarela do tema.
+* **Solução Padrão**:
+  1. Criar os componentes `PropertyImageCarousel`, `PropertyDetailCarousel` e `VehicleImageCarousel` com suporte a navegação por botões anterior/próxima (`ChevronLeft` / `ChevronRight`), contador de fotos flutuante (`1 / 5`) e indicador de bolinhas.
+  2. Aplicar `e.stopPropagation()` e `e.preventDefault()` nos controles de navegação para permitir navegar entre as fotos sem disparar acidentalmente o clique do card que abre a página de detalhes.
+  3. Mudar a cor de todos os preços de amarelo para preto destacado (`text-black dark:text-white font-black text-xl`) nos imóveis, detalhes e veículos.
+
+
 
 
 
