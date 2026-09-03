@@ -1291,6 +1291,24 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Adicionar seletor interativo de meses de permanência (`1 mês`, `2 meses`, `3 meses`, `6 meses`, `1 ano`) e card verde destacado informando as regras de ativação e pagamento de mensalidade via Pix.
   3. No WhatsApp, estruturar a mensagem solicitando diretamente o valor da mensalidade e a chave Pix para ativação do anúncio conforme os meses selecionados.
 
+---
+
+### 129. Sistema de IDs para Imóveis/Veículos, Aba de Pendentes de Aprovação no Painel Admin e Redução de Emojis
+* **Sintoma**: O administrador tinha dificuldade de localizar rapidamente qual anúncio o usuário estava solicitando aprovação via WhatsApp, e os formulários enviavam mensagens cheias de emojis sem identificador do registro.
+* **Causa Raiz**:
+  1. A inserção não retornava o UUID gerado (`.select("id").single()`) para repassar ao cliente.
+  2. O Painel Admin agrupava tudo apenas em "Imóveis" e "Veículos", sem uma aba dedicada exclusivamente para filtrar anúncios com `is_active = false`.
+  3. A busca do painel não considerava IDs formatados (`#IMV-XXXXXXXX` ou `#VEH-XXXXXXXX`).
+* **Solução Padrão**:
+  1. No cadastro de Imóveis e Veículos (`marketplace.business.index.tsx` e `marketplace.business.vehicles.tsx`), usar `.select("id").single()` para capturar o ID recém-criado.
+  2. Gerar shortId amigável `#IMV-${id.slice(0, 8).toUpperCase()}` ou `#VEH-${id.slice(0, 8).toUpperCase()}` e anexar no topo da mensagem de WhatsApp sem emojis excessivos.
+  3. No Painel Admin (`painel-primavera/src/routes/admin/business.tsx`), adicionar:
+     - Aba dedicada **"Pendentes de Aprovação (X)"** com badge pulsante.
+     - Badge do ID nos cards com botão de copiar em 1 clique.
+     - Suporte a busca no input por `#IMV-XXXX`, `#VEH-XXXX`, UUID ou prefixo de ID.
+     - Botão verde de aprovação direta com 1 clique e link para responder ao anunciante via WhatsApp.
+
+
 
 
 
