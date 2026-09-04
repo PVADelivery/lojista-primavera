@@ -1374,8 +1374,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Sintoma**: Ao transitar de página, receber e aceitar/rejeitar chamadas ou quando a aba entrava em segundo plano (bfcache), o console exibia o aviso enganoso `[AudioAlert] Autoplay impedido pelo navegador: AbortError: The play() request was interrupted by a call to pause()`.
 * **Causa Raiz**:
   O método `HTMLAudioElement.play()` retorna uma Promise assíncrona. Quando o áudio é pausado (`stopAlert()` ou suspensão pelo browser por bfcache), a Promise é rejeitada com `AbortError`. O `catch` da chamada verificava apenas `err?.name !== "NotAllowedError"`, classificando erroneamente `AbortError` como "Autoplay impedido". Além disso, o listener de `visibilitychange` executava micro-ciclos de play/pause redundantes.
-* **Solução Padrão**:
-  1. No `p.catch(...)` de `playAlert` e `unlockAudio`, ignorar expressamente erros do tipo `AbortError` (interrupções esperadas por pausa voluntária ou navegação de tela) além de `NotAllowedError`.
-  2. Adicionar flag `hasUnlockedAudio` para evitar ciclos repetitivos de micro-reprodução a cada troca de visibilidade ou gesto após o áudio já ter sido liberado.
+---
 
+### 134. Sessões de Navegador Antigas com Chunks Desatualizados em Memória (`__root.tsx`, `logger.ts`)
+* **Sintoma**: Usuários que deixavam a aba do Painel Admin aberta por horas continuavam executando bundles minificados antigos já deletados do servidor (ex: `drivers-CnIuSFQl.js` e `reports-BD39L2DS.js`), gerando requisições 404 em tabelas antigas (`/rest/v1/drivers`) ou erros de coluna inexistente (`license_plate` em `profiles`).
+* **Causa Raiz**:
+  Em Single Page Applications (SPA), a navegação por rotas internas do TanStack Router não recarrega o `index.html` nem os scripts já carregados na memória do browser. Além disso, se houver Service Workers antigos registrados, eles podem servir arquivos desatualizados.
+* **Solução Padrão**:
+  1. Em `RootComponent` (`__root.tsx`), desregistrar automaticamente qualquer Service Worker existente (`navigator.serviceWorker.getRegistrations()`).
+  2. No `errorComponent`, detectar erros originados por bundles desatualizados (`before initialization`, `dynamically imported module`, `loading chunk`) e disparar um auto-reload suave via `sessionStorage` para sincronizar imediatamente com os arquivos mais recentes do servidor.
+  3. Exibir um card moderno com botão "🔄 Recarregar Painel" para recuperação manual imediata caso a falha persista.
+  4. Silenciar logs de bundles obsoletos em `logger.ts` para evitar disparos falsos de alertas no Telegram.
 
