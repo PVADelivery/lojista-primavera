@@ -1338,6 +1338,9 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Corrigir o calculo da taxa de entrega para priorizar d.delivery_fee > 0, depois d.value, depois d.price.
   2. Implementar motor inteligente de casamento em driverPaymentsMap combinando tags [ID: ...], busca por nome normalizado (cleanStr), e agrupamento canonico por motorista.
   3. Adicionar toggle de Saldo Acumulado vs Apenas Periodo no relatorio para flexibilizar a conferencia de saldos.
+
+---
+
 ### 131. Dificuldade de Quitação de Entregadores — Necessidade de "Jogar a Data para o Último Dia do Mês"
 * **Sintoma**: A cliente relatava extrema dificuldade para pagar e quitar o saldo dos entregadores, afirmando que "só conseguia quitar o que devia se jogasse a data do filtro para o último dia do mês".
 * **Causa Raiz**:
