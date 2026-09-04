@@ -8,7 +8,7 @@ import { brl } from "@/lib/format";
 import {
   Clock, Truck, Wallet, Plus, MapPin, Phone, CheckCircle2,
   ShoppingBag, ArrowUpRight, Sparkles, Activity, TrendingUp,
-  Pencil, Trash2
+  Pencil, Trash2, Loader2
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -90,6 +90,8 @@ function BusinessHomePage() {
   const marketplace = deliveries.filter((d: any) => d.order_id);
   const manual = deliveries.filter((d: any) => !d.order_id);
 
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+
   const finishDelivery = async (id: string) => {
     await supabase.from("deliveries").update({ status: "delivered" }).eq("id", id);
     toast.success("Entrega finalizada");
@@ -97,19 +99,53 @@ function BusinessHomePage() {
   };
 
   const cancelDelivery = async (id: string) => {
+    if (cancellingId) return;
     if (!confirm("Deseja realmente cancelar esta entrega?")) return;
+
+    setCancellingId(id);
     const cancelledByName = profile?.full_name ? `Lojista: ${profile.full_name}` : company?.name ? `Lojista: ${company.name}` : "Lojista";
-    const { error } = await supabase.from("deliveries").update({
-      status: "cancelled",
-      cancelled_at: new Date().toISOString(),
-      cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
-      cancelled_by_name: cancelledByName,
-    } as any).eq("id", id);
-    if (error) {
-      toast.error("Erro ao cancelar entrega: " + error.message);
-    } else {
-      toast.success("Entrega cancelada");
-      qc.invalidateQueries({ queryKey: ["deliveries"] });
+    
+    try {
+      // 1. Tentar cancelamento via RPC segura
+      const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("cancel_delivery_safe", {
+        p_delivery_id: id,
+        p_cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
+        p_cancelled_by_name: cancelledByName,
+      });
+
+      if (!rpcErr && rpcRes && rpcRes.success) {
+        toast.success("Entrega cancelada com sucesso!");
+        await qc.invalidateQueries({ queryKey: ["deliveries"] });
+        await qc.invalidateQueries({ queryKey: ["credits"] });
+        return;
+      }
+
+      // 2. Atualização direta caso a RPC não esteja instalada
+      const { error } = await supabase.from("deliveries").update({
+        status: "cancelled",
+        cancelled_at: new Date().toISOString(),
+        cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
+        cancelled_by_name: cancelledByName,
+      } as any).eq("id", id);
+
+      if (error) {
+        // Se a constraint de estorno único disparou, significa que o estorno de crédito já havia sido registrado
+        if (error.message?.includes("ux_credit_transactions_one_refund_per_delivery") || error.message?.includes("duplicate key")) {
+          toast.success("Entrega cancelada com sucesso!");
+          await qc.invalidateQueries({ queryKey: ["deliveries"] });
+          await qc.invalidateQueries({ queryKey: ["credits"] });
+        } else {
+          toast.error("Erro ao cancelar entrega: " + error.message);
+        }
+      } else {
+        toast.success("Entrega cancelada com sucesso!");
+        await qc.invalidateQueries({ queryKey: ["deliveries"] });
+        await qc.invalidateQueries({ queryKey: ["credits"] });
+      }
+    } catch (err: any) {
+      toast.error("Erro ao cancelar entrega: " + (err?.message || "Tente novamente"));
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -197,7 +233,16 @@ function BusinessHomePage() {
           <EmptyState icon={ShoppingBag} text="Nenhum pedido em entrega no momento." />
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {marketplace.map((d: any) => <DeliveryCard key={d.id} d={d} marketplace onFinish={() => finishDelivery(d.id)} onCancel={() => cancelDelivery(d.id)} />)}
+            {marketplace.map((d: any) => (
+              <DeliveryCard
+                key={d.id}
+                d={d}
+                marketplace
+                onFinish={() => finishDelivery(d.id)}
+                onCancel={() => cancelDelivery(d.id)}
+                cancelling={cancellingId === d.id}
+              />
+            ))}
           </div>
         )}
       </Section>
@@ -223,6 +268,7 @@ function BusinessHomePage() {
                 d={d}
                 onFinish={() => finishDelivery(d.id)}
                 onCancel={() => cancelDelivery(d.id)}
+                cancelling={cancellingId === d.id}
               />
             ))}
           </div>
@@ -301,7 +347,7 @@ function EmptyState({ icon: Icon, text, action }: any) {
   );
 }
 
-function DeliveryCard({ d, marketplace, onCancel }: any) {
+function DeliveryCard({ d, marketplace, onCancel, cancelling }: any) {
   const navigate = useNavigate();
   const isPending = d.status === "pending" || d.status === "broadcasted";
   const isAccepted = d.status === "accepted";
@@ -360,10 +406,15 @@ function DeliveryCard({ d, marketplace, onCancel }: any) {
           {d.status !== "delivered" && d.status !== "completed" && d.status !== "cancelled" && (
             <button
               onClick={onCancel}
-              className="p-2 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shadow-sm flex items-center justify-center"
+              disabled={cancelling}
+              className="p-2 rounded-xl bg-destructive/10 hover:bg-destructive/20 text-destructive transition-all shadow-sm flex items-center justify-center disabled:opacity-50"
               title="Cancelar corrida"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              {cancelling ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Trash2 className="h-3.5 w-3.5" />
+              )}
             </button>
           )}
         </div>
