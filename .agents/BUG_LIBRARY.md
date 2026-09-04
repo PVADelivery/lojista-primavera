@@ -1355,3 +1355,27 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. Corrigir o cálculo do "Saldo Acumulado" para confrontar faturamento total de toda a base (`allTimeEarned`) com pagamentos de toda a base (`allTimePaid`), gerando o saldo devedor real em aberto hoje.
   5. Fazer o botão geral de topo "Pagar Entregador (Repasse)" pré-selecionar automaticamente o primeiro entregador que tiver saldo devido pendente (`due > 0`).
 
+---
+
+### 132. Erro de Produção "Cannot access '$s' before initialization" no Relatório Financeiro (`reports.tsx`)
+* **Sintoma**: Ao carregar a tela `/admin/reports` em produção, o sistema quebrava com a mensagem `ReferenceError: Cannot access '$s' before initialization` dentro de `useMemo` em `reports-BD39L2DS.js`.
+* **Causa Raiz**:
+  No retorno do `useMemo` responsável por mapear os pagamentos do fluxo de caixa (`allTimePaymentsMap, periodPaymentsMap, driverPayoutsHistory`), os nomes das propriedades no `return` usavam a sintaxe shorthand do ES6:
+  `return { allTimePaymentsMap, periodPaymentsMap, driverPayoutsHistory: history };`
+  Como as variáveis locais eram `allTimeMap` e `periodMap`, o JavaScript tentava acessar as variáveis externas `allTimePaymentsMap` e `periodPaymentsMap` (que estavam sendo desestruturadas a partir da própria chamada `useMemo`), disparando o erro de Temporal Dead Zone (TDZ).
+* **Solução Padrão**:
+  1. Mapear explicitamente as variáveis locais no objeto de retorno:
+     `return { allTimePaymentsMap: allTimeMap, periodPaymentsMap: periodMap, driverPayoutsHistory: history };`
+  2. Mover helpers puros (`cleanStr`, `toLocalDateStr`, `isCompletedDelivery`) para o escopo do módulo fora do componente React, eliminando riscos de TDZ ou re-criações.
+
+---
+
+### 133. Erro "Autoplay impedido pelo navegador: AbortError: The play() request was interrupted by a call to pause()" no App do Motorista (`useAudioAlert.ts`)
+* **Sintoma**: Ao transitar de página, receber e aceitar/rejeitar chamadas ou quando a aba entrava em segundo plano (bfcache), o console exibia o aviso enganoso `[AudioAlert] Autoplay impedido pelo navegador: AbortError: The play() request was interrupted by a call to pause()`.
+* **Causa Raiz**:
+  O método `HTMLAudioElement.play()` retorna uma Promise assíncrona. Quando o áudio é pausado (`stopAlert()` ou suspensão pelo browser por bfcache), a Promise é rejeitada com `AbortError`. O `catch` da chamada verificava apenas `err?.name !== "NotAllowedError"`, classificando erroneamente `AbortError` como "Autoplay impedido". Além disso, o listener de `visibilitychange` executava micro-ciclos de play/pause redundantes.
+* **Solução Padrão**:
+  1. No `p.catch(...)` de `playAlert` e `unlockAudio`, ignorar expressamente erros do tipo `AbortError` (interrupções esperadas por pausa voluntária ou navegação de tela) além de `NotAllowedError`.
+  2. Adicionar flag `hasUnlockedAudio` para evitar ciclos repetitivos de micro-reprodução a cada troca de visibilidade ou gesto após o áudio já ter sido liberado.
+
+

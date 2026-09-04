@@ -158,13 +158,13 @@ export function useAudioAlert() {
         const p = globalAudio.play();
         if (p !== undefined) {
           p.catch((err) => {
-            if (err?.name !== "NotAllowedError") {
-              console.warn("[AudioAlert] Autoplay impedido pelo navegador:", err);
+            if (err?.name !== "NotAllowedError" && err?.name !== "AbortError") {
+              console.warn("[AudioAlert] Falha ao tocar áudio MP3:", err);
             }
           });
         }
       } catch (e) {
-        console.warn("[AudioAlert] Erro ao tocar áudio MP3:", e);
+        console.warn("[AudioAlert] Erro ao disparar áudio MP3:", e);
       }
     }
 
