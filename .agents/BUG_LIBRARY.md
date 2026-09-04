@@ -1400,3 +1400,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Quando a consulta ao banco confirmar `dbActiveCount === 0`, limpar corridas ativas do `localStorage` marcando-as como `"completed"` e zerar `pva_my_ride_ids`.
   4. Na tela `marketplace.rides.tsx`, quando `activeRide` for `null`, higienizar `localStorage` e disparar evento customizado `pva_ride_updated` para atualizar instantaneamente o badge do menu em todas as abas.
 
+---
+
+### 136. Sincronização de Canais de Notificação e Som Customizado no App do Entregador (`NotificationChannels.java`, `useDriverNotifications.ts`, `capacitor.config.ts`)
+* **Sintoma**: Notificações de chamados de corrida não tocavam o som de toque customizado (`ring.mp3`) ou eram silenciadas em dispositivos Android 8+ quando a tela estava bloqueada ou em segundo plano.
+* **Causa Raiz**:
+  1. A Edge Function de envio de push (`send-push/index.ts`) disparava mensagens FCM com o canal `"delivery-incoming-v1"`, porém o código nativo `NotificationChannels.java` apenas garantia os canais `delivery-incoming-v9` e `marketplace_orders_v2`.
+  2. No Android 8+ (Oreo e superior), se o payload do FCM aponta para um canal que não existe no sistema operacional do dispositivo, a notificação cai no canal padrão (sem som personalizado ou silenciada).
+  3. No hook `useDriverNotifications.ts`, uma variável não declarada `channelListener` gerava potenciais erros de referência na inicialização do listener de push em foreground.
+  4. O arquivo `capacitor.config.ts` não possuía a diretiva explícita de apresentação de `badge, sound, alert` para o plugin de `PushNotifications`.
+* **Solução Padrão**:
+  1. Em `NotificationChannels.java`, criar e configurar preventivamente todos os canais de notificação (`delivery-incoming-v1`, `delivery-incoming-v8`, `delivery-incoming-v9`, `marketplace_orders_v2`) com o som `R.raw.ring`, vibração contínua de alta prioridade (`IMPORTANCE_HIGH`), `setBypassDnd(true)` e `VISIBILITY_PUBLIC`.
+  2. Em `useDriverNotifications.ts`, declarar formalmente a referência de listener de notificações recebidas e garantir seu cleanup correto.
+  3. No `capacitor.config.ts`, adicionar a configuração de apresentação dos plugins de notificação nativos.
+  4. Recompilar o APK de release (`assembleRelease`) assinado com a keystore oficial `mt24horas-upload-key.keystore` e limpar a pasta `apks/` mantendo unicamente o arquivo novo.
+
