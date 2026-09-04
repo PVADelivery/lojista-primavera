@@ -1415,3 +1415,45 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. No `capacitor.config.ts`, adicionar a configuração de apresentação dos plugins de notificação nativos.
   4. Recompilar o APK de release (`assembleRelease`) assinado com a keystore oficial `mt24horas-upload-key.keystore` e limpar a pasta `apks/` mantendo unicamente o arquivo novo.
 
+---
+
+### 137. Erro ao Cancelar Entrega: "duplicate key value violates unique constraint ux_credit_transactions_one_refund_per_delivery" (`business.index.tsx`, trigger `trg_delivery_cancelled_refund`)
+* **Sintoma**: O lojista clica no ícone de lixeira para cancelar uma entrega no painel do lojista (`/business`) e a tela exibe o erro em vermelho: `[Erro na Tela] Erro ao cancelar entrega: duplicate key value violates unique constraint "ux_credit_transactions_one_refund_per_delivery"`. A entrega não era cancelada e ficava presa como pendente.
+* **Causa Raiz**:
+  1. No banco de dados Supabase, a tabela `credit_transactions` possui a restrição de unicidade `ux_credit_transactions_one_refund_per_delivery` em `delivery_id` para transações de estorno/refund.
+  2. Ao atualizar o status da entrega para `'cancelled'`, o trigger `handle_delivery_cancelled_refund` tenta inserir uma transação de estorno na tabela `credit_transactions`. Se a entrega já possuía um registro de estorno (ex.: clique duplo, re-tentativa ou corrida cancelada parcialmente), a restrição de chave única era violada, gerando um erro fatal no PostgreSQL que abortava o comando `UPDATE deliveries SET status = 'cancelled'`.
+  3. No frontend do lojista (`business.index.tsx`), o botão de cancelamento não possuía bloqueio de clique duplo (`cancellingId`), permitindo múltiplos cliques simultâneos.
+* **Solução Padrão**:
+  1. No banco de dados (migration `20260904210000_fix_duplicate_refund_constraint.sql`), redefinir a função do trigger `handle_delivery_cancelled_refund` com verificação prévia de existência de estorno (`SELECT EXISTS(SELECT 1 FROM credit_transactions WHERE delivery_id = OLD.id AND (type = 'refund' OR type = 'estorno'))`). Caso já exista, ignorar nova inserção e não creditar saldo duplicado.
+  2. Envolver a inserção em bloco `BEGIN ... EXCEPTION WHEN unique_violation THEN NULL; END;` e envolver a execução do trigger em bloco de segurança para que uma falha de estorno nunca impeça a entrega de ser cancelada.
+  3. Criar a RPC segura `cancel_delivery_safe` com `SECURITY DEFINER`.
+  4. No frontend do lojista (`business.index.tsx`), adicionar estado de bloqueio `cancellingId` com spinner `<Loader2 className="animate-spin" />` e `disabled={cancelling}`, chamar a RPC `cancel_delivery_safe` prioritariamente e tratar graciosamente qualquer exceção de chave duplicada como cancelamento bem-sucedido.
+
+---
+
+### 138. Janela Estrita de 2 Minutos para Entregadores e Erro "Unhandled Rejection: getElapsedSeconds is not defined" (`delivery-eligibility.ts`, `NewDeliveryPopupModal.tsx`, `useDriverNotifications.ts`)
+* **Sintoma**: Entregadores recebiam popups e toques de notificação sonora (`ring.mp3`) imediatamente ao ser criada uma nova entrega na loja, antes de decorrer os 2 minutos estipulados para a janela de direcionamento do Administrador. Além disso, em dispositivos com bundle antigo em cache, ocorria o erro `Unhandled Rejection: getElapsedSeconds is not defined`.
+* **Causa Raiz**:
+  1. O modal de popup (`NewDeliveryPopupModal.tsx`) e o hook de notificações sonoras (`useDriverNotifications.ts`) estavam disparando áudio e abrindo o modal assim que uma entrega com status `pending` era detectada, sem verificar se já haviam passado 120 segundos da criação da entrega (`created_at`).
+  2. Referências antigas e importações não resolvidas em bundles do app entregador geravam falha em tempo de execução ao tentar invocar funções utilitárias que não haviam sido devidamente exportadas ou estavam com cache local do browser/Capacitor.
+* **Solução Padrão**:
+  1. Criar helper centralizado `isDeliveryEligibleForDriver(delivery, currentDriverId)`: se a entrega estiver `pending` e não estiver diretamente atribuída ao motorista (`driver_id !== currentDriverId`) e não estiver como `broadcasted`, ela só se torna elegível quando `elapsedSeconds >= 120`.
+  2. Bloquear rigorosamente qualquer som (`ring.mp3`), modal ou notificação push/local antes dos 120 segundos completos.
+  3. No `NewDeliveryPopupModal.tsx`, programar um timer preciso para agendar a exibição do popup silenciosamente para o exato segundo em que completar 120 segundos.
+  4. Limpar e padronizar todas as importações de `getElapsedSeconds` a partir de `@/utils/time`.
+  5. Recompilar o bundle de produção e gerar o APK atualizado em `apks/MT24Horas-Entregador.apk`.
+
+---
+
+### 139. Espaço em Branco Excessivo entre Barra do App e Botões de Navegação do Android (`MainActivity.java`, `BottomNav.tsx`, `DriverShell.tsx`)
+* **Sintoma**: No aplicativo Android, a barra de navegação inferior flutuava muito alta, deixando um vão preto / espaço em branco enorme entre os 3 botões do celular (navegação do Android) e o menu do app.
+* **Causa Raiz**:
+  1. Em `MainActivity.java`, foi adicionado `ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content), ...)` que aplicava `v.setPadding(..., systemBars.bottom)`. Como o Android já posiciona o `android.R.id.content` entre a barra de status e a barra de botões nativa, o padding aplicava a altura dos botões uma segunda vez (padding duplicado), levantando a WebView inteira.
+  2. Em `BottomNav.tsx`, o container flutuante possuía `pb-4` e `px-4`, e no `DriverShell.tsx` havia `pb-24`, aumentando ainda mais o vão inferior.
+* **Solução Padrão**:
+  1. Remover o `setOnApplyWindowInsetsListener` redundante em `MainActivity.java`, permitindo que o Capacitor e o layout nativo do Android utilizem a área correta de tela sem duplicação de insets.
+  2. Ajustar `BottomNav.tsx` para `px-2.5 pb-2 pt-1` com cantos `rounded-2xl` para pousar elegantemente próximo à base da tela.
+  3. Ajustar `DriverShell.tsx` de `pb-24` para `pb-16` para eliminar espaço em branco no final das telas.
+  4. Recompilar a aplicação web (`npm run build`), sincronizar o Capacitor (`npx cap sync android`) e compilar novo APK de release.
+
+
