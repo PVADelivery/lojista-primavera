@@ -1386,3 +1386,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Exibir um card moderno com botão "🔄 Recarregar Painel" para recuperação manual imediata caso a falha persista.
   4. Silenciar logs de bundles obsoletos em `logger.ts` para evitar disparos falsos de alertas no Telegram.
 
+---
+
+### 135. Contador Fantasma de Corridas Ativas na Barra Inferior do App do Cliente (`MarketplaceLayout.tsx`, `marketplace.rides.tsx`)
+* **Sintoma**: A barra de navegação inferior exibia badge com "1" em "Corridas" (`[1Corridas]`), mas ao abrir a tela `/marketplace/rides`, a mensagem indicava "Nenhuma corrida em andamento".
+* **Causa Raiz**:
+  1. No `MarketplaceLayout.tsx`, o cálculo de corridas ativas lia o `localStorage` (`pva_local_rides`) sem verificar tempo de expiração (`createdAt`).
+  2. O valor final do contador usava `finalRidesCount = Math.max(dbActiveCount, localActiveCount)`. Quando o banco de dados retornava `0` corridas ativas, `Math.max(0, 1)` forçava o número `1` a persistir para sempre no dispositivo do cliente devido a uma corrida local antiga cujo status continuou como `"pending"`.
+  3. Quando a corrida era finalizada pelo motorista ou cancelada no backend, o cliente não limpava ou atualizava `pva_local_rides` nem `pva_my_ride_ids`.
+* **Solução Padrão**:
+  1. No `MarketplaceLayout.tsx`, priorizar a contagem real do banco de dados quando a consulta retornar com sucesso (`queriedDb ? dbActiveCount : localActiveCount`).
+  2. Aplicar corte de expiração de 12 horas nas corridas armazenadas em `localStorage` para desconsiderar requisições zumbis abandonadas.
+  3. Quando a consulta ao banco confirmar `dbActiveCount === 0`, limpar corridas ativas do `localStorage` marcando-as como `"completed"` e zerar `pva_my_ride_ids`.
+  4. Na tela `marketplace.rides.tsx`, quando `activeRide` for `null`, higienizar `localStorage` e disparar evento customizado `pva_ride_updated` para atualizar instantaneamente o badge do menu em todas as abas.
+
