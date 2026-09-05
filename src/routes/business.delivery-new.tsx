@@ -1179,8 +1179,8 @@ function NewDeliveryPage() {
                 deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
-              <span>Entregas</span>
-              <span>Rápidas</span>
+              <span>Sem</span>
+              <span>Endereço</span>
             </button>
             <button
               type="button"
@@ -1189,8 +1189,8 @@ function NewDeliveryPage() {
                 deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
               }`}
             >
-              <span>Entrega</span>
-              <span>Normal</span>
+              <span>Com</span>
+              <span>Endereço</span>
             </button>
           </div>
         </div>
