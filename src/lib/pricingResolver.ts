@@ -71,13 +71,13 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
       }
     );
 
-    // Fallback: se não tiver regra específica por região, usa a regra geral da tabela
+    // Fallback: se não tiver regra específica por região, usa a regra geral da tabela (sem regiões amarradas)
     if (!matchedRule) {
       matchedRule = pricingRules.find((rule: any) => {
         const hasValidValue = rule.base_value != null && rule.base_value !== "" && Number(rule.base_value) > 0;
         const isGeneral = !rule.origin_region_id && !rule.destination_region_id && !rule.region_id;
         return hasValidValue && (isGeneral || pricingRules.length === 1);
-      }) || pricingRules.find((rule: any) => Number(rule.base_value) > 0);
+      });
     }
 
     if (matchedRule) {
