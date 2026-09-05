@@ -1456,4 +1456,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Ajustar `DriverShell.tsx` de `pb-24` para `pb-16` para eliminar espaço em branco no final das telas.
   4. Recompilar a aplicação web (`npm run build`), sincronizar o Capacitor (`npx cap sync android`) e compilar novo APK de release.
 
+---
+
+### 140. Erro 400 em Autocomplete de Pedidos por Coluna Inexistente `orders.customer_phone` e Erro 404 em `cancel_delivery_safe` (`business.delivery-new.tsx`, `business.customers.tsx`, `business.index.tsx`)
+* **Sintoma**: Ao digitar no campo de cliente ao cadastrar nova entrega (`/business/delivery-new`), o console exibia erro 400: `Failed to load resource: the server responded with a status of 400`, `ordQuery error: {code: '42703', message: 'column orders.customer_phone does not exist'}`. Além disso, ao cancelar uma entrega, ocorria chamada para RPC inexistente com erro 404: `POST .../rpc/cancel_delivery_safe 404 (Not Found)`.
+* **Causa Raiz**:
+  1. A tabela `orders` no Supabase não possui a coluna `customer_phone` (o telefone do cliente do pedido fica associado via relação de chave estrangeira `customers(phone)`). No hook de autocomplete de clientes em `business.delivery-new.tsx` e `business.customers.tsx`, a consulta efetuava `.select("customer_name, customer_phone, ...")` e tentava filtrar com `.or("...,customer_phone.ilike...")`, disparando o erro Postgres `42703 (column does not exist)`.
+  2. Em `business.index.tsx`, a função `cancelDelivery` tentava executar uma chamada RPC `cancel_delivery_safe` que não estava instalada na base do Supabase ativa, gerando erro HTTP 404 no console antes de cair no fallback direto.
+* **Solução Padrão**:
+  1. Em `business.delivery-new.tsx` e `business.customers.tsx`, ajustar a consulta na tabela `orders` para selecionar `customer_name, delivery_address, customers(name, phone)`, extraindo o telefone via `o.customers?.phone` e filtrando `customer_name` com `.ilike` sem referenciar a coluna inexistente `customer_phone`.
+  2. Em `business.index.tsx`, realizar o update de cancelamento diretamente na tabela `deliveries`, com tratamento de duplicidade de estorno de crédito, eliminando a chamada desnecessária à RPC inexistente e evitando o erro 404.
+
+
 
