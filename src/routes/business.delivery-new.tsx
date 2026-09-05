@@ -298,7 +298,7 @@ function NewDeliveryPage() {
       try {
         let ordQuery = supabase
           .from("orders")
-          .select("customer_name, customer_phone, delivery_address")
+          .select("customer_name, delivery_address, customers(name, phone)")
           .order("created_at", { ascending: false })
           .limit(20);
 
@@ -306,11 +306,7 @@ function NewDeliveryPage() {
           ordQuery = ordQuery.eq("company_id", company.id);
         }
 
-        if (phoneOrCpfClean.length >= 2 && safeClean) {
-          ordQuery = ordQuery.or(`customer_name.ilike.%${safeClean}%,customer_phone.ilike.%${phoneOrCpfClean}%`);
-        } else if (phoneOrCpfClean.length >= 2) {
-          ordQuery = ordQuery.ilike("customer_phone", `%${phoneOrCpfClean}%`);
-        } else if (safeClean) {
+        if (safeClean) {
           ordQuery = ordQuery.ilike("customer_name", `%${safeClean}%`);
         }
 
@@ -319,13 +315,14 @@ function NewDeliveryPage() {
 
         if (ordData) {
           ordData.forEach((o: any) => {
-            const key = (o.customer_name || "").toLowerCase().trim() || o.customer_phone;
+            const custPhone = o.customers?.phone || "";
+            const key = (o.customer_name || o.customers?.name || "").toLowerCase().trim() || custPhone;
             if (key && !combinedMap.has(key)) {
               const streetStr = typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || "";
               combinedMap.set(key, {
                 id: key,
-                name: o.customer_name,
-                phone: o.customer_phone,
+                name: o.customer_name || o.customers?.name || "",
+                phone: custPhone,
                 cpf: "",
                 addresses: streetStr ? [{
                   id: "ord-addr",

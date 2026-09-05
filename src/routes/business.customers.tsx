@@ -139,14 +139,17 @@ function BusinessCustomersPage() {
       // 2. Busca pedidos (orders) da empresa para extrair clientes
       const { data: dbOrders } = await supabase
         .from("orders")
-        .select("id, customer_name, customer_phone, delivery_address, created_at")
+        .select("id, customer_name, delivery_address, created_at, customers(phone)")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       (dbOrders || []).forEach((o: any) => {
         upsertCustomer({
-          ...o,
-          address: typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || ""
+          id: o.id,
+          customer_name: o.customer_name,
+          customer_phone: o.customers?.phone || "",
+          address: typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || "",
+          created_at: o.created_at
         });
       });
 

@@ -106,21 +106,6 @@ function BusinessHomePage() {
     const cancelledByName = profile?.full_name ? `Lojista: ${profile.full_name}` : company?.name ? `Lojista: ${company.name}` : "Lojista";
     
     try {
-      // 1. Tentar cancelamento via RPC segura
-      const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("cancel_delivery_safe", {
-        p_delivery_id: id,
-        p_cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
-        p_cancelled_by_name: cancelledByName,
-      });
-
-      if (!rpcErr && rpcRes && rpcRes.success) {
-        toast.success("Entrega cancelada com sucesso!");
-        await qc.invalidateQueries({ queryKey: ["deliveries"] });
-        await qc.invalidateQueries({ queryKey: ["credits"] });
-        return;
-      }
-
-      // 2. Atualização direta caso a RPC não esteja instalada
       const { error } = await supabase.from("deliveries").update({
         status: "cancelled",
         cancelled_at: new Date().toISOString(),
