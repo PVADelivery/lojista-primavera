@@ -98,7 +98,33 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
       .on("postgres_changes", { event: "*", schema: "public", table: "deliveries", filter: `company_id=eq.${company.id}` },
         () => qc.invalidateQueries({ queryKey: ["deliveries"] }))
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+
+    const handleWakeup = () => {
+      try {
+        if (supabase.realtime) {
+          supabase.realtime.connect();
+        }
+      } catch (e) {}
+      qc.invalidateQueries({ queryKey: ["pending-orders"] });
+      qc.invalidateQueries({ queryKey: ["orders"] });
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+    };
+
+    window.addEventListener("pageshow", handleWakeup);
+    window.addEventListener("focus", handleWakeup);
+    window.addEventListener("online", handleWakeup);
+    const handleVis = () => {
+      if (document.visibilityState === "visible") handleWakeup();
+    };
+    document.addEventListener("visibilitychange", handleVis);
+
+    return () => {
+      supabase.removeChannel(ch);
+      window.removeEventListener("pageshow", handleWakeup);
+      window.removeEventListener("focus", handleWakeup);
+      window.removeEventListener("online", handleWakeup);
+      document.removeEventListener("visibilitychange", handleVis);
+    };
   }, [company?.id]);
 
   const toggleStore = async (open: boolean) => {

@@ -57,8 +57,30 @@ export function useRealtimeDeliveries() {
       )
       .subscribe();
 
+    const handleWakeup = () => {
+      try {
+        if (supabase.realtime) {
+          supabase.realtime.connect();
+        }
+      } catch (e) {}
+      qc.invalidateQueries({ queryKey: ["deliveries"] });
+      qc.invalidateQueries({ queryKey: ["delivery-stats"] });
+    };
+
+    window.addEventListener("pageshow", handleWakeup);
+    window.addEventListener("focus", handleWakeup);
+    window.addEventListener("online", handleWakeup);
+    const handleVis = () => {
+      if (document.visibilityState === "visible") handleWakeup();
+    };
+    document.addEventListener("visibilitychange", handleVis);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener("pageshow", handleWakeup);
+      window.removeEventListener("focus", handleWakeup);
+      window.removeEventListener("online", handleWakeup);
+      document.removeEventListener("visibilitychange", handleVis);
     };
   }, []);
 }
