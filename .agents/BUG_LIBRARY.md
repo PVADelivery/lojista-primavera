@@ -1452,8 +1452,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Em `BottomNav.tsx`, o container flutuante possuía `pb-4` e `px-4`, e no `DriverShell.tsx` havia `pb-24`, aumentando ainda mais o vão inferior.
 * **Solução Padrão**:
   1. Remover o `setOnApplyWindowInsetsListener` redundante em `MainActivity.java`, permitindo que o Capacitor e o layout nativo do Android utilizem a área correta de tela sem duplicação de insets.
-  2. Ajustar `BottomNav.tsx` para `px-2.5 pb-2 pt-1` com cantos `rounded-2xl` para pousar elegantemente próximo à base da tela.
-  3. Ajustar `DriverShell.tsx` de `pb-24` para `pb-16` para eliminar espaço em branco no final das telas.
-  4. Recompilar a aplicação web (`npm run build`), sincronizar o Capacitor (`npx cap sync android`) e compilar novo APK de release.
+---
+
+### 140. Lentidão Extrema e Skeletons Travados no App do Entregador e Gargalo Geral no Supabase (`deliveries.ts`, `driver.index.tsx`, `driver.deliveries.tsx`, `useDriverNotifications.ts`)
+* **Sintoma**: A tela inicial do app do entregador ficava travada com skeletons (cartões cinzas) carregando por minutos, e o sistema inteiro (Painel Admin, Lojista, Entregador) apresentava extrema lentidão e travamentos.
+* **Causa Raiz**:
+  1. `fetchAvailableDeliveries` e consultas de corridas realizavam *Full-Table Scan* no Supabase sem filtrar por status no Postgres (`SELECT * FROM deliveries`) e sem cláusula `LIMIT`, transferindo milhares de registros históricos a cada consulta.
+  2. Presença de múltiplos loops de polling e atualizações concorrentes agressivas (`refetchInterval: 4000` em `driver.index.tsx`, `refetchInterval: 2000` em `driver.deliveries.tsx`, e `setInterval(pollDeliveries, 5000)` em `useDriverNotifications.ts`), que sobrecarregavam a CPU do dispositivo e esgotavam o pool de conexões do Supabase.
+  3. A função `resolveDeliveryCompanies` executava consultas em cascata sem cache em tabelas estáticas (`pricing_rules`, `regions`, `region_neighborhoods`) repetidamente em cada ciclo.
+* **Solução Padrão**:
+  1. Filtrar o status diretamente na consulta do Supabase (`.in("status", pendingStatuses)`) e adicionar cláusulas `.limit(40)` e `.limit(20)`.
+  2. Eliminar os loops de polling (`refetchInterval` e `setInterval`), confiando exclusivamente nos canais de tempo real do Supabase Realtime (WebSockets) que já sincronizam instantaneamente inserções e atualizações.
+  3. Implementar cache em memória com TTL de 5 minutos para regras de preços e regiões, evitando chamadas repetidas a tabelas estáticas.
+
 
 
