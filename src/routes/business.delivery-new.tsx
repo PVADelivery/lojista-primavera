@@ -49,8 +49,12 @@ function NewDeliveryPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
-  const { edit: editId } = Route.useSearch();
-  const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">("rapida");
+  // Flag de controle: define se a funcionalidade de Entrega Rápida ("Sem Endereço") está ativa no painel do lojista.
+  // Mantido pronto e 100% preservado caso precise voltar futuramente: basta mudar para true.
+  const ENABLE_QUICK_DELIVERY = false;
+  const [deliveryMode, setDeliveryMode] = useState<"rapida" | "normal">(
+    ENABLE_QUICK_DELIVERY ? "rapida" : "normal"
+  );
   const [batchCount, setBatchCount] = useState<number>(1);
   const [batchItems, setBatchItems] = useState<
     {
@@ -1167,33 +1171,37 @@ function NewDeliveryPage() {
       </div>
 
       <div className="max-w-3xl mx-auto px-4 mt-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
-          <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full shadow-sm border border-border/40">
-            <button
-              type="button"
-              onClick={() => {
-                setDeliveryMode("rapida");
-                setF(prev => ({ ...prev, delivery_type: "NORMAL" }));
-              }}
-              className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
-                deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
-              }`}
-            >
-              <span>Sem</span>
-              <span>Endereço</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setDeliveryMode("normal")}
-              className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
-                deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
-              }`}
-            >
-              <span>Com</span>
-              <span>Endereço</span>
-            </button>
+        {/* SELETOR DE MODO: Sem Endereço (Rápida) vs Com Endereço (Completa) */}
+        {/* Preservado e pronto caso precise voltar: controlado por ENABLE_QUICK_DELIVERY */}
+        {ENABLE_QUICK_DELIVERY && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
+            <div className="bg-secondary/40 p-1 rounded-2xl flex gap-1 w-full shadow-sm border border-border/40">
+              <button
+                type="button"
+                onClick={() => {
+                  setDeliveryMode("rapida");
+                  setF(prev => ({ ...prev, delivery_type: "NORMAL" }));
+                }}
+                className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
+                  deliveryMode === "rapida" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
+                }`}
+              >
+                <span>Sem</span>
+                <span>Endereço</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDeliveryMode("normal")}
+                className={`flex-1 px-8 py-2.5 rounded-xl text-sm font-bold transition-all flex flex-col items-center justify-center leading-[1.1] gap-0.5 ${
+                  deliveryMode === "normal" ? "bg-primary text-primary-foreground shadow-md" : "text-muted-foreground hover:bg-secondary/60"
+                }`}
+              >
+                <span>Com</span>
+                <span>Endereço</span>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* CONTADOR DE ENTREGAS (Somente no modo Rápida e criação) */}
         {!editId && deliveryMode === "rapida" && (
