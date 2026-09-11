@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { Toaster } from "sonner";
+import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 
@@ -156,7 +156,7 @@ function RootComponent() {
         <AuthProvider>
           <StoreNotifications />
           <Outlet />
-          <Toaster richColors position="top-right" theme="system" />
+          <Toaster richColors position="top-right" theme="system" duration={3500} closeButton />
         </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
