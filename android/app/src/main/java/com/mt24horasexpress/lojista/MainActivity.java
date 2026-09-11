@@ -1,4 +1,4 @@
-package com.epraja.lojista;
+package com.mt24horasexpress.lojista;
 
 import com.getcapacitor.BridgeActivity;
 
