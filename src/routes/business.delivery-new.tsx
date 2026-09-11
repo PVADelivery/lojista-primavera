@@ -49,6 +49,7 @@ function NewDeliveryPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [busy, setBusy] = useState(false);
+  const { edit: editId } = Route.useSearch();
   // Flag de controle: define se a funcionalidade de Entrega Rápida ("Sem Endereço") está ativa no painel do lojista.
   // Mantido pronto e 100% preservado caso precise voltar futuramente: basta mudar para true.
   const ENABLE_QUICK_DELIVERY = false;
