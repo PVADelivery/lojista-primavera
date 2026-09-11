@@ -80,12 +80,12 @@ function LoginPage() {
           <form onSubmit={submit} className="mt-8 space-y-4">
             <div className="space-y-2">
               <Label htmlFor="em">E-mail</Label>
-              <Input id="em" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl h-12" />
+              <Input id="em" type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="rounded-xl h-12" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="pw">Senha</Label>
               <div className="relative">
-                <Input id="pw" type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="rounded-xl h-12 pr-10" />
+                <Input id="pw" type={showPassword ? "text" : "password"} autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} className="rounded-xl h-12 pr-10" />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
