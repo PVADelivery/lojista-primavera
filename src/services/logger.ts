@@ -238,7 +238,14 @@ export function initializeGlobalErrorHandlers(appName: string) {
             return;
           }
 
-          if (msgStr && typeof msgStr === "string" && !msgStr.includes("cancelada pelo usuário")) {
+          const isIgnored =
+            !msgStr ||
+            msgStr.includes("cancelada pelo usuário") ||
+            lower.includes("failed to fetch") ||
+            lower.includes("networkerror") ||
+            lower.includes("network request failed");
+
+          if (typeof msgStr === "string" && !isIgnored) {
             reportErrorToTelegram({
               error_message: `[Erro na Tela] ${msgStr}`,
               url: window.location.href,
