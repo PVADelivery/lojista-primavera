@@ -1464,6 +1464,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Filtrar o status diretamente na consulta do Supabase (`.in("status", pendingStatuses)`) e adicionar cláusulas `.limit(40)` e `.limit(20)`.
   2. Eliminar os loops de polling (`refetchInterval` e `setInterval`), confiando exclusivamente nos canais de tempo real do Supabase Realtime (WebSockets) que já sincronizam instantaneamente inserções e atualizações.
   3. Implementar cache em memória com TTL de 5 minutos para regras de preços e regiões, evitando chamadas repetidas a tabelas estáticas.
+---
 
-
+### 141. App do Entregador Só Notificava ao Abrir o App (Congelamento em Segundo Plano e Tela Apagada)
+* **Sintoma**: O entregador só recebia o toque sonoro e a notificação de nova entrega quando desbloqueava o celular e abria o aplicativo. Com o celular bloqueado no bolso ou com outro app aberto, o aparelho permanecia em silêncio.
+* **Causa Raiz**:
+  1. O serviço em primeiro plano (`DeliveryBackgroundService.java`) não adquiria `PowerManager.WakeLock` (`PARTIAL_WAKE_LOCK`) nem `WifiManager.WifiLock` (`WIFI_MODE_FULL_HIGH_PERF`). Quando a tela do celular apagava, o kernel do Android/Linux suspendia a CPU para economizar bateria (Doze Mode), congelando o `ScheduledExecutorService` do polling.
+  2. Ausência de `onTaskRemoved(Intent rootIntent)` e `android:stopWithTask="false"` no `AndroidManifest.xml`. Quando o usuário limpava o app da tela de recentes, o serviço em segundo plano era finalizado pelo sistema operacional.
+  3. Quando a corrida era recém-criada (`elapsedSeconds < 120`), o serviço realizava `continue;` sem agendar um alarme exato no `AlarmManager`. Ao chegar nos 120 segundos, como o aparelho estava dormindo, nada acordava a CPU para tocar o som e postar a notificação.
+  4. A Edge Function `send-push` retornava `404 NOT FOUND` no Supabase, de modo que nenhum push FCM de alta prioridade chegava do servidor para despertar o celular remotamente.
+* **Solução Padrão**:
+  1. Em `DeliveryBackgroundService.java`, adquirir `PowerManager.PARTIAL_WAKE_LOCK` e `WifiManager.WIFI_MODE_FULL_HIGH_PERF` com `setReferenceCounted(false)`, impedindo a suspensão da CPU e do Wi-Fi.
+  2. Implementar `onTaskRemoved` com reinicialização imediata via `startForegroundService(restart)` e declarar `android:stopWithTask="false"` no manifest.
+  3. Quando uma corrida detectada possuir `elapsedSeconds < 120`, calcular os milissegundos restantes (`delayMs = (120 - elapsedSeconds) * 1000L`) e agendar despertar exato no `AlarmManager` (`setExactAndAllowWhileIdle(RTC_WAKEUP)`) através do `MyFirebaseMessagingService.scheduleAlarmManager`.
+  4. No disparo do alarme (`DeliveryAlarmReceiver.java`), acender a tela com `PowerManager.SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP`, disparar áudio contínuo (`NativeSoundPlayer.playDeliveryAlert`) e postar a notificação na bandeja da central do Android.
+  5. Adicionar Watchdog periódico a cada 30 segundos no `AlarmManager` para garantir o ciclo inquebrável de polling mesmo sob gerenciadores agressivos de economia de bateria (Samsung One UI, Xiaomi).
+  6. Recompilar o APK de produção e salvar única e exclusivamente em `apks/mt24horas-entregador-release.apk`.
 
