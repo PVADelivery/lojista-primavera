@@ -257,9 +257,9 @@ function NewDeliveryPage() {
       try {
         let delQuery = supabase
           .from("deliveries")
-          .select("customer_id, customer_name, customer_phone, customer_cpf, address, region_id")
+          .select("customer_id, customer_name, customer_phone, customer_cpf, address, customer_address_number, customer_neighborhood, customer_address_complement, region_id")
           .order("created_at", { ascending: false })
-          .limit(20);
+          .limit(30);
 
         if (company?.id) {
           delQuery = delQuery.eq("company_id", company.id);
@@ -286,9 +286,12 @@ function NewDeliveryPage() {
                 phone: d.customer_phone,
                 cpf: d.customer_cpf,
                 region_id: d.region_id || "none",
-                addresses: d.address ? [{
+                addresses: (d.address || d.customer_address_number) ? [{
                   id: "del-addr",
-                  street: d.address,
+                  street: d.address || "",
+                  number: d.customer_address_number || "",
+                  neighborhood: d.customer_neighborhood || "",
+                  complement: d.customer_address_complement || "",
                   region_id: d.region_id || "none"
                 }] : []
               });
@@ -343,11 +346,11 @@ function NewDeliveryPage() {
         console.warn("Erro ao buscar orders em autocomplete:", e);
       }
 
-      // 3. Busca na tabela customers (Clientes Salvos)
+      // 3. Busca na tabela customers (Clientes Salvos) com seus endereços
       try {
         let custQuery = supabase
           .from("customers")
-          .select("id, name, phone, cpf")
+          .select("id, name, phone, cpf, addresses(id, street, number, complement, neighborhood, region_id, label, latitude, longitude)")
           .limit(20);
 
         if (phoneOrCpfClean.length >= 2 && safeClean) {
@@ -366,12 +369,16 @@ function NewDeliveryPage() {
             const key = (c.name || "").toLowerCase().trim() || c.phone;
             if (key) {
               const existing = combinedMap.get(key);
+              const addrList = Array.isArray(c.addresses) ? c.addresses : [];
               if (existing) {
                 if (c.cpf && !existing.cpf) existing.cpf = c.cpf;
                 if (c.phone && !existing.phone) existing.phone = c.phone;
                 existing.id = c.id;
+                if (addrList.length > 0 && (!existing.addresses || existing.addresses.length === 0)) {
+                  existing.addresses = addrList;
+                }
               } else {
-                combinedMap.set(key, { ...c, addresses: [] });
+                combinedMap.set(key, { ...c, addresses: addrList });
               }
             }
           });
@@ -934,7 +941,8 @@ function NewDeliveryPage() {
       // 1. Auto-save / Auto-update Customer in the database
       const isUuid = (val: string | null) => !!val && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
       let custId = isUuid(selectedCustomerId) ? selectedCustomerId : null;
-      const phoneClean = f.customer_phone.replace(/\D/g, "");
+      const rawPhone = f.customer_phone.trim();
+      const phoneClean = rawPhone.replace(/\D/g, "");
 
       if (f.customer_name.trim()) {
         let existingCust: { id: string } | null = null;
@@ -942,7 +950,7 @@ function NewDeliveryPage() {
           const { data } = await supabase
             .from("customers")
             .select("id")
-            .eq("phone", phoneClean)
+            .or(`phone.eq.${phoneClean},phone.eq.${rawPhone}`)
             .maybeSingle();
           existingCust = data;
         }
@@ -958,20 +966,18 @@ function NewDeliveryPage() {
 
         const custPayload: any = {
           name: f.customer_name.trim(),
-          phone: phoneClean || null,
+          phone: rawPhone || phoneClean || null,
           cpf: f.customer_cpf.replace(/\D/g, "") || null,
         };
 
         try {
           if (existingCust) {
-            const { data: updatedCust, error: uErr } = await supabase
+            custId = existingCust.id; // Garante o ID do cliente existente para gravar endereço
+            const { error: uErr } = await supabase
               .from("customers")
               .update(custPayload)
-              .eq("id", existingCust.id)
-              .select("id")
-              .maybeSingle();
+              .eq("id", existingCust.id);
             if (uErr) console.warn("[Update Customer Error (non-blocking)]", uErr);
-            if (updatedCust) custId = updatedCust.id;
           } else {
             const { data: insertedCust, error: iErr } = await supabase
               .from("customers")
@@ -988,28 +994,35 @@ function NewDeliveryPage() {
 
       // 2. Save Address if customer exists and in normal mode
       if (custId && f.address.trim() && deliveryMode === "normal") {
-        const { data: existingAddress } = await supabase
-          .from("addresses")
-          .select("id")
-          .eq("customer_id", custId)
-          .eq("street", f.address.trim())
-          .eq("number", f.customer_address_number.trim())
-          .maybeSingle();
+        try {
+          const houseNo = f.customer_address_number.trim() || "S/N";
+          const { data: existingAddress } = await supabase
+            .from("addresses")
+            .select("id")
+            .eq("customer_id", custId)
+            .eq("street", f.address.trim())
+            .eq("number", houseNo)
+            .maybeSingle();
 
-        if (!existingAddress) {
-          await supabase.from("addresses").insert([
-            {
-              customer_id: custId,
-              street: f.address.trim(),
-              number: f.customer_address_number.trim(),
-              complement: f.customer_address_complement.trim() || null,
-              neighborhood: f.customer_neighborhood.trim() || null,
-              latitude: dropoffCoords ? dropoffCoords[1] : null,
-              longitude: dropoffCoords ? dropoffCoords[0] : null,
-              region_id: f.region_id === "none" ? null : f.region_id,
-              label: f.address_label || "Casa",
-            },
-          ]);
+          if (!existingAddress) {
+            await supabase.from("addresses").insert([
+              {
+                customer_id: custId,
+                street: f.address.trim(),
+                number: houseNo,
+                complement: f.customer_address_complement.trim() || null,
+                neighborhood: f.customer_neighborhood.trim() || null,
+                city: "Primavera do Leste",
+                state: "MT",
+                latitude: dropoffCoords ? dropoffCoords[1] : null,
+                longitude: dropoffCoords ? dropoffCoords[0] : null,
+                region_id: f.region_id === "none" ? null : f.region_id,
+                label: f.address_label || "Casa",
+              },
+            ]);
+          }
+        } catch (addrErr) {
+          console.warn("[Address Auto-Save Error (non-blocking)]", addrErr);
         }
       }
 
@@ -1023,13 +1036,15 @@ function NewDeliveryPage() {
           p_payload: {
             delivery_type: f.delivery_type || "NORMAL",
             customer_id: custId || null,
-            customer_name: f.customer_name,
-            customer_phone: f.customer_phone,
+            customer_name: f.customer_name.trim(),
+            customer_phone: f.customer_phone.trim(),
             customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
             address: fullAddress,
-            customer_address_number: deliveryMode === "rapida" ? "S/N" : f.customer_address_number,
-            customer_neighborhood: f.customer_neighborhood,
-            customer_address_complement: f.customer_address_complement,
+            dropoff_address: fullAddress,
+            delivery_address: fullAddress,
+            customer_address_number: deliveryMode === "rapida" ? "S/N" : (f.customer_address_number.trim() || "S/N"),
+            customer_neighborhood: f.customer_neighborhood.trim() || null,
+            customer_address_complement: f.customer_address_complement.trim() || null,
             payment_method: f.is_paid ? "pago" : f.payment_method,
             order_value: f.is_paid ? 0 : Number(f.order_value || 0),
             change_for: f.is_paid ? 0 : Number(f.change_for || 0),
@@ -1080,13 +1095,15 @@ function NewDeliveryPage() {
             company_id: company.id,
             customer_id: custId || null,
             short_id: shortId,
-            customer_name: f.customer_name,
-            customer_phone: f.customer_phone,
+            customer_name: f.customer_name.trim(),
+            customer_phone: f.customer_phone.trim(),
             customer_cpf: f.customer_cpf.replace(/\D/g, "") || null,
             address: fullAddress,
-            customer_address_number: deliveryMode === "rapida" ? "S/N" : f.customer_address_number,
-            customer_neighborhood: f.customer_neighborhood,
-            customer_address_complement: f.customer_address_complement,
+            dropoff_address: fullAddress,
+            delivery_address: fullAddress,
+            customer_address_number: deliveryMode === "rapida" ? "S/N" : (f.customer_address_number.trim() || "S/N"),
+            customer_neighborhood: f.customer_neighborhood.trim() || null,
+            customer_address_complement: f.customer_address_complement.trim() || null,
             payment_method: f.is_paid ? "pago" : f.payment_method,
             order_value: f.is_paid ? 0 : Number(f.order_value || 0),
             change_for: f.is_paid ? 0 : Number(f.change_for || 0),

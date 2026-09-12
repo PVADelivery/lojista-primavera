@@ -99,26 +99,42 @@ function BusinessCustomersPage() {
       const cpf = source.cpf || source.customer_cpf || null;
       if (!name && !phone) return;
 
-      const stableKey = source.customer_id || source.id || phone || name.toLowerCase();
+      const phoneDigits = phone ? String(phone).replace(/\D/g, "") : "";
+      // Chave única: customer_id > telefone limpo > nome normalizado
+      const stableKey = source.customer_id || (phoneDigits.length >= 8 ? phoneDigits : null) || name.toLowerCase();
       const id = String(stableKey);
       const existing = customerMap.get(id);
       const record: CustomerRecord = existing || {
-        id,
+        id: source.customer_id || id,
         name: name || "Cliente",
-        phone,
-        cpf,
+        phone: phone || undefined,
+        cpf: cpf || undefined,
         total_orders: 0,
         last_order_at: undefined,
         addresses: [] as string[],
         phones: phone ? [phone] : ([] as string[])
       };
 
-      record.total_orders += 1;
-      if (name && record.name === "Cliente") record.name = name;
+      if (source.is_order) {
+        record.total_orders += 1;
+      }
+      if (name && (record.name === "Cliente" || record.name.length < name.length)) record.name = name;
       if (phone && !record.phones.includes(phone)) record.phones.push(phone);
       if (!record.phone && phone) record.phone = phone;
       if (!record.cpf && cpf) record.cpf = cpf;
-      if (source.address && !record.addresses.includes(source.address)) record.addresses.push(source.address);
+
+      let fullAddr = (source.address || "").trim();
+      if (source.customer_address_number && source.customer_address_number !== "S/N" && !fullAddr.includes(source.customer_address_number)) {
+        fullAddr = `${fullAddr}, nº ${source.customer_address_number}`;
+      }
+      if (source.customer_neighborhood && !fullAddr.includes(source.customer_neighborhood)) {
+        fullAddr = `${fullAddr} - ${source.customer_neighborhood}`;
+      }
+
+      if (fullAddr && !record.addresses.includes(fullAddr)) {
+        record.addresses.push(fullAddr);
+      }
+
       if (source.created_at && (!record.last_order_at || new Date(source.created_at) > new Date(record.last_order_at))) {
         record.last_order_at = source.created_at;
       }
@@ -127,47 +143,70 @@ function BusinessCustomersPage() {
     };
 
     try {
-      // 1. Busca entregas da empresa para extrair clientes reais
+      // 1. Busca entregas da empresa para extrair clientes reais com endereço completo e número
       const { data: dbDeliveries } = await supabase
         .from("deliveries")
-        .select("id, customer_id, customer_name, customer_phone, customer_cpf, address, created_at")
+        .select("id, customer_id, customer_name, customer_phone, customer_cpf, address, customer_address_number, customer_neighborhood, created_at")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
-      (dbDeliveries || []).forEach((d: any) => upsertCustomer(d));
+      (dbDeliveries || []).forEach((d: any) => upsertCustomer({ ...d, is_order: true }));
 
       // 2. Busca pedidos (orders) da empresa para extrair clientes
       const { data: dbOrders } = await supabase
         .from("orders")
-        .select("id, customer_name, delivery_address, created_at, customers(phone)")
+        .select("id, customer_name, delivery_address, created_at, customers(id, phone)")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
 
       (dbOrders || []).forEach((o: any) => {
+        const addrStr = typeof o.delivery_address === "string" ? o.delivery_address : `${o.delivery_address?.street || ""}${o.delivery_address?.number ? `, nº ${o.delivery_address.number}` : ""}${o.delivery_address?.neighborhood ? ` - ${o.delivery_address.neighborhood}` : ""}`;
         upsertCustomer({
-          id: o.id,
+          customer_id: o.customers?.id,
           customer_name: o.customer_name,
           customer_phone: o.customers?.phone || "",
-          address: typeof o.delivery_address === "string" ? o.delivery_address : o.delivery_address?.street || "",
-          created_at: o.created_at
+          address: addrStr,
+          created_at: o.created_at,
+          is_order: true,
         });
       });
 
-      // 3. Busca lista geral de cadastros na tabela customers
+      // 3. Busca lista geral de cadastros na tabela customers com seus endereços
       const { data: dbCustomers } = await supabase
         .from("customers")
-        .select("*")
-        .limit(100);
+        .select("id, name, phone, cpf, created_at, addresses(street, number, neighborhood, complement)")
+        .limit(200);
 
       (dbCustomers || []).forEach((c: any) => {
-        upsertCustomer({
-          id: c.id,
-          name: c.name,
-          phone: c.phone,
-          cpf: c.cpf,
-          created_at: c.created_at,
-          address: "",
-        });
+        const addrList = (c.addresses || []).map((a: any) => {
+          const num = a.number ? `, nº ${a.number}` : "";
+          const neigh = a.neighborhood ? ` - ${a.neighborhood}` : "";
+          return `${a.street}${num}${neigh}`.trim();
+        }).filter(Boolean);
+
+        if (addrList.length > 0) {
+          addrList.forEach((addrStr: string) => {
+            upsertCustomer({
+              customer_id: c.id,
+              name: c.name,
+              phone: c.phone,
+              cpf: c.cpf,
+              created_at: c.created_at,
+              address: addrStr,
+              is_order: false,
+            });
+          });
+        } else {
+          upsertCustomer({
+            customer_id: c.id,
+            name: c.name,
+            phone: c.phone,
+            cpf: c.cpf,
+            created_at: c.created_at,
+            address: "",
+            is_order: false,
+          });
+        }
       });
 
       setCustomers(Array.from(customerMap.values()).sort((a, b) => a.name.localeCompare(b.name)));
