@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import OrderDetailModal from "@/components/business/OrderDetailModal";
 import { useAudioAlert } from "@/hooks/useAudioAlert";
 import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
+import { StoreOverlay } from "@/plugins/StoreOverlay";
 
 export const Route = createFileRoute("/business/orders")({
   component: OrdersPage,
@@ -255,6 +256,7 @@ function OrdersPage() {
       } else {
         toast.success(`Pedido movido para ${STATUS_LABELS[allowedNextStatus]}`);
       }
+      StoreOverlay.dismissOrderAlert({ orderId }).catch(() => {});
       qc.invalidateQueries({ queryKey: ["orders"] });
       return true;
     } catch (err) {
@@ -269,6 +271,7 @@ function OrdersPage() {
     if (!confirm("Tem certeza que deseja cancelar este pedido?")) return;
     if (!acquireLock(orderId)) return;
     await supabase.from("orders").update({ status: "cancelled" }).eq("id", orderId);
+    StoreOverlay.dismissOrderAlert({ orderId }).catch(() => {});
     qc.invalidateQueries({ queryKey: ["orders"] });
     toast.error("Pedido cancelado.");
     releaseLock(orderId);

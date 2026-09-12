@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from "react";
 import { Capacitor } from "@capacitor/core";
+import { StoreOverlay } from "@/plugins/StoreOverlay";
 
 const ALERT_SOUND_URL = "/ring.mp3";
 
@@ -114,6 +115,10 @@ export function useAudioAlert() {
     playingRef.current = false;
     setIsPlaying(false);
 
+    if (Capacitor.isNativePlatform()) {
+      StoreOverlay.stopNativeAudio().catch(() => {});
+    }
+
     if (globalAudio) {
       try {
         globalAudio.pause();
@@ -139,6 +144,10 @@ export function useAudioAlert() {
     isAlertActiveGlobal = true;
     playingRef.current = true;
     setIsPlaying(true);
+
+    if (Capacitor.isNativePlatform()) {
+      StoreOverlay.playNativeAudio().catch(() => {});
+    }
 
     const ctx = getAudioContext();
     if (ctx && ctx.state === "suspended") {

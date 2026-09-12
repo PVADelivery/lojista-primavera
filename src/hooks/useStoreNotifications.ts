@@ -8,6 +8,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { toast } from "sonner";
 
 import { useAudioAlert } from "./useAudioAlert";
+import { StoreOverlay } from "@/plugins/StoreOverlay";
 
 export function useStoreNotifications() {
   const { user } = useAuth();
@@ -108,6 +109,17 @@ export function useStoreNotifications() {
       }
 
       if (!companyId) return;
+
+      if (Capacitor.isNativePlatform()) {
+        try {
+          const { data: sessData } = await supabase.auth.getSession();
+          StoreOverlay.saveStoreContext({
+            companyId,
+            userId: user.id,
+            userToken: sessData?.session?.access_token || "",
+          }).catch(() => {});
+        } catch {}
+      }
 
       // Confere se já há pedidos pendentes aguardando aceite ao abrir a tela
       try {
