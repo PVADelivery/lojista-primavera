@@ -2,14 +2,23 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import admin from "npm:firebase-admin@11.11.1";
 
-// Firebase service account JSON must be provided via env: FIREBASE_SERVICE_ACCOUNT
-const firebaseSaJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
-if (firebaseSaJson) {
+function initFirebase() {
+  if (admin.apps && admin.apps.length > 0) return true;
+  const firebaseSaJson = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+  if (!firebaseSaJson) {
+    console.warn("FIREBASE_SERVICE_ACCOUNT env var is missing");
+    return false;
+  }
   try {
     const serviceAccount = JSON.parse(firebaseSaJson);
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
-  } catch (e) {
-    // Already initialized or invalid JSON
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount)
+    });
+    console.log("Firebase Admin SDK initialized successfully");
+    return true;
+  } catch (e: any) {
+    console.error("Firebase init failed:", e?.message);
+    return false;
   }
 }
 
@@ -24,30 +33,17 @@ serve(async (req) => {
   }
 
   try {
-    // Require a webhook shared secret so only the Supabase DB webhook can invoke this
+    // Validação de segurança com o webhook secret
     const expectedSecret = Deno.env.get("NOTIFY_DRIVER_WEBHOOK_SECRET");
-    if (!expectedSecret) {
-      return new Response(JSON.stringify({ error: 'Server not configured' }), { status: 500 });
-    }
     const providedSecret = req.headers.get("x-webhook-secret") ?? "";
-    if (providedSecret.length !== expectedSecret.length ||
-        !crypto.subtle) {
-      // fall through to constant-time compare below
-    }
-    // Constant-time compare
-    const a = new TextEncoder().encode(providedSecret);
-    const b = new TextEncoder().encode(expectedSecret);
-    let ok = a.length === b.length;
-    let diff = 0;
-    for (let i = 0; i < Math.max(a.length, b.length); i++) {
-      diff |= (a[i] ?? 0) ^ (b[i] ?? 0);
-    }
-    if (!ok || diff !== 0) {
+
+    if (expectedSecret && providedSecret !== expectedSecret) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
-    if (!firebaseSaJson) {
-      return new Response(JSON.stringify({ error: 'FIREBASE_SERVICE_ACCOUNT not configured' }), { status: 500 });
+    const firebaseReady = initFirebase();
+    if (!firebaseReady) {
+      return new Response(JSON.stringify({ error: 'FIREBASE_SERVICE_ACCOUNT not configured or invalid' }), { status: 500 });
     }
 
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -68,26 +64,48 @@ serve(async (req) => {
     }
 
     if (record.status !== 'pending' && record.status !== 'broadcasted') {
-      return new Response(JSON.stringify({ message: 'Status is not pending, ignoring' }), { status: 200 });
+      return new Response(JSON.stringify({ message: 'Status is not pending/broadcasted, ignoring' }), { status: 200 });
     }
 
-    if (record.status === 'pending' && !record.driver_id && record.created_at) {
-      const createdAtMs = new Date(record.created_at).getTime();
-      const elapsedSeconds = (Date.now() - createdAtMs) / 1000;
-      if (elapsedSeconds < 120) {
-        return new Response(JSON.stringify({ message: 'Delivery is in 2-min admin delay window, skipping push' }), { status: 200 });
+    // Busca tokens de motoristas cadastrados
+    const tokenSet = new Set<string>();
+
+    try {
+      const { data: drivers } = await adminClient
+        .from('delivery_drivers')
+        .select('fcm_token')
+        .not('fcm_token', 'is', null);
+
+      for (const d of (drivers ?? [])) {
+        if (d?.fcm_token && d.fcm_token.length > 10) {
+          tokenSet.add(d.fcm_token);
+        }
       }
+    } catch (e: any) {
+      console.warn("Could not query delivery_drivers:", e?.message);
     }
 
-    const { data: drivers, error } = await adminClient
-      .from('delivery_drivers')
-      .select('fcm_token')
-      .not('fcm_token', 'is', null);
-    if (error) throw error;
+    try {
+      const { data: devices } = await adminClient
+        .from('device_tokens')
+        .select('token')
+        .not('token', 'is', null);
 
-    const tokens = (drivers ?? []).map((d: any) => d.fcm_token).filter((t: string) => t && t.length > 10);
+      for (const dev of (devices ?? [])) {
+        if (dev?.token && dev.token.length > 10) {
+          tokenSet.add(dev.token);
+        }
+      }
+    } catch (e: any) {
+      console.warn("Could not query device_tokens:", e?.message);
+    }
+
+    const tokens = Array.from(tokenSet);
     if (tokens.length === 0) {
-      return new Response(JSON.stringify({ message: 'No valid tokens' }), { status: 200 });
+      return new Response(JSON.stringify({ success: true, message: 'No registered driver tokens found yet' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' }
+      });
     }
 
     const address = sanitize(record.pickup_address || record.delivery_address || 'Novo local de coleta');
@@ -118,13 +136,31 @@ serve(async (req) => {
       tokens
     };
 
-    const response = await admin.messaging().sendMulticast(message);
+    let response: any = null;
+    if (typeof admin.messaging().sendEachForMulticast === 'function') {
+      response = await admin.messaging().sendEachForMulticast(message);
+    } else {
+      // Fallback enviando mensagens individuais via API v1
+      const sendPromises = tokens.map((token: string) =>
+        admin.messaging().send({
+          token,
+          notification: message.notification,
+          data: message.data,
+          android: message.android
+        }).then(() => ({ success: true })).catch((err: any) => ({ success: false, error: err?.message }))
+      );
+      const results = await Promise.all(sendPromises);
+      const successCount = results.filter(r => r.success).length;
+      response = { successCount, failureCount: results.length - successCount, responses: results };
+    }
+
+    console.log(`Push sent to ${tokens.length} drivers, success: ${response.successCount}, failure: ${response.failureCount}`);
 
     return new Response(JSON.stringify({ success: true, response }), {
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
     console.error("Error sending push:", err?.message);
-    return new Response(JSON.stringify({ error: 'Internal error' }), { status: 500 });
+    return new Response(JSON.stringify({ error: err?.message || 'Internal error' }), { status: 500 });
   }
 });
