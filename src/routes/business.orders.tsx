@@ -468,6 +468,29 @@ function OrdersPage() {
       if (updateErr) {
         console.error("[Orders] Erro ao atualizar status do pedido para in_route:", updateErr);
       }
+
+      // Disparo imediato de notificação push para os entregadores
+      try {
+        if (deliveryRecordId) {
+          supabase.functions.invoke("notify-driver", {
+            body: {
+              type: "INSERT",
+              record: {
+                id: deliveryRecordId,
+                company_id: company.id,
+                company_name: company.name,
+                pickup_address: company.address,
+                delivery_address: order.delivery_address,
+                price: fee,
+                status: "pending",
+              },
+            },
+            headers: {
+              "x-webhook-secret": "mt24horas_push_secret_2026",
+            },
+          }).catch(() => {});
+        }
+      } catch {}
       
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["pending-orders"] });

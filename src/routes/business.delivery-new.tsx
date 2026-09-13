@@ -1150,6 +1150,29 @@ function NewDeliveryPage() {
         throw deliveryWrite.error;
       }
 
+      // Disparo imediato de notificação push para todos os entregadores
+      try {
+        const delId = deliveryWrite?.data?.id || (editId || null);
+        if (delId) {
+          supabase.functions.invoke("notify-driver", {
+            body: {
+              type: editId ? "UPDATE" : "INSERT",
+              record: {
+                id: delId,
+                company_id: company.id,
+                company_name: company.name,
+                pickup_address: company.address,
+                delivery_address: fullAddress,
+                price: Number(f.value || 0),
+                status: "pending",
+              },
+            },
+            headers: {
+              "x-webhook-secret": "mt24horas_push_secret_2026",
+            },
+          }).catch(() => {});
+        }
+      } catch {}
 
       toast.success(editId ? "Corrida atualizada com sucesso!" : "Corrida solicitada com sucesso!");
       qc.invalidateQueries({ queryKey: ["deliveries"] });

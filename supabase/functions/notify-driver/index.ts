@@ -33,11 +33,12 @@ serve(async (req) => {
   }
 
   try {
-    // Validação de segurança com o webhook secret
+    // Validação de segurança com o webhook secret ou token de autorização
     const expectedSecret = Deno.env.get("NOTIFY_DRIVER_WEBHOOK_SECRET");
     const providedSecret = req.headers.get("x-webhook-secret") ?? "";
+    const authHeader = req.headers.get("authorization") ?? "";
 
-    if (expectedSecret && providedSecret !== expectedSecret) {
+    if (expectedSecret && providedSecret !== expectedSecret && !authHeader.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
     }
 
@@ -114,20 +115,42 @@ serve(async (req) => {
       });
     }
 
-    const address = sanitize(record.pickup_address || record.delivery_address || 'Novo local de coleta');
+    let storeName = sanitize(record.company_name || record.store_name || '');
+    let pickup = sanitize(record.pickup_address || record.origin_address || '');
+    let dropoff = sanitize(record.delivery_address || record.address || record.dropoff_address || '');
+
+    if ((!storeName || !pickup) && record.company_id) {
+      try {
+        const { data: comp } = await adminClient
+          .from('companies')
+          .select('name, address')
+          .eq('id', record.company_id)
+          .maybeSingle();
+        if (comp) {
+          if (!storeName && comp.name) storeName = sanitize(comp.name);
+          if (!pickup && comp.address) pickup = sanitize(comp.address);
+        }
+      } catch (e: any) {
+        console.warn("Could not query company:", e?.message);
+      }
+    }
+
+    const notifTitle = storeName ? `🏬 ${storeName}` : 'MT 24 Horas Express - Nova Corrida!';
+    const notifBody = pickup ? `Retirada: ${pickup}` : (dropoff ? `Entrega: ${dropoff}` : 'Nova corrida disponível');
     const deliveryTag = `delivery_${record.id}`;
 
     const message = {
       notification: {
-        title: 'MT 24 Horas Express - Nova Corrida!',
-        body: `Retirada: ${address}`
+        title: notifTitle,
+        body: notifBody
       },
       data: {
         type: 'delivery',
         deliveryId: String(record.id),
-        pickup: String(record.pickup_address || ''),
-        dropoff: String(record.delivery_address || ''),
-        fee: String(record.price || record.value || '8,80')
+        storeName: String(storeName || ''),
+        pickup: String(pickup || ''),
+        dropoff: String(dropoff || ''),
+        fee: String(record.price || record.value || record.delivery_fee || '8,80')
       },
       android: {
         priority: 'high' as const,
