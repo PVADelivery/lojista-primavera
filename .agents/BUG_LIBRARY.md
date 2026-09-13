@@ -1477,7 +1477,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Em `DeliveryBackgroundService.java`, adquirir `PowerManager.PARTIAL_WAKE_LOCK` e `WifiManager.WIFI_MODE_FULL_HIGH_PERF` com `setReferenceCounted(false)`, impedindo a suspensão da CPU e do Wi-Fi.
   2. Implementar `onTaskRemoved` com reinicialização imediata via `startForegroundService(restart)` e declarar `android:stopWithTask="false"` no manifest.
   3. Quando uma corrida detectada possuir `elapsedSeconds < 120`, calcular os milissegundos restantes (`delayMs = (120 - elapsedSeconds) * 1000L`) e agendar despertar exato no `AlarmManager` (`setExactAndAllowWhileIdle(RTC_WAKEUP)`) através do `MyFirebaseMessagingService.scheduleAlarmManager`.
-  4. No disparo do alarme (`DeliveryAlarmReceiver.java`), acender a tela com `PowerManager.SCREEN_BRIGHT_WAKE_LOCK | ACQUIRE_CAUSES_WAKEUP`, disparar áudio contínuo (`NativeSoundPlayer.playDeliveryAlert`) e postar a notificação na bandeja da central do Android.
-  5. Adicionar Watchdog periódico a cada 30 segundos no `AlarmManager` para garantir o ciclo inquebrável de polling mesmo sob gerenciadores agressivos de economia de bateria (Samsung One UI, Xiaomi).
-  6. Recompilar o APK de produção e salvar única e exclusivamente em `apks/mt24horas-entregador-release.apk`.
+### 142. Skeletons Infinitos no App do Entregador e Lentidão Geral nos Sistemas (`driver.index.tsx`, `deliveries.ts`, `companies.functions.ts`)
+* **Sintoma**: O app do entregador ficava travado na tela inicial exibindo dois cartões de carregamento (skeletons bege) sob "Entregas disponíveis" por 30 a 60 segundos ou indefinidamente, e todos os sistemas apresentavam lentidão generalizada de resposta.
+* **Causa Raiz**:
+  1. A função `resolveDeliveryCompanies` chamava `getCompanyNames`, uma `createServerFn` do `@tanstack/react-start` que requer um servidor SSR rodando. No app Android nativo (Capacitor), não há servidor local, fazendo a requisição HTTP travar por dezenas de segundos até estourar timeout ou falhar com `TypeError: Failed to fetch`.
+  2. A função `fetchAvailableDeliveries` continha a condição `if (!q1.error && q1.data && q1.data.length > 0)`: quando a lista de entregas estava vazia (`length === 0`), ela executava a consulta secundária `q2` sequencialmente, dobrando o tempo de requisição.
+  3. A consulta `available` no `driver.index.tsx` utilizava o objeto mutável `driverInfo` como parte da `queryKey`. A cada atualização de estado ou render do perfil, a referência do objeto mudava, invalidando o cache e forçando novo carregamento com skeletons na tela.
+  4. As consultas de corridas (`availableRides` e `activeRides`) e listeners de janela de foco rodavam concorrentemente mesmo quando o entregador estava em modo de entrega, bombardeando o banco de dados com requisições simultâneas em 3G/4G/5G.
+  5. No `painel-primavera`, a função `useDeliveryCounts` realizava download de até 10.000 registros para contagem em memória a cada refresh.
+  6. No `lojista-primavera-1`, as consultas estáticas de regiões, bairros e regras de preço não possuíam `staleTime`, disparando requisições repetidas a cada troca de tela.
+* **Solução Padrão**:
+  1. Eliminar a chamada `getCompanyNames` (`createServerFn`) e utilizar junção direta `.select("*, companies(id, name, phone, address)")` combinada com cache em memória `companyInfoCache` para resolução instantânea (<1ms).
+  2. Ajustar a verificação de `q1` para aceitar `!q1.error && q1.data`, evitando queries duplicadas desnecessárias quando não há entregas.
+  3. Estabilizar a `queryKey` em `driver.index.tsx` para `["deliveries", "available", driverInfo?.vehicle_type || "all"]` e adicionar `placeholderData: (prev) => prev` e `staleTime: 15000` para eliminar qualquer piscar de skeletons.
+  4. Condicionar `availableRides` e `activeRides` estritamente ao modo corrida (`enabled: mode === "ride"`).
+  5. No `painel-primavera`, limitar a amostragem de `useDeliveryCounts` para 1000 registros e aplicar `staleTime: 60000`.
+  6. No `lojista-primavera-1`, aplicar `staleTime: 5 * 60 * 1000` nas consultas estáticas de regiões, bairros e regras de preço.
+  7. Recompilar o APK/AAB do entregador salvando em `apks/mt24horas-entregador-release.apk` e `mt24horas-entregador-release.aab`.
 
