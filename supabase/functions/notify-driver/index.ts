@@ -63,52 +63,67 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: 'No record found' }), { status: 400 });
     }
 
-    if (record.status !== 'pending' && record.status !== 'broadcasted') {
+    const status = String(record.status || '').toLowerCase();
+    if (status !== 'pending' && status !== 'broadcasted') {
       return new Response(JSON.stringify({ message: 'Status is not pending/broadcasted, ignoring' }), { status: 200 });
     }
 
-    // Busca tokens de motoristas cadastrados
-    const tokenSet = new Set<string>();
-
-    try {
-      const { data: drivers } = await adminClient
-        .from('delivery_drivers')
-        .select('fcm_token')
-        .not('fcm_token', 'is', null);
-
-      for (const d of (drivers ?? [])) {
-        if (d?.fcm_token && d.fcm_token.length > 10) {
-          tokenSet.add(d.fcm_token);
-        }
+    // REGRA DE OURO: Janela do Admin (2 minutos = 120s)
+    // Se for pendente geral (sem motorista atribuído), NÃO NOTIFICA até passar os 120s!
+    if (status === 'pending' && !record.driver_id) {
+      const createdAtMs = record.created_at ? new Date(record.created_at).getTime() : Date.now();
+      const elapsedSeconds = (Date.now() - createdAtMs) / 1000;
+      if (elapsedSeconds < 120) {
+        return new Response(JSON.stringify({ message: 'Entrega na janela exclusiva do Admin (2 min), push ignorado' }), { status: 200 });
       }
-    } catch (e: any) {
-      console.warn("Could not query delivery_drivers:", e?.message);
     }
 
-    try {
-      const { data: devices } = await adminClient
-        .from('device_tokens')
-        .select('token')
-        .not('token', 'is', null);
+    // Busca tokens
+    const tokenSet = new Set<string>();
 
-      for (const dev of (devices ?? [])) {
-        if (dev?.token && dev.token.length > 10) {
-          tokenSet.add(dev.token);
+    if (record.driver_id) {
+      // 1. Se o Admin DIRECIONOU para um motorista específico, notifica SOMENTE ELE!
+      try {
+        const { data: driver } = await adminClient
+          .from('delivery_drivers')
+          .select('fcm_token, user_id')
+          .or(`id.eq.${record.driver_id},user_id.eq.${record.driver_id}`)
+          .maybeSingle();
+
+        if (driver?.fcm_token && driver.fcm_token.length > 10) {
+          tokenSet.add(driver.fcm_token);
         }
+      } catch (e: any) {
+        console.warn("Could not query assigned driver:", e?.message);
       }
-    } catch (e: any) {
-      console.warn("Could not query device_tokens:", e?.message);
+    } else {
+      // 2. Transmissão geral (apenas quando status for broadcasted ou tempo de 2 min do admin expirou)
+      try {
+        const { data: drivers } = await adminClient
+          .from('delivery_drivers')
+          .select('fcm_token')
+          .not('fcm_token', 'is', null);
+
+        for (const d of (drivers ?? [])) {
+          if (d?.fcm_token && d.fcm_token.length > 10) {
+            tokenSet.add(d.fcm_token);
+          }
+        }
+      } catch (e: any) {
+        console.warn("Could not query delivery_drivers:", e?.message);
+      }
     }
 
     const tokens = Array.from(tokenSet);
     if (tokens.length === 0) {
-      return new Response(JSON.stringify({ success: true, message: 'No registered driver tokens found yet' }), {
+      return new Response(JSON.stringify({ success: true, message: 'No registered driver tokens found' }), {
         status: 200,
         headers: { 'Content-Type': 'application/json' }
       });
     }
 
     const address = sanitize(record.pickup_address || record.delivery_address || 'Novo local de coleta');
+    const deliveryTag = `delivery_${record.id}`;
 
     const message = {
       notification: {
@@ -124,13 +139,15 @@ serve(async (req) => {
       },
       android: {
         priority: 'high' as const,
+        collapseKey: deliveryTag, // Garante que o Firebase não entregue duplicatas
         notification: {
           channelId: 'delivery-incoming-v1',
           sound: 'ring',
           priority: 'max' as const,
           defaultSound: false,
           defaultVibrateTimings: true,
-          visibility: 'public' as const
+          visibility: 'public' as const,
+          tag: deliveryTag // Garante que o Android atualize a notificação em vez de criar uma segunda
         }
       },
       tokens
