@@ -141,7 +141,7 @@ serve(async (req) => {
         priority: 'high' as const,
         collapseKey: deliveryTag, // Garante que o Firebase não entregue duplicatas
         notification: {
-          channelId: 'delivery-incoming-v1',
+          channelId: 'mt24_delivery_alerts_v35', // CANAL OFICIAL CRIADO NO ANDROID!
           sound: 'ring',
           priority: 'max' as const,
           defaultSound: false,
