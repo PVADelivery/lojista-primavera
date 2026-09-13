@@ -1554,5 +1554,22 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **Gatilho de Som e Alerta Imediato**: Em `entrega-primavera/src/hooks/useDriverNotifications.ts`, `realtime.ts` e `useRealtimeDeliveries.ts`, disparar o toque contínuo do som (`playContinuousRing`) e a notificação in-app/local imediatamente no momento da recepção do evento Realtime ou push.
   3. **Disponibilização da Corrida para Aceite após 2 Minutos**: Manter a restrição de aceite na camada de busca (`fetchAvailableDeliveries` e `isDeliveryEligibleForDriver` com `ADMIN_WINDOW_SECONDS = 120`). Quando a notificação é recebida antes de 120s, agendar um timer exato `setTimeout(() => invalidateDeliveries(), (120 - elapsedSeconds) * 1000)` para que a entrega surja na lista de aceitação no instante exato em que os 2 minutos se completarem.
 
+---
+
+### 147. Rejeição no Google Play Console: ID de Pacote Divergente no App do Lojista (`com.mt24horasexpress.delivery` vs `com.mt24horasexpress.lojista`)
+* **Sintoma**: Ao fazer upload do pacote `mt24horas-lojista-release.aab` no Google Play Console (faixa de Teste Interno / Produção da ficha "MT 24 Horas Express Lojista"), o Google Play Console rejeita o upload exibindo o erro em vermelho:
+  `"O APK ou Android App Bundle precisa ter o nome de pacote com.mt24horasexpress.delivery"`.
+* **Causa Raiz**:
+  1. No Google Play Console, a ficha do aplicativo foi cadastrada com o nome de pacote imutável `com.mt24horasexpress.delivery`. Uma vez criada a ficha na Play Store com um ID de pacote, o Google Play Console não permite alterar o nome de pacote.
+  2. No projeto do Lojista (`lojista-primavera-1` e `lojista-primavera`), o `appId` no `capacitor.config.ts` e o `applicationId` no `android/app/build.gradle` estavam configurados como `com.mt24horasexpress.lojista`.
+  3. No arquivo `google-services.json`, não havia a entrada de cliente com o ID `com.mt24horasexpress.delivery`.
+* **Solução Padrão**:
+  1. Em `capacitor.config.ts`, definir `appId: 'com.mt24horasexpress.delivery'`.
+  2. Em `android/app/build.gradle`, definir `applicationId "com.mt24horasexpress.delivery"` e incrementar `versionCode` (ex: `4`) e `versionName` (ex: `"1.0.3"`).
+  3. Em `android/app/google-services.json`, cadastrar a entrada correspondente com `"package_name": "com.mt24horasexpress.delivery"`.
+  4. Executar `npm run build`, `npx cap sync android` e `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease bundleRelease`.
+  5. Copiar os novos binários gerados para `apks/mt24horas-lojista-release.aab` e `apks/mt24horas-lojista-release.apk`.
+
+
 
 
