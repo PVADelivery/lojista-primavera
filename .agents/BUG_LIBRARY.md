@@ -1523,3 +1523,23 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Atualiza `sync_delivery_to_order()` para sincronizar pedidos em `'completed'` e `'delivered'`.
   2. No código do app (`entrega-primavera/src/services/deliveries.ts`), atualizar `advanceDelivery` para iterar sobre múltiplos candidatos de status (`['delivered', 'completed', 'concluded']`), testar os dois formatos de RPC, salvar `delivered_at` e `completed_at` simultaneamente e lançar erro explícito se todas as tentativas falharem.
 
+---
+
+### 145. Erro PostgREST `PGRST203` (Ambiguidade de Sobrecarga de Função RPC) no Avanço de Status ("Coletado, indo entregar") e Badges em Inglês no Painel Admin
+* **Sintoma**:
+  1. No app do entregador (`entrega-primavera`), ao clicar no botão "Coletado, indo entregar", a entrega não avançava de "Coletando" para "Em rota" / "Finalizada".
+  2. No Painel Admin (`painel-primavera`), entregas com status `delivered` ou `in_transit` apareciam em inglês com pílula cinza (`delivered` / `in_transit`) em vez de "Finalizada" (verde) ou "Em Rota" (roxo).
+  3. No console do entregador, o WebSocket desconectava ao entrar em segundo plano ou suspensão de tela do Android ("Page entered Back-Forward Cache").
+* **Causa Raiz**:
+  1. **Ambiguidade de sobrecarga (PGRST203 / HTTP 300)**: A procedure RPC `update_delivery_status_safe` no banco continha uma assinatura com 3 parâmetros com valor default `(p_delivery_id UUID, p_status TEXT, p_driver_id UUID DEFAULT NULL::UUID)` e outra com 2 parâmetros `(p_delivery_id UUID, p_status TEXT)`. Quando o frontend chamava a RPC passando apenas `{ p_delivery_id, p_status }`, o PostgREST encontrava duas funções candidatas e abortava com `PGRST203: Could not choose the best candidate function between: public.update_delivery_status_safe(p_delivery_id => uuid, p_status => text), public.update_delivery_status_safe(p_delivery_id => uuid, p_status => text, p_driver_id => uuid)`.
+  2. **Ausência de `p_driver_id` no frontend**: A chamada `supabase.rpc("update_delivery_status_safe", { p_delivery_id, p_status })` não enviava o 3º parâmetro `p_driver_id`.
+  3. **Mapeamento visual incompleto no Painel Admin**: O componente `DeliveryStatusBadge.tsx` só mapeava `completed` e `in_route`. Status reais do banco `delivered` e `in_transit` caíam no fallback genérico cinza com texto em inglês.
+  4. **Retorno de suspensão (bfcache)**: Ao retornar de suspensão do sistema, a tela não forçava revalidação das queries do React Query.
+* **Solução Padrão**:
+  1. **Frontend (todos os apps)**: Em `deliveries.ts` de `entrega-primavera`, `painel-primavera` e `lojista-primavera-1`, sempre passar explicitamente `p_driver_id: delivery.driver_id || null` (ou `null`) na chamada RPC de `update_delivery_status_safe`. Ao passar 3 argumentos, o PostgREST resolve a função de 3 parâmetros sem qualquer ambiguidade (HTTP 200).
+  2. **Fallback REST**: Remover a obrigatoriedade de `.select()` no fallback direto REST para não falhar silenciosamente se o RLS bloquear leitura após update.
+  3. **Painel Admin**: Adicionar `delivered: { label: "Finalizada", cls: "bg-success/15 text-success border-success/30" }` e `in_transit: { label: "Em Rota", cls: "bg-[hsl(280_70%_55%/0.15)] text-[hsl(280_70%_55%)] border-[hsl(280_70%_55%/0.3)]" }` em `painel-primavera/src/components/admin/DeliveryStatusBadge.tsx`.
+  4. **Reconexão**: Adicionar ouvintes de `pageshow` e `visibilitychange` em `driver.deliveries.tsx` chamando `qc.invalidateQueries`.
+  5. **SQL**: Em `FIX_FINALIZAR_ENTREGAS_DEFINITIVO.sql`, remover o `DEFAULT NULL::UUID` da assinatura de 3 parâmetros `(p_delivery_id UUID, p_status TEXT, p_driver_id UUID)` para garantir assinaturas estritamente distintas no PostgreSQL.
+
+
