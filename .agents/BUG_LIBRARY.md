@@ -1494,4 +1494,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   5. No `painel-primavera`, limitar a amostragem de `useDeliveryCounts` para 1000 registros e aplicar `staleTime: 60000`.
   6. No `lojista-primavera-1`, aplicar `staleTime: 5 * 60 * 1000` nas consultas estáticas de regiões, bairros e regras de preço.
   7. Recompilar o APK/AAB do entregador salvando em `apks/mt24horas-entregador-release.apk` e `mt24horas-entregador-release.aab`.
-
+### 143. Produtos Cadastrados Não Aparecendo no Painel do Lojista (`business.products.tsx`, `companies.ts`)
+* **Sintoma**: O lojista (ou administrador acessando o painel da loja) não visualizava nenhum produto cadastrado na tela de catálogo (`/business/products`), mesmo havendo produtos ativos salvos no banco de dados. A tela exibia cabeçalho mas nenhum item, ou ficava vazia.
+* **Causa Raiz**:
+  1. A listagem agrupava produtos exclusivamente pelas 9 categorias estáticas de `CATEGORY_OPTIONS` (`["Pizza", "Lanches", "Mercado", "Farmácia", "Bebidas", "Doces", "Pet Shop", "Shopping", "Outros"]`). Se os produtos pertencessem a categorias personalizadas como `"CREMOSINHO GOURMET"` (que representava 93% dos itens da loja) ou categorias importadas, o array `grouped` resultava vazio (`[]`).
+  2. O fallback para `"Outros"` buscava `grouped.find(g => g.cat.value === "Outros")`. Como `grouped` estava vazio, `othersGroup` retornava `undefined` e os itens eram completamente descartados, renderizando uma lista vazia sem itens.
+  3. No formulário de edição/criação (`ProductForm`), a validação `if (imageUrls.length === 0)` impedia salvar itens sem fotos e desabilitava o botão de salvar, bloqueando a edição de itens existentes com `image_url: '[]'`.
+  4. Na função `fetchCompanyByUserId`, se o usuário autenticado (como `motoprimaveradelivery@gmail.com`) não possuísse vínculo direto por `companies.user_id` e seu perfil não estivesse cadastrado como `admin` em `profiles`, a função retornava `null`, deixando `companyId` nulo e não disparando o carregamento dos produtos.
+* **Solução Padrão**:
+  1. Implementar agrupamento dinâmico por categorias em `business.products.tsx`: coletar todas as categorias presentes nos produtos via `Map`, associando rótulos amigáveis para conhecidas e criando seções dedicadas para qualquer categoria personalizada (`🏷️ CREMOSINHO GOURMET`), garantindo que nenhum produto seja descartado.
+  2. Permitir seleção e criação de categorias personalizadas no `ProductForm` e tornar a foto opcional para não travar edições.
+  3. Atualizar `fetchCompanyByUserId` em `companies.ts` com suporte a leitura de `localStorage.getItem("pva_selected_company_id")`, fallback para empresa com produtos cadastrados e primeira empresa do sistema.
+  4. Sincronizar as alterações em `lojista-primavera-1` e `lojista-primavera` e recompilar o APK e AAB de release em `apks/mt24horas-lojista-release.apk` e `mt24horas-lojista-release.aab`.
