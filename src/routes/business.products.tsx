@@ -8,7 +8,7 @@ import { useMyCompany } from "@/services/companies";
 import {
   Plus, Trash2, Edit3, Loader2, ImagePlus, Package,
   DollarSign, X, Check, Eye, EyeOff, ArrowLeft, Layers, ShoppingCart,
-  GripVertical, ListPlus, Plug,
+  GripVertical, ListPlus, Plug, Search,
 } from "lucide-react";
 import { ProductOptionsManager } from "@/components/business/ProductOptionsManager";
 import { BulkImportModal } from "@/components/business/BulkImportModal";
@@ -72,6 +72,8 @@ function BusinessProductsPage() {
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [managingOptions, setManagingOptions] = useState<Product | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   // Drag state
   const dragId = useRef<string | null>(null);
@@ -283,6 +285,32 @@ function BusinessProductsPage() {
     return result;
   }, [products]);
 
+  // Filtragem combinada por busca e categoria selecionada
+  const filteredGrouped = useMemo(() => {
+    let list = grouped;
+    if (selectedCategory !== "all") {
+      list = list.filter((g) => g.cat.value === selectedCategory);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      list = list
+        .map((g) => ({
+          ...g,
+          items: g.items.filter(
+            (p) =>
+              p.name.toLowerCase().includes(q) ||
+              (p.description && p.description.toLowerCase().includes(q)) ||
+              (p.category && p.category.toLowerCase().includes(q))
+          ),
+        }))
+        .filter((g) => g.items.length > 0);
+    }
+    return list;
+  }, [grouped, selectedCategory, searchQuery]);
+
+  const totalFilteredCount = useMemo(() => {
+    return filteredGrouped.reduce((sum, g) => sum + g.items.length, 0);
+  }, [filteredGrouped]);
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -324,6 +352,93 @@ function BusinessProductsPage() {
         </div>
       </div>
 
+      {/* ── Barra de Categorias e Busca Estilo Loja ── */}
+      {products.length > 0 && (
+        <div className="space-y-4">
+          {/* Busca & Contadores */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar produto ou sabor..."
+                className="w-full pl-10 pr-10 py-3 rounded-2xl bg-card border border-border focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none text-sm font-bold shadow-sm transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs font-bold text-muted-foreground flex items-center gap-2 self-end sm:self-center">
+              <span className="px-3 py-1.5 rounded-full bg-muted border border-border">
+                {totalFilteredCount} {totalFilteredCount === 1 ? "item exibido" : "itens exibidos"}
+              </span>
+              {(selectedCategory !== "all" || searchQuery) && (
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }}
+                  className="text-xs font-bold text-primary hover:underline ml-1"
+                >
+                  Limpar filtros
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Abas Deslizáveis de Categoria */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            <button
+              type="button"
+              onClick={() => setSelectedCategory("all")}
+              className={cn(
+                "shrink-0 px-4 py-2.5 rounded-full text-xs font-black transition-all flex items-center gap-2 shadow-sm",
+                selectedCategory === "all"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+              )}
+            >
+              <span>✨ Todas</span>
+              <span className={cn(
+                "px-2 py-0.5 rounded-full text-[10px] font-black",
+                selectedCategory === "all" ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+              )}>
+                {products.length}
+              </span>
+            </button>
+
+            {grouped.map(({ cat, items }) => (
+              <button
+                key={cat.value}
+                type="button"
+                onClick={() => setSelectedCategory(cat.value)}
+                className={cn(
+                  "shrink-0 px-4 py-2.5 rounded-full text-xs font-black transition-all flex items-center gap-2 shadow-sm",
+                  selectedCategory === cat.value
+                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 scale-[1.02]"
+                    : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                )}
+              >
+                <span>{cat.label}</span>
+                <span className={cn(
+                  "px-2 py-0.5 rounded-full text-[10px] font-black",
+                  selectedCategory === cat.value ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"
+                )}>
+                  {items.length}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex flex-col items-center justify-center py-40 gap-4">
           <Loader2 className="w-12 h-12 text-primary animate-spin" />
@@ -346,9 +461,23 @@ function BusinessProductsPage() {
             Começar agora
           </button>
         </div>
+      ) : filteredGrouped.length === 0 ? (
+        <div className="bg-card border border-dashed border-border rounded-3xl p-16 text-center shadow-sm">
+          <Search className="w-10 h-10 text-muted-foreground/40 mx-auto mb-3" />
+          <h3 className="text-lg font-black text-foreground mb-2">Nenhum item encontrado</h3>
+          <p className="text-sm text-muted-foreground max-w-sm mx-auto mb-6">
+            Nenhum produto correspondeu ao filtro ou termo "{searchQuery}".
+          </p>
+          <button
+            onClick={() => { setSelectedCategory("all"); setSearchQuery(""); }}
+            className="px-6 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold"
+          >
+            Ver todos os produtos
+          </button>
+        </div>
       ) : (
         <div className="space-y-12">
-          {grouped.map(({ cat, items }) => (
+          {filteredGrouped.map(({ cat, items }) => (
             <section key={cat.value}>
               {/* Category header */}
               <div className="flex items-center gap-3 mb-5">
@@ -485,20 +614,21 @@ function ProductCard({ product, onEdit, onDelete, onToggle, onDragStart, onDrop,
         </div>
 
         {/* Actions Flex */}
-        <div className="flex items-center gap-2 pt-3 mt-3 border-t border-border/50">
+        <div className="flex items-center gap-1.5 pt-3 mt-3 border-t border-border/50">
           <button
             onClick={onEdit}
-            className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground text-[11px] font-bold tracking-wide hover:brightness-110 transition-all flex items-center justify-center gap-1.5 shadow-sm"
+            className="flex-1 h-9 rounded-xl bg-primary text-primary-foreground text-[11px] font-bold tracking-wide hover:brightness-110 transition-all flex items-center justify-center gap-1 shadow-sm"
           >
             <Edit3 className="h-3.5 w-3.5" /> Editar
           </button>
           
           <button
             onClick={onManageOptions}
-            className="h-9 w-9 shrink-0 rounded-xl bg-amber-500/10 text-amber-600 hover:bg-amber-500 hover:text-white flex items-center justify-center transition-all"
-            title="Complementos / Adicionais"
+            className="h-9 px-2.5 shrink-0 rounded-xl bg-amber-500/15 text-amber-600 dark:text-amber-400 hover:bg-amber-500 hover:text-white flex items-center gap-1 transition-all text-[11px] font-black border border-amber-500/20 shadow-sm"
+            title="Sabores, Numeração de Calçados, Tamanhos e Complementos"
           >
-            <ListPlus className="h-4 w-4" />
+            <ListPlus className="h-3.5 w-3.5" />
+            <span>Opções</span>
           </button>
           
           <button
@@ -511,7 +641,8 @@ function ProductCard({ product, onEdit, onDelete, onToggle, onDragStart, onDrop,
           
           <button
             onClick={onDelete}
-            className="py-3 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-all"
+            className="h-9 w-9 shrink-0 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive hover:text-white flex items-center justify-center transition-all"
+            title="Remover produto"
           >
             <Trash2 className="h-4 w-4" />
           </button>
