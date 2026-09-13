@@ -28,7 +28,11 @@ ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMPTZ;
 ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS cancelled_by UUID;
 ALTER TABLE public.deliveries ADD COLUMN IF NOT EXISTS cancelled_by_name TEXT;
 
--- 3. Função RPC segura (SECURITY DEFINER) para atualizar status de entregas
+-- 3. DROP prévio de todas as sobrecargas antigas para permitir troca de nomes de parâmetros
+DROP FUNCTION IF EXISTS public.update_delivery_status_safe(uuid, text, uuid);
+DROP FUNCTION IF EXISTS public.update_delivery_status_safe(uuid, text);
+
+-- 4. Função RPC segura (SECURITY DEFINER) para atualizar status de entregas
 CREATE OR REPLACE FUNCTION public.update_delivery_status_safe(
   p_delivery_id UUID,
   p_status TEXT,
@@ -137,21 +141,7 @@ BEGIN
 END;
 $$;
 
--- 4. Sobrecargas para garantir compatibilidade com qualquer formato de chamada frontend
-CREATE OR REPLACE FUNCTION public.update_delivery_status_safe(
-  _delivery_id UUID,
-  _status TEXT
-)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public
-AS $$
-BEGIN
-  RETURN public.update_delivery_status_safe(_delivery_id, _status, NULL::UUID);
-END;
-$$;
-
+-- 5. Sobrecarga com 2 parâmetros nomeados p_delivery_id e p_status
 CREATE OR REPLACE FUNCTION public.update_delivery_status_safe(
   p_delivery_id UUID,
   p_status TEXT
@@ -166,11 +156,11 @@ BEGIN
 END;
 $$;
 
--- 5. Liberar permissões de execução da RPC para todos os papéis
+-- 6. Liberar permissões de execução da RPC para todos os papéis
 GRANT EXECUTE ON FUNCTION public.update_delivery_status_safe(UUID, TEXT, UUID) TO authenticated, anon, service_role, public;
 GRANT EXECUTE ON FUNCTION public.update_delivery_status_safe(UUID, TEXT) TO authenticated, anon, service_role, public;
 
--- 6. Garantir que o RLS em deliveries NUNCA bloqueie UPDATE de usuários autenticados
+-- 7. Garantir que o RLS em deliveries NUNCA bloqueie UPDATE de usuários autenticados
 DROP POLICY IF EXISTS "Driver updates own or claims pending" ON public.deliveries;
 DROP POLICY IF EXISTS "drivers_update_deliveries" ON public.deliveries;
 DROP POLICY IF EXISTS "deliveries_update_scoped" ON public.deliveries;
@@ -184,7 +174,7 @@ CREATE POLICY "deliveries_update_all" ON public.deliveries
 
 GRANT ALL ON public.deliveries TO authenticated, anon, service_role, public;
 
--- 7. Atualiza o trigger de sincronização de delivery -> order para aceitar 'delivered' e 'completed'
+-- 8. Atualiza o trigger de sincronização de delivery -> order para aceitar 'delivered' e 'completed'
 CREATE OR REPLACE FUNCTION public.sync_delivery_to_order()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -205,5 +195,5 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
--- 8. Recarrega o cache do PostgREST para aplicar imediatamente
+-- 9. Recarrega o cache do PostgREST para aplicar imediatamente
 NOTIFY pgrst, 'reload schema';
