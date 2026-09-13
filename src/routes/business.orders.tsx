@@ -64,6 +64,8 @@ function OrdersPage() {
       const { data } = await supabase.from("regions").select("*").order("name");
       return data || [];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const { data: hoods = [] } = useQuery({
@@ -72,11 +74,15 @@ function OrdersPage() {
       const { data } = await supabase.from("region_neighborhoods").select("*");
       return data || [];
     },
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
   });
 
   const { data: pricingRules = [] } = useQuery({
     queryKey: ["pricing_rules", company?.id],
     enabled: !!company?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     queryFn: async () => {
       // 1. Sempre busca o pricing_table_id mais recente da empresa no banco
       let activeTableId = company?.pricing_table_id;
