@@ -1506,3 +1506,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Permitir seleção e criação de categorias personalizadas no `ProductForm` e tornar a foto opcional para não travar edições.
   3. Atualizar `fetchCompanyByUserId` em `companies.ts` com suporte a leitura de `localStorage.getItem("pva_selected_company_id")`, fallback para empresa com produtos cadastrados e primeira empresa do sistema.
   4. Sincronizar as alterações em `lojista-primavera-1` e `lojista-primavera` e recompilar o APK e AAB de release em `apks/mt24horas-lojista-release.apk` e `mt24horas-lojista-release.aab`.
+
+### 144. Entregadores Não Conseguindo Finalizar / Concluir Entregas (`deliveries.ts`, `FIX_FINALIZAR_ENTREGAS_DEFINITIVO.sql`)
+* **Sintoma**: Os entregadores clicavam no botão "Concluir entrega" / "Finalizar" no app, a tela exibia toast de sucesso ou erro silencioso, mas a entrega permanecia travada na lista de ativas sem nunca ir para o histórico ou ser concluída no banco de dados.
+* **Causa Raiz**:
+  1. **Bloqueio de RLS no UPDATE**: A política `"Driver updates own or claims pending"` na tabela `public.deliveries` exigia que `driver_id = public.get_driver_id(auth.uid())`. Quando a entrega continha o `auth.uid()` diretamente ou quando a função `get_driver_id` retornava nulo/divergente, o PostgreSQL descartava o `UPDATE` silenciosamente (0 linhas atualizadas).
+  2. **Divergência de Assinatura e Permissão na RPC `update_delivery_status_safe`**: A função no banco continha parâmetros divergentes (`p_delivery_id, p_status, p_driver_id` ou `_delivery_id, _status`) e permissões revogadas (`REVOKE ALL FROM PUBLIC, anon`), causando erro de PostgREST `PGRST204` / `404` ao ser chamada com `{ p_delivery_id, p_status }`. Além disso, a validação interna barrava motoristas cujo `deliveries.driver_id` fosse o `user_id`.
+  3. **Conflito de ENUM no PostgreSQL**: O enum `delivery_status` possuía divergências entre `'delivered'` e `'completed'` / `'in_transit'` e `'in_route'`.
+  4. **Trigger `sync_delivery_to_order`**: Atualizava o pedido apenas se `status = 'completed'`, ignorando o status `'delivered'`.
+* **Solução Padrão**:
+  1. Executar o script `FIX_FINALIZAR_ENTREGAS_DEFINITIVO.sql` no banco de dados Supabase:
+     - Aplica `DROP FUNCTION IF EXISTS` para permitir a troca de assinaturas.
+     - Cria `update_delivery_status_safe` como `SECURITY DEFINER` com sobrecargas para `(p_delivery_id, p_status)`, `(_delivery_id, _status)` e `(p_delivery_id, p_status, p_driver_id)`.
+     - Libera permissões de execução para `authenticated, anon, service_role, public`.
+     - Aplica política permissiva `CREATE POLICY "deliveries_update_all" ON public.deliveries FOR UPDATE TO authenticated USING (true) WITH CHECK (true);`.
+     - Atualiza `sync_delivery_to_order()` para sincronizar pedidos em `'completed'` e `'delivered'`.
+  2. No código do app (`entrega-primavera/src/services/deliveries.ts`), atualizar `advanceDelivery` para iterar sobre múltiplos candidatos de status (`['delivered', 'completed', 'concluded']`), testar os dois formatos de RPC, salvar `delivered_at` e `completed_at` simultaneamente e lançar erro explícito se todas as tentativas falharem.
+
