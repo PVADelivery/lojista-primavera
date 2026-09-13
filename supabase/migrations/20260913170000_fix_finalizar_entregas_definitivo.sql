@@ -36,7 +36,7 @@ DROP FUNCTION IF EXISTS public.update_delivery_status_safe(uuid, text);
 CREATE OR REPLACE FUNCTION public.update_delivery_status_safe(
   p_delivery_id UUID,
   p_status TEXT,
-  p_driver_id UUID DEFAULT NULL::UUID
+  p_driver_id UUID
 )
 RETURNS JSONB
 LANGUAGE plpgsql

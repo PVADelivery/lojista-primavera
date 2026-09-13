@@ -203,18 +203,25 @@ export function useUpdateDeliveryStatus() {
       const now = new Date().toISOString();
       const dbStatus = toDbStatus(status);
 
-      // 1. Try the safe, bulletproof, RLS-bypassing RPC function first
+      // 1. Try the safe, bulletproof, RLS-bypassing RPC function first (with p_driver_id to avoid PGRST203 ambiguity)
       try {
         const { data, error } = await supabase.rpc("update_delivery_status_safe", {
-          _delivery_id: id,
-          _status: status,
+          p_delivery_id: id,
+          p_status: status,
+          p_driver_id: null,
         });
 
         if (!error && data && (data as any).success) {
           return;
         }
       } catch (err) {
-        // Silently ignore to proceed to REST fallbacks
+        try {
+          const { data: d2, error: e2 } = await supabase.rpc("update_delivery_status_safe", {
+            p_delivery_id: id,
+            p_status: status,
+          });
+          if (!e2 && d2 && (d2 as any).success) return;
+        } catch {}
       }
 
       // Fallback: Original REST-based combination updates (backward compatible)
