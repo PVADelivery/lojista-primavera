@@ -34,6 +34,11 @@
                 android:resource="@xml/file_paths" />
         </provider>
 
+        <!-- Define o canal oficial como padrão para o Firebase SDK -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="lojista_orders_v2" />
+
     </application>
 
     <!-- Permissions -->

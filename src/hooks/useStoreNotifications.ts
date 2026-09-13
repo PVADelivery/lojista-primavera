@@ -132,6 +132,13 @@ export function useStoreNotifications() {
 
       playAlert();
       startLoop();
+      triggerDeviceVibration();
+
+      // Posta diretamente na Central de Notificações nativa do aparelho
+      sendNativeDeviceNotification(notification.title || "📦 Novo pedido recebido!", {
+        body: notification.body || "Acesse o app para aceitar e começar a preparar.",
+        tag: `order-${orderId || Date.now()}`,
+      });
 
       toast.success(notification.title || "📦 Novo pedido recebido!", {
         description: notification.body || "Acesse o app para aceitar e começar a preparar.",
@@ -181,7 +188,13 @@ export function useStoreNotifications() {
 
     if (hasPending) {
       pendingOrders.forEach((ord: any) => {
-        processedOrders.add(ord.id);
+        if (!processedOrders.has(ord.id)) {
+          processedOrders.add(ord.id);
+          sendNativeDeviceNotification("📦 Novo pedido pendente!", {
+            body: "Você tem pedidos aguardando confirmação no app!",
+            tag: `order-${ord.id}`,
+          });
+        }
       });
       startLoop();
     } else {
@@ -208,12 +221,11 @@ export function useStoreNotifications() {
             processedOrders.add(order.id);
 
             if (!alreadyNotified) {
-              if (!Capacitor.isNativePlatform()) {
-                sendNativeDeviceNotification("📦 Novo pedido recebido!", {
-                  body: "Acesse o app para aceitar e começar a preparar",
-                  tag: `order-${order.id}`,
-                });
-              }
+              // Dispara SEMPRE a notificação nativa na Central do Aparelho (Android/iOS/Web)
+              sendNativeDeviceNotification("📦 Novo pedido recebido!", {
+                body: "Acesse o app para aceitar e começar a preparar",
+                tag: `order-${order.id}`,
+              });
 
               toast.success("📦 Novo pedido recebido!", {
                 description: "Acesse o app para aceitar e começar a preparar.",

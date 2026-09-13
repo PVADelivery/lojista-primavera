@@ -12,6 +12,10 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         try {
+            NotificationChannels.ensureChannels(this);
+        } catch (Exception ignored) {}
+
+        try {
             if (getBridge() != null && getBridge().getWebView() != null) {
                 WebView webView = getBridge().getWebView();
                 WebSettings settings = webView.getSettings();
