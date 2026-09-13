@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -34,15 +34,19 @@ export const Route = createFileRoute("/business/products")({
 
 // ── Category config ────────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
-  { value: "Pizza",     label: "🍕 Pizza" },
-  { value: "Lanches",   label: "🍔 Lanches" },
-  { value: "Mercado",   label: "🛒 Mercado" },
-  { value: "Farmácia",  label: "💊 Farmácia" },
-  { value: "Bebidas",   label: "🥤 Bebidas" },
-  { value: "Doces",     label: "🍫 Doces" },
-  { value: "Pet Shop",  label: "🐾 Pet Shop" },
-  { value: "Shopping",  label: "🛍️ Shopping" },
-  { value: "Outros",    label: "🏷️ Categoria Geral (Outros)" },
+  { value: "Lanches",           label: "🍔 Lanches" },
+  { value: "CREMOSINHO GOURMET",label: "🍨 Cremosinho Gourmet" },
+  { value: "Açaí",              label: "🍨 Açaí" },
+  { value: "Pizza",             label: "🍕 Pizza" },
+  { value: "Bebidas",           label: "🥤 Bebidas" },
+  { value: "Doces",             label: "🍫 Doces" },
+  { value: "Sobremesas",        label: "🍰 Sobremesas" },
+  { value: "Combos",            label: "🍱 Combos" },
+  { value: "Mercado",           label: "🛒 Mercado" },
+  { value: "Farmácia",          label: "💊 Farmácia" },
+  { value: "Pet Shop",          label: "🐾 Pet Shop" },
+  { value: "Shopping",          label: "🛍️ Shopping" },
+  { value: "Outros",            label: "🏷️ Categoria Geral (Outros)" },
 ];
 
 function parseImages(imageUrl: string | null): string[] {
@@ -191,6 +195,16 @@ function BusinessProductsPage() {
     );
   }
 
+  // List of existing categories across all products
+  const existingCategories = useMemo(() => {
+    const list: string[] = [];
+    products.forEach((p) => {
+      const c = (p.category || "").trim();
+      if (c && !list.includes(c)) list.push(c);
+    });
+    return list;
+  }, [products]);
+
   if (showForm || editingProduct) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -203,6 +217,7 @@ function BusinessProductsPage() {
               ? products.filter(p => p.category === editingProduct.category).length
               : 0
           }
+          existingCategories={existingCategories}
           onClose={() => { setShowForm(false); setEditingProduct(null); }}
           onSaved={() => { setShowForm(false); setEditingProduct(null); fetchCompanyAndProducts(); }}
         />
@@ -210,23 +225,64 @@ function BusinessProductsPage() {
     );
   }
 
-  // Group by category (only categories with products, in CATEGORY_OPTIONS order)
-  const grouped = CATEGORY_OPTIONS
-    .map(cat => ({
-      cat,
-      items: products.filter(p => p.category === cat.value),
-    }))
-    .filter(g => g.items.length > 0);
+  // Group by category dynamically — NEVER drop or hide any product!
+  const grouped = useMemo(() => {
+    if (!products || products.length === 0) return [];
 
-  // Products without matching category go to "Outros"
-  const knownValues = new Set(CATEGORY_OPTIONS.map(c => c.value));
-  const uncategorized = products.filter(p => !knownValues.has(p.category ?? ""));
-  if (uncategorized.length > 0) {
-    const othersGroup = grouped.find(g => g.cat.value === "Outros");
-    if (othersGroup) {
-      othersGroup.items = [...othersGroup.items, ...uncategorized];
-    }
-  }
+    const defaultLabels: Record<string, string> = {
+      Lanches: "🍔 Lanches",
+      "CREMOSINHO GOURMET": "🍨 Cremosinho Gourmet",
+      Açaí: "🍨 Açaí",
+      "Açai": "🍨 Açaí",
+      Pizza: "🍕 Pizza",
+      Bebidas: "🥤 Bebidas",
+      Doces: "🍫 Doces",
+      Sobremesas: "🍰 Sobremesas",
+      Combos: "🍱 Combos",
+      Mercado: "🛒 Mercado",
+      Farmácia: "💊 Farmácia",
+      "Pet Shop": "🐾 Pet Shop",
+      Shopping: "🛍️ Shopping",
+      Outros: "🏷️ Categoria Geral (Outros)",
+    };
+
+    const catMap = new Map<string, Product[]>();
+
+    products.forEach((p) => {
+      const rawCat = (p.category || "").trim();
+      const catKey = rawCat || "Geral";
+      if (!catMap.has(catKey)) {
+        catMap.set(catKey, []);
+      }
+      catMap.get(catKey)!.push(p);
+    });
+
+    const result: { cat: { value: string; label: string }; items: Product[] }[] = [];
+
+    // Prioridade para as categorias conhecidas na ordem de CATEGORY_OPTIONS
+    CATEGORY_OPTIONS.forEach((opt) => {
+      if (catMap.has(opt.value)) {
+        const items = catMap.get(opt.value)!;
+        result.push({
+          cat: opt,
+          items: items.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+        });
+        catMap.delete(opt.value);
+      }
+    });
+
+    // Em seguida adicionar todas as categorias personalizadas presentes nos produtos (ex: "CREMOSINHO GOURMET")
+    catMap.forEach((items, catKey) => {
+      const label = defaultLabels[catKey] || `🏷️ ${catKey}`;
+      result.push({
+        cat: { value: catKey, label },
+        items: items.sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)),
+      });
+    });
+
+    return result;
+  }, [products]);
+
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -467,7 +523,7 @@ function ProductCard({ product, onEdit, onDelete, onToggle, onDragStart, onDrop,
 
 // ── Product Form ──────────────────────────────────────────────────────────────
 function ProductForm({
-  companyId, userId, product, categoryCount, onClose, onSaved,
+  companyId, userId, product, categoryCount, onClose, onSaved, existingCategories = [],
 }: {
   companyId: string;
   userId?: string;
@@ -475,14 +531,30 @@ function ProductForm({
   categoryCount: number;
   onClose: () => void;
   onSaved: () => void;
+  existingCategories?: string[];
 }) {
   const [name, setName] = useState(product?.name || "");
   const [description, setDescription] = useState(product?.description || "");
-  const [category, setCategory] = useState(product?.category || "Outros");
+  const [category, setCategory] = useState(product?.category || "Lanches");
+  const [isAddingCustomCat, setIsAddingCustomCat] = useState(false);
+  const [customCatInput, setCustomCatInput] = useState("");
   const [price, setPrice] = useState(product?.price?.toString() || "");
   const [imageUrls, setImageUrls] = useState<string[]>(product?.image_url ? parseImages(product.image_url) : []);
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Unifica todas as categorias: padrão + categorias existentes na loja + categoria atual
+  const categoryOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    CATEGORY_OPTIONS.forEach(c => map.set(c.value, c.label));
+    existingCategories.forEach(c => {
+      if (c && !map.has(c)) map.set(c, `🏷️ ${c}`);
+    });
+    if (product?.category && !map.has(product.category)) {
+      map.set(product.category, `🏷️ ${product.category}`);
+    }
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [existingCategories, product?.category]);
 
   const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value.replace(/\D/g, "");
@@ -521,7 +593,7 @@ function ProductForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (imageUrls.length === 0) { toast.error("Adicione pelo menos 1 foto"); return; }
+    const finalCategory = (isAddingCustomCat && customCatInput.trim() ? customCatInput.trim() : category).trim() || "Geral";
 
     setSaving(true);
     try {
@@ -529,7 +601,7 @@ function ProductForm({
       const payload: Record<string, unknown> = {
         name,
         description: description || null,
-        category,
+        category: finalCategory,
         price: parseFloat(price.replace(",", ".")),
         image_url: imagePayload,
       };
@@ -592,18 +664,39 @@ function ProductForm({
 
               {/* Category */}
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Categoria *</label>
-                <select
-                  value={category}
-                  onChange={e => setCategory(e.target.value)}
-                  className="w-full px-6 py-4 rounded-2xl border border-border bg-background/50 font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-base"
-                  required
-                >
-                  <option value="">Selecione uma categoria</option>
-                  {CATEGORY_OPTIONS.map(c => (
-                    <option key={c.value} value={c.value}>{c.label}</option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between ml-2">
+                  <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Categoria *</label>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingCustomCat(!isAddingCustomCat)}
+                    className="text-[11px] font-bold text-primary hover:underline"
+                  >
+                    {isAddingCustomCat ? "← Escolher da lista" : "+ Nova Categoria"}
+                  </button>
+                </div>
+
+                {isAddingCustomCat ? (
+                  <input
+                    value={customCatInput}
+                    onChange={e => setCustomCatInput(e.target.value)}
+                    placeholder="Digite o nome da categoria (ex: Cremosinho Gourmet)"
+                    className="w-full px-6 py-4 rounded-2xl border border-primary bg-background font-bold outline-none focus:ring-4 focus:ring-primary/10 transition-all text-base"
+                    required
+                    autoFocus
+                  />
+                ) : (
+                  <select
+                    value={category}
+                    onChange={e => setCategory(e.target.value)}
+                    className="w-full px-6 py-4 rounded-2xl border border-border bg-background/50 font-bold outline-none focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all text-base"
+                    required
+                  >
+                    <option value="">Selecione uma categoria</option>
+                    {categoryOptions.map(c => (
+                      <option key={c.value} value={c.value}>{c.label}</option>
+                    ))}
+                  </select>
+                )}
               </div>
 
               {/* Price */}
@@ -637,7 +730,7 @@ function ProductForm({
 
             <button
               type="submit"
-              disabled={saving || !name || !price || imageUrls.length === 0}
+              disabled={saving || !name || !price}
               className="w-full py-5 rounded-[2rem] bg-primary text-primary-foreground text-lg font-black shadow-2xl shadow-primary/20 disabled:opacity-50 flex items-center justify-center gap-3 hover:scale-[1.01] active:scale-95 transition-all"
             >
               {saving ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-6 w-6" />}
