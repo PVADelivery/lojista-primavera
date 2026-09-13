@@ -68,15 +68,7 @@ serve(async (req) => {
       return new Response(JSON.stringify({ message: 'Status is not pending/broadcasted, ignoring' }), { status: 200 });
     }
 
-    // REGRA DE OURO: Janela do Admin (2 minutos = 120s)
-    // Se for pendente geral (sem motorista atribuído), NÃO NOTIFICA até passar os 120s!
-    if (status === 'pending' && !record.driver_id) {
-      const createdAtMs = record.created_at ? new Date(record.created_at).getTime() : Date.now();
-      const elapsedSeconds = (Date.now() - createdAtMs) / 1000;
-      if (elapsedSeconds < 120) {
-        return new Response(JSON.stringify({ message: 'Entrega na janela exclusiva do Admin (2 min), push ignorado' }), { status: 200 });
-      }
-    }
+    // REGRA: Dispara notificação push FCM IMEDIATAMENTE no momento da criação para todos os motoristas online!
 
     // Busca tokens
     const tokenSet = new Set<string>();

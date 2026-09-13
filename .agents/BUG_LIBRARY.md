@@ -1542,4 +1542,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. **Reconexão**: Adicionar ouvintes de `pageshow` e `visibilitychange` em `driver.deliveries.tsx` chamando `qc.invalidateQueries`.
   5. **SQL**: Em `FIX_FINALIZAR_ENTREGAS_DEFINITIVO.sql`, remover o `DEFAULT NULL::UUID` da assinatura de 3 parâmetros `(p_delivery_id UUID, p_status TEXT, p_driver_id UUID)` para garantir assinaturas estritamente distintas no PostgreSQL.
 
+---
+
+### 146. Notificação Imediata no App do Entregador com Janela de 2 Minutos para Aceite de Entrega (`notify-driver`, `useDriverNotifications.ts`, `realtime.ts`, `useRealtimeDeliveries.ts`)
+* **Sintoma**: O entregador não era alertado imediatamente com som/notificação no momento em que a entrega era criada/solicitada, ou o push ficava retido aguardando os 2 minutos. A regra de negócio exige: a notificação sonora e push devem tocar NO MOMENTO EXATO em que a corrida é criada/despachada (0s), mas a entrega só deve ficar visível e liberada para o entregador aceitar 2 minutos (120 segundos) depois.
+* **Causa Raiz**:
+  1. **Trava de Push no Backend**: Na Edge Function `notify-driver/index.ts`, havia uma verificação `if (elapsedSeconds < 120)` que abortava o envio do push FCM caso a entrega tivesse menos de 2 minutos de criação, silenciando o celular do entregador no instante zero.
+  2. **Supressão de Som no Frontend**: Em `useDriverNotifications.ts`, `realtime.ts` e `useRealtimeDeliveries.ts`, os métodos de alerta sonoro (`ring.mp3`) e notificações locais verificavam `if (elapsedSeconds < 120) return;` ou ignoravam o evento antes de tocar, em vez de disparar o alerta sonoro de imediato e agendar apenas a disponibilização visual da corrida.
+* **Solução Padrão**:
+  1. **Edge Function `notify-driver`**: Remover a trava de 120s para o envio de FCM push. O push é enviado imediatamente na criação do pedido/entrega, com prioridade máxima (`priority: "high"`), acordando o app em segundo plano e disparando a notificação/som.
+  2. **Gatilho de Som e Alerta Imediato**: Em `entrega-primavera/src/hooks/useDriverNotifications.ts`, `realtime.ts` e `useRealtimeDeliveries.ts`, disparar o toque contínuo do som (`playContinuousRing`) e a notificação in-app/local imediatamente no momento da recepção do evento Realtime ou push.
+  3. **Disponibilização da Corrida para Aceite após 2 Minutos**: Manter a restrição de aceite na camada de busca (`fetchAvailableDeliveries` e `isDeliveryEligibleForDriver` com `ADMIN_WINDOW_SECONDS = 120`). Quando a notificação é recebida antes de 120s, agendar um timer exato `setTimeout(() => invalidateDeliveries(), (120 - elapsedSeconds) * 1000)` para que a entrega surja na lista de aceitação no instante exato em que os 2 minutos se completarem.
+
+
 
