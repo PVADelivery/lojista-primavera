@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as PendingApprovalRouteImport } from './routes/pending-approval'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as BusinessRouteImport } from './routes/business'
@@ -27,6 +28,11 @@ import { Route as BusinessDeliveryNewRouteImport } from './routes/business.deliv
 import { Route as BusinessCustomersRouteImport } from './routes/business.customers'
 import { Route as BusinessCouponsRouteImport } from './routes/business.coupons'
 
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PendingApprovalRoute = PendingApprovalRouteImport.update({
   id: '/pending-approval',
   path: '/pending-approval',
@@ -118,6 +124,7 @@ export interface FileRoutesByFullPath {
   '/business': typeof BusinessRouteWithChildren
   '/login': typeof LoginRouteWithChildren
   '/pending-approval': typeof PendingApprovalRoute
+  '/privacy': typeof PrivacyRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
@@ -136,6 +143,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRouteWithChildren
   '/pending-approval': typeof PendingApprovalRoute
+  '/privacy': typeof PrivacyRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
@@ -156,6 +164,7 @@ export interface FileRoutesById {
   '/business': typeof BusinessRouteWithChildren
   '/login': typeof LoginRouteWithChildren
   '/pending-approval': typeof PendingApprovalRoute
+  '/privacy': typeof PrivacyRoute
   '/business/coupons': typeof BusinessCouponsRoute
   '/business/customers': typeof BusinessCustomersRoute
   '/business/delivery-new': typeof BusinessDeliveryNewRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/login'
     | '/pending-approval'
+    | '/privacy'
     | '/business/coupons'
     | '/business/customers'
     | '/business/delivery-new'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/pending-approval'
+    | '/privacy'
     | '/business/coupons'
     | '/business/customers'
     | '/business/delivery-new'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/business'
     | '/login'
     | '/pending-approval'
+    | '/privacy'
     | '/business/coupons'
     | '/business/customers'
     | '/business/delivery-new'
@@ -234,11 +246,19 @@ export interface RootRouteChildren {
   BusinessRoute: typeof BusinessRouteWithChildren
   LoginRoute: typeof LoginRouteWithChildren
   PendingApprovalRoute: typeof PendingApprovalRoute
+  PrivacyRoute: typeof PrivacyRoute
   InviteTokenRoute: typeof InviteTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/pending-approval': {
       id: '/pending-approval'
       path: '/pending-approval'
@@ -408,6 +428,7 @@ const rootRouteChildren: RootRouteChildren = {
   BusinessRoute: BusinessRouteWithChildren,
   LoginRoute: LoginRouteWithChildren,
   PendingApprovalRoute: PendingApprovalRoute,
+  PrivacyRoute: PrivacyRoute,
   InviteTokenRoute: InviteTokenRoute,
 }
 export const routeTree = rootRouteImport
