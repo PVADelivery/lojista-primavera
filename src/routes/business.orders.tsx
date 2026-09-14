@@ -224,7 +224,7 @@ function OrdersPage() {
 
   useEffect(() => {
     if (pendingCount > 0 && !muted) {
-      playAlert(true);
+      playAlert();
     } else {
       stopAlert();
     }
