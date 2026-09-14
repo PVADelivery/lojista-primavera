@@ -224,6 +224,36 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          delivery_id: string | null
+          id: string
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          delivery_id?: string | null
+          id?: string
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           company_id: string
@@ -300,6 +330,7 @@ export type Database = {
           description: string | null
           document: string | null
           email: string | null
+          fcm_token: string | null
           gallery: Json | null
           id: string
           is_active: boolean
@@ -340,6 +371,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          fcm_token?: string | null
           gallery?: Json | null
           id?: string
           is_active?: boolean
@@ -380,6 +412,7 @@ export type Database = {
           description?: string | null
           document?: string | null
           email?: string | null
+          fcm_token?: string | null
           gallery?: Json | null
           id?: string
           is_active?: boolean
@@ -997,6 +1030,7 @@ export type Database = {
           customer_name: string
           customer_neighborhood: string | null
           customer_phone: string | null
+          delivered_at: string | null
           delivery_address: string | null
           delivery_fee: number | null
           delivery_latitude: number | null
@@ -1053,6 +1087,7 @@ export type Database = {
           customer_name: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_address?: string | null
           delivery_fee?: number | null
           delivery_latitude?: number | null
@@ -1109,6 +1144,7 @@ export type Database = {
           customer_name?: string
           customer_neighborhood?: string | null
           customer_phone?: string | null
+          delivered_at?: string | null
           delivery_address?: string | null
           delivery_fee?: number | null
           delivery_latitude?: number | null
@@ -1357,6 +1393,39 @@ export type Database = {
           driver_id?: string
           id?: string
           rating?: number
+        }
+        Relationships: []
+      }
+      device_tokens: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          id: string
+          phone: string | null
+          platform: string | null
+          token: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          phone?: string | null
+          platform?: string | null
+          token: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          id?: string
+          phone?: string | null
+          platform?: string | null
+          token?: string
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2353,6 +2422,7 @@ export type Database = {
           cpf: string | null
           created_at: string
           document: string | null
+          fcm_token: string | null
           full_name: string
           id: string
           phone: string | null
@@ -2366,6 +2436,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           document?: string | null
+          fcm_token?: string | null
           full_name?: string
           id?: string
           phone?: string | null
@@ -2379,6 +2450,7 @@ export type Database = {
           cpf?: string | null
           created_at?: string
           document?: string | null
+          fcm_token?: string | null
           full_name?: string
           id?: string
           phone?: string | null
@@ -2386,6 +2458,75 @@ export type Database = {
           status?: Database["public"]["Enums"]["profile_status"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      properties: {
+        Row: {
+          agency_name: string | null
+          bathrooms: number | null
+          bedrooms: number | null
+          built_area: number | null
+          city: string | null
+          contact_phone: string | null
+          created_at: string
+          deal_type: Database["public"]["Enums"]["property_deal"]
+          description: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean
+          neighborhood: string | null
+          owner_id: string | null
+          parking: number | null
+          price: number | null
+          property_type: Database["public"]["Enums"]["property_type"]
+          state: string | null
+          total_area: number | null
+          updated_at: string
+        }
+        Insert: {
+          agency_name?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          built_area?: number | null
+          city?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          deal_type?: Database["public"]["Enums"]["property_deal"]
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          neighborhood?: string | null
+          owner_id?: string | null
+          parking?: number | null
+          price?: number | null
+          property_type: Database["public"]["Enums"]["property_type"]
+          state?: string | null
+          total_area?: number | null
+          updated_at?: string
+        }
+        Update: {
+          agency_name?: string | null
+          bathrooms?: number | null
+          bedrooms?: number | null
+          built_area?: number | null
+          city?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          deal_type?: Database["public"]["Enums"]["property_deal"]
+          description?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          neighborhood?: string | null
+          owner_id?: string | null
+          parking?: number | null
+          price?: number | null
+          property_type?: Database["public"]["Enums"]["property_type"]
+          state?: string | null
+          total_area?: number | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -2758,6 +2899,75 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicles: {
+        Row: {
+          brand: string | null
+          city: string | null
+          color: string | null
+          contact_phone: string | null
+          created_at: string
+          description: string | null
+          fuel: string | null
+          id: string
+          images: string[] | null
+          is_active: boolean
+          km: number | null
+          model: string
+          owner_id: string | null
+          price: number | null
+          seller_name: string | null
+          state: string | null
+          transmission: string | null
+          updated_at: string
+          vehicle_type: Database["public"]["Enums"]["vehicle_type"]
+          year: number | null
+        }
+        Insert: {
+          brand?: string | null
+          city?: string | null
+          color?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          fuel?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          km?: number | null
+          model: string
+          owner_id?: string | null
+          price?: number | null
+          seller_name?: string | null
+          state?: string | null
+          transmission?: string | null
+          updated_at?: string
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          year?: number | null
+        }
+        Update: {
+          brand?: string | null
+          city?: string | null
+          color?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          description?: string | null
+          fuel?: string | null
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          km?: number | null
+          model?: string
+          owner_id?: string | null
+          price?: number | null
+          seller_name?: string | null
+          state?: string | null
+          transmission?: string | null
+          updated_at?: string
+          vehicle_type?: Database["public"]["Enums"]["vehicle_type"]
+          year?: number | null
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           balance: number
@@ -3094,6 +3304,9 @@ export type Database = {
         | "in_route"
         | "completed"
         | "cancelled"
+        | "in_transit"
+        | "delivered"
+        | "returned"
       invitation_status: "pending" | "accepted" | "expired"
       occurrence_type: "motorcycle_issue" | "accident" | "robbery" | "other"
       order_status:
@@ -3104,7 +3317,10 @@ export type Database = {
         | "delivered"
         | "cancelled"
       profile_status: "pending" | "active" | "rejected"
+      property_deal: "locacao" | "venda"
+      property_type: "casa" | "apartamento" | "sala" | "kitnet" | "terreno"
       user_status: "pending" | "active" | "suspended" | "rejected"
+      vehicle_type: "carro" | "moto" | "caminhao" | "utilitario" | "outro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3120,12 +3336,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3149,11 +3365,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3174,11 +3390,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3199,11 +3415,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3216,11 +3432,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -3241,6 +3457,9 @@ export const Constants = {
         "in_route",
         "completed",
         "cancelled",
+        "in_transit",
+        "delivered",
+        "returned",
       ],
       invitation_status: ["pending", "accepted", "expired"],
       occurrence_type: ["motorcycle_issue", "accident", "robbery", "other"],
@@ -3253,7 +3472,10 @@ export const Constants = {
         "cancelled",
       ],
       profile_status: ["pending", "active", "rejected"],
+      property_deal: ["locacao", "venda"],
+      property_type: ["casa", "apartamento", "sala", "kitnet", "terreno"],
       user_status: ["pending", "active", "suspended", "rejected"],
+      vehicle_type: ["carro", "moto", "caminhao", "utilitario", "outro"],
     },
   },
 } as const
