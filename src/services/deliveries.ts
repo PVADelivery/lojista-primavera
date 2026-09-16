@@ -224,53 +224,20 @@ export function useUpdateDeliveryStatus() {
         } catch {}
       }
 
-      // Fallback: Original REST-based combination updates (backward compatible)
-      // Combination 1: dbStatus + completed_at (Ideal normalized database state)
+      // Fallback: Atualização direta REST sem colunas inexistentes como delivered_at
       const updates1: Record<string, unknown> = { status: dbStatus, updated_at: now };
       if (status === "accepted") updates1.accepted_at = now;
       if (status === "collecting") updates1.collected_at = now;
       if (status === "delivered") updates1.completed_at = now;
       if (status === "cancelled") updates1.cancelled_at = now;
 
-      const res1 = await supabase.from("deliveries").update(updates1 as any).eq("id", id).select();
-
-      if (res1.error || !res1.data || res1.data.length === 0) {
-        // Combination 2: dbStatus + delivered_at
-        const updates2: Record<string, unknown> = { status: dbStatus, updated_at: now };
-        if (status === "accepted") updates2.accepted_at = now;
-        if (status === "collecting") updates2.collected_at = now;
-        if (status === "delivered") updates2.delivered_at = now;
-        if (status === "cancelled") updates2.cancelled_at = now;
-
-        const res2 = await supabase.from("deliveries").update(updates2 as any).eq("id", id).select();
-
-        if (res2.error || !res2.data || res2.data.length === 0) {
-          // Combination 3: appStatus (status) + completed_at
-          const updates3: Record<string, unknown> = { status: status, updated_at: now };
-          if (status === "accepted") updates3.accepted_at = now;
-          if (status === "collecting") updates3.collected_at = now;
-          if (status === "delivered") updates3.completed_at = now;
-          if (status === "cancelled") updates3.cancelled_at = now;
-
-          const res3 = await supabase.from("deliveries").update(updates3 as any).eq("id", id).select();
-
-          if (res3.error || !res3.data || res3.data.length === 0) {
-            // Combination 4: appStatus (status) + delivered_at (Legacy and default database states)
-            const updates4: Record<string, unknown> = { status: status, updated_at: now };
-            if (status === "accepted") updates4.accepted_at = now;
-            if (status === "collecting") updates4.collected_at = now;
-            if (status === "delivered") updates4.delivered_at = now;
-            if (status === "cancelled") updates4.cancelled_at = now;
-
-            const res4 = await supabase.from("deliveries").update(updates4 as any).eq("id", id).select();
-
-            if (res4.error) {
-              throw res4.error;
-            }
-            if (!res4.data || res4.data.length === 0) {
-              throw new Error("Update failed: Row level security (RLS) blocked the action or delivery not found.");
-            }
-          }
+      const { error: resErr } = await supabase.from("deliveries").update(updates1 as any).eq("id", id);
+      if (resErr) {
+        if (status === "delivered") {
+          const { error: resErr2 } = await supabase.from("deliveries").update({ status: "completed", completed_at: now, updated_at: now }).eq("id", id);
+          if (resErr2) throw resErr2;
+        } else {
+          throw resErr;
         }
       }
 
