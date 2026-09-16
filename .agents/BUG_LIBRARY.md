@@ -1568,7 +1568,27 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Em `android/app/build.gradle`, definir `applicationId "com.mt24horasexpress.delivery"` e incrementar `versionCode` (ex: `4`) e `versionName` (ex: `"1.0.3"`).
   3. Em `android/app/google-services.json`, cadastrar a entrada correspondente com `"package_name": "com.mt24horasexpress.delivery"`.
   4. Executar `npm run build`, `npx cap sync android` e `$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; .\gradlew.bat assembleRelease bundleRelease`.
-  5. Copiar os novos binários gerados para `apks/mt24horas-lojista-release.aab` e `apks/mt24horas-lojista-release.apk`.
+---
+
+### 148. Disparo de Notificações para Entregadores Offline, Repetição de Entregas Concluídas ao Abrir o App e Lentidão no Avanço de Etapas (`entrega-primavera`)
+* **Sintomas**:
+  1. O app do entregador notificava novas entregas mesmo com o entregador offline/inativo.
+  2. Ao abrir o app do entregador, o sistema disparava alertas sonoros, toques contínuos e popups de entregas antigas ou que já haviam sido concluídas anteriormente.
+  3. Extrema lentidão ao tocar nos botões para avançar as etapas da entrega ("Cheguei na loja", "Coletado, indo entregar", "Concluir entrega").
+* **Causa Raiz**:
+  1. **Envio de Push para Offline**: Na Edge Function `send-push/index.ts`, a consulta de entregadores com `fcm_token` não filtrava `.or('is_online.eq.true,online.eq.true')` para entregas gerais não direcionadas. Todos os entregadores cadastrados com token FCM recebiam notificação de alta prioridade mesmo offline.
+  2. **Sobrecarga de Status Local**: Em `useDriverNotifications.ts`, a verificação de online fazia fallback `isOnlineRef.current || (localStorage.getItem === "true")`. Se o localStorage continha `"true"` de sessões anteriores, o entregador era considerado online mesmo estando offline no banco. Em `Header.tsx`, o carregamento inicial forçava `update({ is_online: true })` se o localStorage estivesse `"true"`.
+  3. **Disparo de Alertas no Seed Inicial e Polling**: Em `useDriverNotifications.ts`, o bloco `setup()` executava `initial.forEach(notifyNewDelivery)` e o `pollDeliveries` executava `data?.forEach(notifyNewDelivery)` em entregas já existentes no banco de dados. Ao abrir o app, qualquer entrega pendente ou com conclusão pendente disparava toque sonoro, vibração e popups como se fosse recém-criada.
+  4. **Falta de Checagem de Conclusão**: `notifyNewDelivery` não checava se `completed_at` ou `delivered_at` estavam preenchidos, nem se a entrega fora criada há mais de 10 minutos.
+  5. **Lentidão em Cascata com Erro 42703**: Em `deliveries.ts`, `advanceDelivery` executava um loop sequencial com até 9 chamadas RPC e 3 chamadas REST que incluíam a coluna `delivered_at` (inexistente no banco de dados Postgres, gerando erro HTTP 400 código 42703). Cada avanço levava de 5 a 15 segundos sem atualização otimista na interface.
+* **Solução Padrão**:
+  1. **Filtrar Online em `send-push`**: Incluir `.or('is_online.eq.true,online.eq.true')` para entregas sem `driver_id` direto.
+  2. **Status Online Estrito**: Em `useDriverNotifications.ts` e `Header.tsx`, respeitar estritamente `is_online` do banco de dados e descartar pushes recebidos caso `!isOnlineRef.current`.
+  3. **Seed Silencioso**: No `setup()` do `useDriverNotifications.ts`, apenas adicionar os IDs das entregas existentes a `seenIdsRef.current.add(d.id)` sem disparar alertas sonoros ou modais.
+  4. **Filtro de Conclusão**: Em `notifyNewDelivery`, abortar imediatamente se `completed_at` ou `delivered_at` estiverem preenchidos, ou se a entrega foi criada há mais de 10 minutos.
+  5. **Atualização Rápida e Otimista**: Em `deliveries.ts`, refatorar `advanceDelivery` para atualização direta via REST sem colunas inexistentes (`status`, `completed_at`, `updated_at`), com fallback único para a RPC segura. Em `driver.deliveries.tsx`, implementar atualização otimista imediata no cache do TanStack Query (`qc.setQueriesData`).
+  6. **Novo APK e AAB**: Incrementar versão do app Android para `versionCode 19` e `versionName "1.1.8"`, compilar com `./gradlew assembleRelease bundleRelease` e salvar em `apks/mt24horas-entregador-release.apk` e `apks/mt24horas-entregador-release.aab`.
+
 
 
 
