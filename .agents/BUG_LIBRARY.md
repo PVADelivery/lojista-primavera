@@ -1603,6 +1603,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **RPC Segura `unassign_ride_driver`**: Criar a procedure PostgreSQL `unassign_ride_driver(p_ride_id UUID)` com `SECURITY DEFINER` e atualizar a política RLS de `UPDATE` da tabela `ride_requests` para `USING (true) WITH CHECK (true)` (mesmo padrão testado e consolidado em `deliveries_update_all`).
   3. **Frontend Resiliente**: Em `src/services/deliveries.ts`, criar a função `cancelRide(rideId)` que invoca prioritariamente `supabase.rpc("unassign_ride_driver", { p_ride_id: rideId })` com fallback REST. Em `driver.deliveries.tsx`, aplicar atualização otimista instantânea no cache do React Query antes da requisição.
 
+---
+
+### 150. Erro Supabase Realtime `cannot add postgres_changes callbacks for realtime:mt24-driver-status-... after subscribe()` no App do Entregador
+* **Sintoma**: Ao carregar rotas do app do entregador como `/driver` ou `/driver/deliveries`, a telemetria reporta erro fatal: `Unhandled Rejection: cannot add postgres_changes callbacks for realtime:mt24-driver-status-... after subscribe() at io.on (index.js) at x (DriverShell.js)`.
+* **Causa Raiz**:
+  1. **Publicação Pendente no Lovable**: A alteração anterior estava salva no repositório GitHub, mas o servidor web de produção (`entregador.mt24horasexpress.com`) continuava servindo o bundle empacotado legado (`DriverShell-BXke0m-N.js`), onde a subscrição de status ainda utilizava o nome de canal estático `mt24-driver-status-${driverId}`.
+  2. **Canais Secundários sem Identificador Único**: Componentes auxiliares como `Header.tsx` (`driver-profile-sync-${user.id}`), `driver.profile.tsx` (`driver-profile-page-sync-${user.id}`), `driver.chat.tsx` (`chat-driver-${user.id}`) e `useDeliveryDetails.ts` (`delivery-details-${deliveryId}`) utilizavam nomes estáticos de canal sem sufixo aleatório nem blocos defensivos `try/catch`. Quando ocorria remounting rápido ou re-render, o Supabase Realtime client reutilizava canais já subscritos e disparava a exceção.
+* **Solução Padrão**:
+  1. **Blindagem Defensiva com `try/catch`**: Envolver todas as chamadas `.channel(...).on(...).subscribe()` do Supabase Realtime em blocos `try/catch` resilientes em todos os hooks e páginas do entregador (`useDriverNotifications.ts`, `Header.tsx`, `driver.profile.tsx`, `driver.chat.tsx`, `useDeliveryDetails.ts`, `driver.deliveries.tsx`, `driver.index.tsx`), prevenindo que falhas de subscrição se transformem em Unhandled Rejections não tratadas.
+  2. **Identificadores Únicos em Todos os Canais**: Adicionar sufixo dinâmico temporal e aleatório (`${id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`) a 100% dos canais criados no frontend.
+  3. **Atualização do Bundle de Produção**: Executar `npm run build` e publicar a versão atualizada no painel do Lovable (`Publish / Deploy`) para atualizar os assets em `entregador.mt24horasexpress.com`.
+
+
 
 
 
