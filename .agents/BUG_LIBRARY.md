@@ -1615,9 +1615,18 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **Identificadores Únicos em Todos os Canais**: Adicionar sufixo dinâmico temporal e aleatório (`${id}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`) a 100% dos canais criados no frontend.
   3. **Atualização do Bundle de Produção**: Executar `npm run build` e publicar a versão atualizada no painel do Lovable (`Publish / Deploy`) para atualizar os assets em `entregador.mt24horasexpress.com`.
 
+---
 
-
-
-
-
+### 151. Entregadores em Modo Offline Recebendo Notificações e Sons de Entrega
+* **Sintoma**: Mesmo com o switch no aplicativo do entregador definido como **OFFLINE**, o celular continuava recebendo notificações push FCM na barra de notificações e alertas sonoros de novas entregas criadas por lojistas.
+* **Causa Raiz**:
+  1. **Edge Function `notify-driver`**: Na transmissão geral de entregas, executava `.from('delivery_drivers').select('fcm_token').not('fcm_token', 'is', null)` sem filtrar `is_online = true`, enviando push para todos os entregadores cadastrados no banco.
+  2. **Edge Function `send-push`**: Utilizava filtro permissivo `.or('is_online.eq.true,online.eq.true')`, que podia incluir motoristas com colunas legadas ativas.
+  3. **Rastreamento GPS (`Header.tsx`)**: O callback `watchPosition` executava `.update({ latitude: lat, longitude: lng, is_online: true })`, forçando o entregador de volta para online no banco a cada leitura do GPS.
+  4. **Falta de Sincronização Síncrona do Hook**: O hook `useDriverNotifications.ts` não escutava eventos locais imediatos de troca de status do `Header.tsx`, dependendo apenas de respostas assíncronas do WebSocket.
+* **Solução Padrão**:
+  1. **Filtro Estrito nas Edge Functions**: Aplicar `.eq('is_online', true)` obrigatoriamente em todas as Edge Functions de push notification (`send-push` e `notify-driver`).
+  2. **Correção do GPS no Header**: Remover o campo `is_online: true` da atualização contínua de coordenadas e interromper o rastreador de GPS imediatamente quando o status for alterado para offline.
+  3. **Sincronização Imediata por Evento**: Disparar o evento `driver-status-changed` no `Header.tsx` ao alternar o switch, fazendo `useDriverNotifications.ts` cancelar todos os alertas sonoros, limpar notificações ativas e descartar pushes recebidos instantaneamente.
+  4. **Validação Dupla `checkDriverOnline()`**: Bloquear a execução de `notifyNewDelivery`, `notifyNewRide`, `pollDeliveries` e eventos Realtime se `isOnlineRef` ou `localStorage` indicarem offline.
 

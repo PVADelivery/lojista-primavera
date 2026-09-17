@@ -75,26 +75,27 @@ serve(async (req) => {
     const tokenSet = new Set<string>();
 
     if (record.driver_id) {
-      // 1. Se o Admin DIRECIONOU para um motorista específico, notifica SOMENTE ELE!
+      // 1. Se o Admin DIRECIONOU para um motorista específico, notifica SOMENTE ELE (se estiver online)!
       try {
         const { data: driver } = await adminClient
           .from('delivery_drivers')
-          .select('fcm_token, user_id')
+          .select('fcm_token, user_id, is_online')
           .or(`id.eq.${record.driver_id},user_id.eq.${record.driver_id}`)
           .maybeSingle();
 
-        if (driver?.fcm_token && driver.fcm_token.length > 10) {
+        if (driver?.fcm_token && driver.fcm_token.length > 10 && driver?.is_online === true) {
           tokenSet.add(driver.fcm_token);
         }
       } catch (e: any) {
         console.warn("Could not query assigned driver:", e?.message);
       }
     } else {
-      // 2. Transmissão geral (apenas quando status for broadcasted ou tempo de 2 min do admin expirou)
+      // 2. Transmissão geral: APENAS para motoristas estritamente ONLINE (is_online = true)
       try {
         const { data: drivers } = await adminClient
           .from('delivery_drivers')
-          .select('fcm_token')
+          .select('fcm_token, is_online')
+          .eq('is_online', true)
           .not('fcm_token', 'is', null);
 
         for (const d of (drivers ?? [])) {
