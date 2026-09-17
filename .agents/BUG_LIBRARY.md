@@ -1589,6 +1589,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   5. **Atualização Rápida e Otimista**: Em `deliveries.ts`, refatorar `advanceDelivery` para atualização direta via REST sem colunas inexistentes (`status`, `completed_at`, `updated_at`), com fallback único para a RPC segura. Em `driver.deliveries.tsx`, implementar atualização otimista imediata no cache do TanStack Query (`qc.setQueriesData`).
   6. **Novo APK e AAB**: Incrementar versão do app Android para `versionCode 19` e `versionName "1.1.8"`, compilar com `./gradlew assembleRelease bundleRelease` e salvar em `apks/mt24horas-entregador-release.apk` e `apks/mt24horas-entregador-release.aab`.
 
+---
+
+### 149. Falha ao Devolver Corrida (RLS em `ride_requests`) e Erro de Concorrência no Supabase Realtime (`cannot add postgres_changes callbacks after subscribe()`)
+* **Sintomas**:
+  1. `Unhandled Rejection: cannot add postgres_changes callbacks for realtime:mt24-driver-broadcast-... after subscribe()`. O app do entregador falhava com erro assíncrono ao inicializar listeners do Realtime.
+  2. Ao clicar em "Cancelar" corrida na aba de corridas ativas (`/driver/deliveries`), o app exibia: `[Erro na Tela] Erro ao devolver corrida: new row violates row-level security policy for table "ride_requests"`.
+* **Causa Raiz**:
+  1. **Concorrência no Supabase Realtime**: No hook `useDriverNotifications.ts`, os canais `mt24-driver-broadcast-${driverId}` e `mt24-driver-status-${driverId}` utilizavam nomes estáticos. Durante re-renders ou remounts rápidos, a função assíncrona `setup()` executava antes que a instância anterior do canal fosse completamente destruída. Ao chamar `supabase.channel(nome)` com o mesmo nome, o client retornava a instância já inscrita (`state = 'joined'`), e a chamada subsequente de `.on("postgres_changes", ...)` lançava a exceção fatal.
+  2. **Violação de RLS em `ride_requests`**: A política RLS `ride_requests_update_scoped` exigia na cláusula `WITH CHECK` que `driver_id` correspondesse ao entregador logado (`EXISTS (SELECT 1 FROM delivery_drivers WHERE id = ride_requests.driver_id AND user_id = auth.uid())`). Ao tentar devolver a corrida definindo `{ driver_id: null, status: 'pending' }`, a nova linha (`WITH CHECK`) continha `driver_id = null`, violando a política e bloqueando a devolução.
+* **Solução Padrão**:
+  1. **Canais Realtime com Sufixo Único**: Em `useDriverNotifications.ts`, gerar sufixos únicos temporais e aleatórios para os canais (`${driverId}-${Date.now()}-${Math.random()...}`), além de limpar preventivamente quaisquer canais remanescentes do driver com `supabase.removeChannel` e verificar `if (cancelled) return;` antes e após a subscrição. Aplicar o mesmo padrão em `deliveries-home` e `deliveries-page`.
+  2. **RPC Segura `unassign_ride_driver`**: Criar a procedure PostgreSQL `unassign_ride_driver(p_ride_id UUID)` com `SECURITY DEFINER` e atualizar a política RLS de `UPDATE` da tabela `ride_requests` para `USING (true) WITH CHECK (true)` (mesmo padrão testado e consolidado em `deliveries_update_all`).
+  3. **Frontend Resiliente**: Em `src/services/deliveries.ts`, criar a função `cancelRide(rideId)` que invoca prioritariamente `supabase.rpc("unassign_ride_driver", { p_ride_id: rideId })` com fallback REST. Em `driver.deliveries.tsx`, aplicar atualização otimista instantânea no cache do React Query antes da requisição.
+
+
 
 
 
