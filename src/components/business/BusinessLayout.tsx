@@ -160,8 +160,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
 
           {/* Logo & Brand */}
           <Link to="/business" className={`h-20 flex items-center gap-3 border-b border-sidebar-border/50 hover:bg-sidebar-accent/30 transition-colors ${isSidebarExpanded ? "px-6" : "px-0 justify-center"}`}>
-            <div className="h-12 w-12 min-w-12 flex items-center justify-center">
-              <img src={logoIcon} alt="MT 24 Horas Express" className="h-full w-full object-contain" />
+            <div className="h-12 w-12 min-w-12 rounded-full overflow-hidden bg-black flex items-center justify-center ring-1 ring-border/40 shrink-0">
+              <img src={logoIcon} alt="MT 24 Horas Express" className="h-full w-full object-cover rounded-full" />
             </div>
             {isSidebarExpanded && (
               <div className="flex flex-col whitespace-nowrap overflow-hidden">
@@ -278,8 +278,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <header className="h-16 flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0">
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
-              <div className="h-10 w-10 flex items-center justify-center">
-                <img src={logoIcon} alt="MT 24horas express" className="h-full w-full object-contain" />
+              <div className="h-10 w-10 rounded-full overflow-hidden bg-black flex items-center justify-center ring-1 ring-border/40 shrink-0">
+                <img src={logoIcon} alt="MT 24horas express" className="h-full w-full object-cover rounded-full" />
               </div>
               <span className="font-black text-sm">MT 24horas express</span>
             </div>
