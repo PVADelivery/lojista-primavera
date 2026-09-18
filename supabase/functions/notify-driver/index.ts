@@ -116,11 +116,21 @@ serve(async (req) => {
       });
     }
 
+    const isRide = payload?.table === 'ride_requests' ||
+      record.vehicle_type === 'mototaxi' ||
+      record.vehicle_type === 'taxi' ||
+      record.type === 'ride' ||
+      record.type === 'mototaxi' ||
+      record.type === 'taxi' ||
+      (!record.company_id && record.pickup_address && record.dropoff_address && !record.order_id);
+
+    const isTaxi = record.vehicle_type === 'taxi' || record.type === 'taxi';
+
     let storeName = sanitize(record.company_name || record.store_name || '');
     let pickup = sanitize(record.pickup_address || record.origin_address || '');
     let dropoff = sanitize(record.delivery_address || record.address || record.dropoff_address || '');
 
-    if ((!storeName || !pickup) && record.company_id) {
+    if (!isRide && (!storeName || !pickup) && record.company_id) {
       try {
         const { data: comp } = await adminClient
           .from('companies')
@@ -136,9 +146,34 @@ serve(async (req) => {
       }
     }
 
-    const notifTitle = storeName ? `🏬 ${storeName}` : 'MT 24 Horas Express - Nova Corrida!';
-    const notifBody = pickup ? `Retirada: ${pickup}` : (dropoff ? `Entrega: ${dropoff}` : 'Nova corrida disponível');
-    const deliveryTag = `delivery_${record.id}`;
+    let notifTitle = '';
+    let notifBody = '';
+
+    if (isRide) {
+      notifTitle = isTaxi ? '🚕 Nova Corrida de Táxi!' : '🏍️ Nova Corrida de Moto Táxi!';
+      if (pickup && dropoff) {
+        notifBody = `Embarque: ${pickup} ➔ Destino: ${dropoff}`;
+      } else if (pickup) {
+        notifBody = `Embarque: ${pickup}`;
+      } else if (dropoff) {
+        notifBody = `Destino: ${dropoff}`;
+      } else {
+        notifBody = isTaxi ? 'Nova corrida de táxi disponível' : 'Nova corrida de moto táxi disponível';
+      }
+    } else {
+      notifTitle = storeName ? `🏬 ${storeName}` : 'MT 24 Horas Express - Nova Entrega!';
+      if (pickup && dropoff) {
+        notifBody = `Retirada: ${pickup} ➔ Entrega: ${dropoff}`;
+      } else if (pickup) {
+        notifBody = `Retirada: ${pickup}`;
+      } else if (dropoff) {
+        notifBody = `Entrega: ${dropoff}`;
+      } else {
+        notifBody = 'Nova entrega disponível';
+      }
+    }
+
+    const deliveryTag = isRide ? `ride_${record.id}` : `delivery_${record.id}`;
 
     const message = {
       notification: {
@@ -146,12 +181,13 @@ serve(async (req) => {
         body: notifBody
       },
       data: {
-        type: 'delivery',
+        type: isRide ? (isTaxi ? 'taxi' : 'mototaxi') : 'delivery',
         deliveryId: String(record.id),
-        storeName: String(storeName || ''),
+        rideId: String(record.id),
+        storeName: String(storeName || (isRide ? (isTaxi ? 'Táxi Express' : 'Moto Táxi Express') : '')),
         pickup: String(pickup || ''),
         dropoff: String(dropoff || ''),
-        fee: String(record.price || record.value || record.delivery_fee || '8,80')
+        fee: String(record.price || record.value || record.delivery_fee || (isRide ? (isTaxi ? '15,00' : '10,00') : '8,80'))
       },
       android: {
         priority: 'high' as const,
