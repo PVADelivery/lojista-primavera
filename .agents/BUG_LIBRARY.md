@@ -1642,3 +1642,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. **Flexibilização de `isRideVehicleCompatible`**: Verificar se existem categorias explícitas de passageiros antes de filtrar. Caso o entregador possua apenas categorias de lojas ou esteja em modo Corridas, permitir a exibição e notificação de corridas disponíveis compatíveis com seu veículo.
   2. **Ajuste em `checkDriverOnline`**: Considerar online se `isOnlineRef || localOnline` for verdadeiro, mantendo o bloqueio apenas quando explicitamente desligado em offline.
   3. **Polling Automático de 3s**: Adicionar `refetchInterval: 3000` e `staleTime: 2000` em `availableRides` em `driver.index.tsx`.
+
+---
+
+### 153. Paridade de Notificação entre Corridas de Passageiros e Entregas com Filtro de Habilitação
+* **Sintoma**: As entregas de mercadorias notificavam normalmente com push, pop-up nativo e som contínuo, mas as corridas de passageiros (Táxi e Moto Táxi) não disparavam notificação com a mesma consistência, ou eram enviadas a entregadores não habilitados para corridas.
+* **Causa Raiz**:
+  1. **Ausência de Disparo Push Imediato no Frontend do Cliente**: Ao solicitar uma corrida em `marketplace.taxi.tsx` ou envio em `marketplace.errands.tsx`, o frontend apenas realizava o `insert` no banco, sem invocar as Edge Functions de push notification (`send-push` e `notify-driver`).
+  2. **Bloqueio de PostNotification em `notifyNewRide`**: A chamada `DeliveryOverlay.postNotification` estava posicionada dentro do bloco `.catch()` de `showIncomingCall`, sendo omitida caso o pop-up nativo exibisse com sucesso.
+  3. **Ausência de Filtragem de Habilitação nas Edge Functions**: O envio de push FCM não validava se o entregador estava configurado para corridas de passageiros (táxi/mototáxi) ou exclusivamente para entregas de lojas, gerando notificações cruzadas.
+* **Solução Padrão**:
+  1. **Disparo Imediato de Push no Cliente**: Invocar `supabase.functions.invoke("send-push", ...)` e `supabase.functions.invoke("notify-driver", ...)` logo após o `insert` bem-sucedido de corridas e encomendas em `marketplace.taxi.tsx` e `marketplace.errands.tsx`.
+  2. **Execução Incondicional de `postNotification` e `LocalNotifications`**: Em `useDriverNotifications.ts`, executar `DeliveryOverlay.postNotification` e `LocalNotifications.schedule` de forma incondicional em `notifyNewRide` com som contínuo e canal de alta prioridade.
+  3. **Filtro Estrito por Habilitação de Serviço**: Validar em `send-push/index.ts`, `notifyNewDelivery` e `notifyNewRide` se o motorista online possui perfil habilitado para o tipo específico de corrida (Moto Táxi vs Táxi) ou para entregas de encomendas.
+
