@@ -1630,3 +1630,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. **Sincronização Imediata por Evento**: Disparar o evento `driver-status-changed` no `Header.tsx` ao alternar o switch, fazendo `useDriverNotifications.ts` cancelar todos os alertas sonoros, limpar notificações ativas e descartar pushes recebidos instantaneamente.
   4. **Validação Dupla `checkDriverOnline()`**: Bloquear a execução de `notifyNewDelivery`, `notifyNewRide`, `pollDeliveries` e eventos Realtime se `isOnlineRef` ou `localStorage` indicarem offline.
 
+---
+
+### 152. Corridas de Moto Táxi / Táxi Não Exibidas no App do Entregador e Notificações Bloqueadas
+* **Sintoma**: O cliente solicitava uma corrida no Marketplace (ficando com status "Procurando Motorista"), mas no app do entregador em modo Corridas a seção exibia "Sem corridas de Táxi ou Moto Táxi disponíveis" e o áudio/notificação de nova corrida não tocava.
+* **Causa Raiz**:
+  1. **Filtro Rígido de Categorias (`isRideVehicleCompatible`)**: Entregadores que possuíam categorias administrativas de lojas vinculadas (ex: "Entregas de Lojas (Carro)") tinham o array `service_types` preenchido. A verificação checava `service_types.length > 0` e buscava estritamente por `"mototaxi"` ou `"taxi"`. Como as categorias eram apenas de lojas, a função rejeitava a corrida e a ocultava da tela e das notificações.
+  2. **Validação Estrita `checkDriverOnline` com `&&`**: A função exigia que ambos `isOnlineRef` e `localStorage` fossem `true` simultaneamente, causando silenciamento indevido durante inicialização ou descompasso momentâneo de WebSocket.
+  3. **Falta de Polling Contínuo em `availableRides`**: A consulta não possuía `refetchInterval`, dependendo unicamente de eventos de WebSocket para atualizar a lista.
+* **Solução Padrão**:
+  1. **Flexibilização de `isRideVehicleCompatible`**: Verificar se existem categorias explícitas de passageiros antes de filtrar. Caso o entregador possua apenas categorias de lojas ou esteja em modo Corridas, permitir a exibição e notificação de corridas disponíveis compatíveis com seu veículo.
+  2. **Ajuste em `checkDriverOnline`**: Considerar online se `isOnlineRef || localOnline` for verdadeiro, mantendo o bloqueio apenas quando explicitamente desligado em offline.
+  3. **Polling Automático de 3s**: Adicionar `refetchInterval: 3000` e `staleTime: 2000` em `availableRides` em `driver.index.tsx`.
