@@ -22,6 +22,12 @@ function initFirebase() {
   }
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-webhook-secret, x-application-name',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
+};
+
 function sanitize(input: unknown, max = 120): string {
   const s = String(input ?? "").replace(/[\r\n\t]+/g, " ").trim();
   return s.length > max ? s.slice(0, max) + "…" : s;
@@ -29,7 +35,7 @@ function sanitize(input: unknown, max = 120): string {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { status: 200, headers: { 'Access-Control-Allow-Origin': '*' } });
+    return new Response('ok', { status: 200, headers: corsHeaders });
   }
 
   try {
@@ -39,7 +45,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("authorization") ?? "";
 
     if (expectedSecret && providedSecret !== expectedSecret && !authHeader.startsWith("Bearer ")) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: corsHeaders });
     }
 
     const firebaseReady = initFirebase();
@@ -226,10 +232,13 @@ serve(async (req) => {
     console.log(`Push sent to ${tokens.length} drivers, success: ${response.successCount}, failure: ${response.failureCount}`);
 
     return new Response(JSON.stringify({ success: true, response }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
     console.error("Error sending push:", err?.message);
-    return new Response(JSON.stringify({ error: err?.message || 'Internal error' }), { status: 500 });
+    return new Response(JSON.stringify({ error: err?.message || 'Internal error' }), { 
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
   }
 });
