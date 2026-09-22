@@ -123,12 +123,54 @@ function BusinessProductsPage() {
 
   const deleteProduct = async (id: string) => {
     if (!confirm("Deseja realmente remover este produto?")) return;
-    const { error } = await supabase.from("products").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao remover produto");
-    } else {
-      toast.success("Produto removido");
-      fetchCompanyAndProducts();
+    try {
+      // 1. Remove associated options and groups to prevent foreign key errors
+      const { data: optionGroups } = await (supabase as any)
+        .from("product_option_groups")
+        .select("id")
+        .eq("product_id", id);
+
+      if (optionGroups && optionGroups.length > 0) {
+        const groupIds = optionGroups.map((g: any) => g.id);
+        await (supabase as any).from("product_options").delete().in("group_id", groupIds);
+        await (supabase as any).from("product_option_groups").delete().eq("product_id", id);
+      }
+
+      // 2. Remove coupon relations if any
+      await (supabase as any).from("coupon_products").delete().eq("product_id", id);
+
+      // 3. Delete the product
+      const { error } = await supabase.from("products").delete().eq("id", id);
+      if (error) {
+        // If error is foreign key violation (e.g., product has previous sales/orders in order_items)
+        if (
+          error.code === "23503" ||
+          error.message?.toLowerCase().includes("foreign key") ||
+          error.message?.toLowerCase().includes("order_items") ||
+          error.message?.toLowerCase().includes("violates foreign key constraint")
+        ) {
+          const { error: deactErr } = await supabase
+            .from("products")
+            .update({ is_active: false })
+            .eq("id", id);
+
+          if (deactErr) {
+            toast.error("Erro ao desativar produto: " + deactErr.message);
+          } else {
+            toast.info(
+              "Este produto possui histórico de pedidos e não pode ser excluído permanentemente. Ele foi desativado do seu catálogo."
+            );
+            fetchCompanyAndProducts();
+          }
+        } else {
+          toast.error(`Erro ao remover produto: ${error.message || "Erro desconhecido"}`);
+        }
+      } else {
+        toast.success("Produto removido");
+        fetchCompanyAndProducts();
+      }
+    } catch (err: any) {
+      toast.error(`Erro ao remover produto: ${err?.message || "Erro inesperado"}`);
     }
   };
 
@@ -178,25 +220,6 @@ function BusinessProductsPage() {
     dragCategory.current = null;
   }, [products]);
 
-  // ── Views ────────────────────────────────────────────────────────────────────
-  if (managingOptions) {
-    return (
-      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
-        <button
-          onClick={() => setManagingOptions(null)}
-          className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar ao Cardápio
-        </button>
-        <ProductOptionsManager
-          productId={managingOptions.id}
-          productName={managingOptions.name}
-          onClose={() => setManagingOptions(null)}
-        />
-      </div>
-    );
-  }
-
   // List of existing categories across all products
   const existingCategories = useMemo(() => {
     const list: string[] = [];
@@ -206,26 +229,6 @@ function BusinessProductsPage() {
     });
     return list;
   }, [products]);
-
-  if (showForm || editingProduct) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <ProductForm
-          companyId={companyId!}
-          userId={user?.id}
-          product={editingProduct}
-          categoryCount={
-            editingProduct
-              ? products.filter(p => p.category === editingProduct.category).length
-              : 0
-          }
-          existingCategories={existingCategories}
-          onClose={() => { setShowForm(false); setEditingProduct(null); }}
-          onSaved={() => { setShowForm(false); setEditingProduct(null); fetchCompanyAndProducts(); }}
-        />
-      </div>
-    );
-  }
 
   // Group by category dynamically — NEVER drop or hide any product!
   const grouped = useMemo(() => {
@@ -311,6 +314,45 @@ function BusinessProductsPage() {
   const totalFilteredCount = useMemo(() => {
     return filteredGrouped.reduce((sum, g) => sum + g.items.length, 0);
   }, [filteredGrouped]);
+
+  // ── Views ────────────────────────────────────────────────────────────────────
+  if (managingOptions) {
+    return (
+      <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
+        <button
+          onClick={() => setManagingOptions(null)}
+          className="group flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" /> Voltar ao Cardápio
+        </button>
+        <ProductOptionsManager
+          productId={managingOptions.id}
+          productName={managingOptions.name}
+          onClose={() => setManagingOptions(null)}
+        />
+      </div>
+    );
+  }
+
+  if (showForm || editingProduct) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <ProductForm
+          companyId={companyId!}
+          userId={user?.id}
+          product={editingProduct}
+          categoryCount={
+            editingProduct
+              ? products.filter(p => p.category === editingProduct.category).length
+              : 0
+          }
+          existingCategories={existingCategories}
+          onClose={() => { setShowForm(false); setEditingProduct(null); }}
+          onSaved={() => { setShowForm(false); setEditingProduct(null); fetchCompanyAndProducts(); }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">

@@ -245,15 +245,20 @@ export function ProductOptionsManager({ productId, productName, onClose }: {
 
   const deleteGroup = async (id: string) => {
     if (!confirm("Remover este grupo e todas as suas opções?")) return;
-    const { error } = await (supabase as any).from("product_option_groups").delete().eq("id", id);
-    if (error) {
-      toast.error("Erro ao remover grupo");
-    } else {
-      setGroups(groups.filter(g => g.id !== id));
-      const newOpts = { ...options };
-      delete newOpts[id];
-      setOptions(newOpts);
-      toast.success("Grupo removido");
+    try {
+      await (supabase as any).from("product_options").delete().eq("group_id", id);
+      const { error } = await (supabase as any).from("product_option_groups").delete().eq("id", id);
+      if (error) {
+        toast.error("Erro ao remover grupo: " + error.message);
+      } else {
+        setGroups(groups.filter(g => g.id !== id));
+        const newOpts = { ...options };
+        delete newOpts[id];
+        setOptions(newOpts);
+        toast.success("Grupo removido");
+      }
+    } catch (err: any) {
+      toast.error("Erro ao remover grupo: " + (err?.message || "Erro desconhecido"));
     }
   };
 
