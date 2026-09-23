@@ -35,14 +35,15 @@ export const Route = createFileRoute("/business/products")({
 // ── Category config ────────────────────────────────────────────────────────────
 const CATEGORY_OPTIONS = [
   { value: "Lanches",           label: "🍔 Lanches" },
+  { value: "Sorvetes e Açaí",   label: "🍨 Sorvetes e Açaí" },
   { value: "CREMOSINHO GOURMET",label: "🍨 Cremosinho Gourmet" },
   { value: "Açaí",              label: "🍨 Açaí" },
+  { value: "Padaria e Cafés",   label: "🥖 Padaria e Cafés" },
   { value: "Pizza",             label: "🍕 Pizza" },
+  { value: "Pratos e Refeições",label: "🍽️ Pratos e Refeições" },
   { value: "Bebidas",           label: "🥤 Bebidas" },
-  { value: "Doces",             label: "🍫 Doces" },
   { value: "Sobremesas",        label: "🍰 Sobremesas" },
   { value: "Combos",            label: "🍱 Combos" },
-  { value: "Mercado",           label: "🛒 Mercado" },
   { value: "Farmácia",          label: "💊 Farmácia" },
   { value: "Pet Shop",          label: "🐾 Pet Shop" },
   { value: "Shopping",          label: "🛍️ Shopping" },
@@ -236,10 +237,13 @@ function BusinessProductsPage() {
 
     const defaultLabels: Record<string, string> = {
       Lanches: "🍔 Lanches",
+      "Sorvetes e Açaí": "🍨 Sorvetes e Açaí",
       "CREMOSINHO GOURMET": "🍨 Cremosinho Gourmet",
       Açaí: "🍨 Açaí",
       "Açai": "🍨 Açaí",
+      "Padaria e Cafés": "🥖 Padaria e Cafés",
       Pizza: "🍕 Pizza",
+      "Pratos e Refeições": "🍽️ Pratos e Refeições",
       Bebidas: "🥤 Bebidas",
       Doces: "🍫 Doces",
       Sobremesas: "🍰 Sobremesas",

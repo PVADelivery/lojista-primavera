@@ -670,12 +670,12 @@ function BusinessSettingsPage() {
                     className="w-full h-12 px-4 rounded-xl border border-border bg-background focus:ring-2 focus:ring-primary/20 outline-none font-bold text-sm appearance-none cursor-pointer"
                   >
                     <option value="restaurante">Restaurante</option>
-                    <option value="mercado">Mercado / Mercearia</option>
-                    <option value="farmacia">Farmácia / Drogaria</option>
-                    <option value="lanches">Lanches / Fast Food</option>
+                    <option value="lanches">Lanches / Hamburgueria</option>
+                    <option value="sorveteria_acai">Sorveteria / Açaí</option>
+                    <option value="padaria_cafes">Padaria / Cafés</option>
                     <option value="pizza">Pizzaria</option>
+                    <option value="farmacia">Farmácia / Drogaria</option>
                     <option value="bebidas">Adega / Bebidas</option>
-                    <option value="doces">Doceria / Sobremesas</option>
                     <option value="pet">Pet Shop / Agro</option>
                     <option value="shopping">Shopping / Variedades</option>
                   </select>
