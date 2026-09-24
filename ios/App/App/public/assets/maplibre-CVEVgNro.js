@@ -1,0 +1,2 @@
+const __vite__mapDeps=(i,m=__vite__mapDeps,d=(m.f||(m.f=["assets/maplibre-gl-BQKZxYQb.js","assets/index-CIRgJVw_.js","assets/index-DNVN2dqC.css"])))=>i.map(i=>d[i]);
+import{_ as r}from"./index-CIRgJVw_.js";let t=null;async function i(){if(!t){const e=await r(()=>import("./maplibre-gl-BQKZxYQb.js").then(a=>a.m),__vite__mapDeps([0,1,2]));t=e.default??e}return t}function n(){return t}export{n as g,i as l};
