@@ -1,0 +1,1 @@
+const t=e=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(Number(e??0)),n=e=>(e||"?").split(" ").filter(Boolean).slice(0,2).map(r=>r[0]?.toUpperCase()).join("");export{t as b,n as i};
