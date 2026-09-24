@@ -208,20 +208,85 @@ serve(async (req) => {
           tag: deliveryTag // Garante que o Android atualize a notificação em vez de criar uma segunda
         }
       },
+      apns: {
+        headers: {
+          'apns-priority': '10',
+          'apns-push-type': 'alert'
+        },
+        payload: {
+          aps: {
+            alert: {
+              title: notifTitle,
+              body: notifBody
+            },
+            sound: 'default',
+            badge: 1,
+            contentAvailable: true
+          },
+          type: isRide ? (isTaxi ? 'taxi' : 'mototaxi') : 'delivery',
+          deliveryId: String(record.id),
+          rideId: String(record.id)
+        }
+      },
       tokens
     };
+
+    // Resolução de tokens APNs hex para FCM
+    const resolvedTokens = await Promise.all(tokens.map(async (rawTok: string) => {
+      if (/^[0-9a-fA-F]{64}$|^[0-9a-fA-F]{128}$/.test(rawTok)) {
+        try {
+          // Utiliza API batchImport com serviceAccount
+          const saStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT");
+          if (saStr) {
+            const sa = JSON.parse(saStr);
+            const { GoogleAuth } = await import("npm:google-auth-library@9");
+            const auth = new GoogleAuth({
+              credentials: sa,
+              scopes: ['https://www.googleapis.com/auth/firebase.messaging', 'https://www.googleapis.com/auth/cloud-platform']
+            });
+            const client = await auth.getClient();
+            const tokenResponse = await client.getAccessToken();
+            for (const isSandbox of [false, true]) {
+              const res = await fetch("https://iid.googleapis.com/iid/v1:batchImport", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${tokenResponse.token}`,
+                  "access_token_auth": "true",
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  application: "com.mt24horasexpress.entregador",
+                  sandbox: isSandbox,
+                  apns_tokens: [rawTok]
+                })
+              });
+              const d = await res.json();
+              if (d?.results?.[0]?.status === "OK" && d.results[0].token) {
+                return d.results[0].token;
+              }
+            }
+          }
+        } catch (e: any) {
+          console.warn("[notify-driver] Falha ao resolver token APNs:", e?.message);
+        }
+      }
+      return rawTok;
+    }));
+
+    message.tokens = resolvedTokens;
 
     let response: any = null;
     if (typeof admin.messaging().sendEachForMulticast === 'function') {
       response = await admin.messaging().sendEachForMulticast(message);
     } else {
       // Fallback enviando mensagens individuais via API v1
-      const sendPromises = tokens.map((token: string) =>
+      const sendPromises = resolvedTokens.map((token: string) =>
         admin.messaging().send({
           token,
           notification: message.notification,
           data: message.data,
-          android: message.android
+          android: message.android,
+          apns: message.apns
         }).then(() => ({ success: true })).catch((err: any) => ({ success: false, error: err?.message }))
       );
       const results = await Promise.all(sendPromises);
@@ -229,7 +294,7 @@ serve(async (req) => {
       response = { successCount, failureCount: results.length - successCount, responses: results };
     }
 
-    console.log(`Push sent to ${tokens.length} drivers, success: ${response.successCount}, failure: ${response.failureCount}`);
+    console.log(`Push sent to ${resolvedTokens.length} drivers, success: ${response.successCount}, failure: ${response.failureCount}`);
 
     return new Response(JSON.stringify({ success: true, response }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
