@@ -276,13 +276,12 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         <div className="flex-1 flex flex-col min-w-0">
           {/* TOP BAR — Medal style with back/forward + tabs + right actions */}
           <header 
-            className="flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0 z-20 transition-colors"
+            className="w-full bg-background border-b border-border flex-shrink-0 z-20 transition-colors"
             style={{
               paddingTop: "max(env(safe-area-inset-top, 0px), 0px)",
-              minHeight: "calc(4rem + env(safe-area-inset-top, 0px))",
-              height: "calc(4rem + env(safe-area-inset-top, 0px))",
             }}
           >
+            <div className="h-16 w-full flex items-center px-3 lg:px-5 gap-2">
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
               <div className="h-10 w-10 rounded-full overflow-hidden bg-black flex items-center justify-center ring-1 ring-border/40 shrink-0">
@@ -397,7 +396,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </header>
+          </div>
+        </header>
 
           {/* Low credits banner */}
           {creditsLow && (
