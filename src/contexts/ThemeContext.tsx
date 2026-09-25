@@ -5,6 +5,8 @@ interface ThemeCtx { theme: Theme; toggle: () => void; setTheme: (t: Theme) => v
 
 const Ctx = createContext<ThemeCtx | undefined>(undefined);
 
+import { applyStatusBarTheme } from "@/utils/statusBar";
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     if (typeof window === "undefined") return "dark";
@@ -15,9 +17,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const isDark = theme === "dark";
     const root = document.documentElement;
-    root.classList.toggle("dark", theme === "dark");
+    root.classList.toggle("dark", isDark);
     localStorage.setItem("theme", theme);
+    applyStatusBarTheme(isDark);
   }, [theme]);
 
   const setTheme = (t: Theme) => setThemeState(t);

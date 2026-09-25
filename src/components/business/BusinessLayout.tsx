@@ -275,7 +275,14 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         {/* Main column */}
         <div className="flex-1 flex flex-col min-w-0">
           {/* TOP BAR — Medal style with back/forward + tabs + right actions */}
-          <header className="h-16 flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0">
+          <header 
+            className="flex items-center px-3 lg:px-5 gap-2 bg-background border-b border-border flex-shrink-0 z-20 transition-colors"
+            style={{
+              paddingTop: "max(env(safe-area-inset-top, 0px), 0px)",
+              minHeight: "calc(4rem + env(safe-area-inset-top, 0px))",
+              height: "calc(4rem + env(safe-area-inset-top, 0px))",
+            }}
+          >
             {/* Mobile menu / brand */}
             <div className="lg:hidden flex items-center gap-2 mr-2">
               <div className="h-10 w-10 rounded-full overflow-hidden bg-black flex items-center justify-center ring-1 ring-border/40 shrink-0">
@@ -404,13 +411,24 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
             </div>
           )}
 
-          {/* Content */}
-          <main className="flex-1 overflow-y-auto p-4 lg:p-8 pb-24 lg:pb-8">
+          {/* Content — com padding extra para rolar além da barra inferior */}
+          <main 
+            className="flex-1 overflow-y-auto p-4 lg:p-8"
+            style={{
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 8.5rem)",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
             {children ?? <Outlet />}
           </main>
 
-          {/* Mobile bottom nav */}
-          <nav className="lg:hidden fixed bottom-3 left-3 right-3 z-30 bg-card/95 backdrop-blur-xl border border-border rounded-3xl shadow-2xl px-2 py-2 flex items-center justify-between">
+          {/* Mobile bottom nav — respeitando a safe area inferior */}
+          <nav 
+            className="lg:hidden fixed left-3 right-3 z-30 bg-card/95 backdrop-blur-xl border border-border rounded-3xl shadow-2xl px-2 py-2 flex items-center justify-between"
+            style={{
+              bottom: "max(calc(env(safe-area-inset-bottom, 0px) + 0.75rem), 0.75rem)",
+            }}
+          >
             {MOBILE_NAV.map((it) => {
               const active = isActive(it.to, it.exact);
               return (
