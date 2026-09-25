@@ -278,7 +278,7 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
           <header 
             className="w-full bg-background border-b border-border flex-shrink-0 z-20 transition-colors"
             style={{
-              paddingTop: "max(env(safe-area-inset-top, 0px), 0px)",
+              paddingTop: "max(env(safe-area-inset-top, 0px), 56px)",
             }}
           >
             <div className="h-16 w-full flex items-center px-3 lg:px-5 gap-2">
