@@ -44,9 +44,9 @@ export const supabase: any = new Proxy({} as ReturnType<typeof createSupabaseCli
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
-      supabase.auth.signOut().then(() => {
+      if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
-      });
+      }
     }
   });
 }
