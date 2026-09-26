@@ -1671,4 +1671,24 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Definir a função auxiliar `const set = (key: keyof DirectoryBusiness, val: any) => setForm(prev => ({ ...prev, [key]: val }));`.
   3. Adicionar `suppressHydrationWarning` nas tags `<html lang="pt-BR" suppressHydrationWarning>` e `<body suppressHydrationWarning>` no `RootShell` de `__root.tsx`.
 
+---
+
+### 155. Divergência de Valores e Entregas Faltantes no Financeiro do App do Entregador (IDs Desvinculados entre `auth.users` e `delivery_drivers`)
+* **Sintoma**: O motorista realizou 8 entregas despachadas pelo painel (totalizando R$ 88,50 bruto -> R$ 66,38 líquido após os 25% de retenção da central), mas na tela de Financeiro do App do Entregador ("Ontem" / período) apareciam apenas 3 entregas concluídas (R$ 41,62 bruto -> R$ 31,22 líquido). O cliente/lojista acreditava que o cálculo de 25% estava errado ("está dando valor diferente do total menos 25%").
+* **Causa Raiz**:
+  1. **Separação de Identidades**: O motorista foi criado/importado na tabela `delivery_drivers` com um UUID (`id = '26047901-b04b-4276-81ad-5133b83c7ef5'`), mas com `user_id` nulo ou não vinculado ao seu usuário de autenticação Supabase (`user.id = 'b5756a82-d1ab-4adf-9fe4-e283a175e37e'`).
+  2. **Atribuição no Painel Admin**: Ao despachar entregas no Painel Administrador, o sistema gravava `deliveries.driver_id = '26047901-b04b-4276-81ad-5133b83c7ef5'`.
+  3. **Consulta Restrita no App**: No App do Entregador (`driver.profile.tsx`, `fetchEarnings`, `driver.deliveries.tsx`), a busca de motorista fazia `.eq("user_id", user.id)` ou `.eq("id", user.id)`. Como o registro da frota não batia com o `user.id`, o app criava um fallback com apenas `[user.id]`.
+  4. **Omissão das Entregas Despachadas**: Como consequência, o app só carregava entregas avulsas criadas diretamente com o `auth.uid` do motorista e ignorava todas as 8 entregas despachadas pela central com o ID do registro de frota. O cálculo de 25% estava matematicamente correto (75% de 41,62 é 31,22, e 75% de 88,50 é 66,38), mas a base de entregas consultada pelo app estava incompleta.
+* **Solução Padrão**:
+  1. **Resolução Robusta e Auto-Healing no App (`driver.profile.tsx`, `deliveries.ts`, `useDriverNotifications.ts`)**:
+     - Buscar em `delivery_drivers` por `user_id = user.id`, `id = user.id` e fallback para ID canônico (`26047901...` para `b5756a82...`).
+     - Realizar busca auxiliar por telefone do perfil (`profiles.phone`).
+     - Se o registro em `delivery_drivers` estiver com `user_id` desatualizado/nulo, disparar atualização imediata de vinculação (`delivery_drivers.update({ user_id: user.id })`).
+     - Agregar todos os IDs associados no array `cids` (`[driver.id, driverRow.id, driverRow.user_id, fallbackDriverId, user.id]`), garantindo que tanto entregas despachadas pela central quanto aceitas pelo app sejam contabilizadas no financeiro e nos KPIs.
+  2. **Auto-Healing Contínuo no Painel Admin (`painel-primavera/src/services/drivers.ts`)**:
+     - No loop de `fetchDrivers()`, ao cruzar `delivery_drivers` com `profiles` por nome ou telefone limpo, se `driver.user_id` estiver divergente de `profile.user_id`, executar o update automático no Supabase.
+     - Em `EditDriverDialog.tsx`, garantir que `user_id: targetUserId` seja persistido na edição do motorista.
+
+
 
