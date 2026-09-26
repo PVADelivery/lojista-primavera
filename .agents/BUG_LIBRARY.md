@@ -1656,3 +1656,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **Execução Incondicional de `postNotification` e `LocalNotifications`**: Em `useDriverNotifications.ts`, executar `DeliveryOverlay.postNotification` e `LocalNotifications.schedule` de forma incondicional em `notifyNewRide` com som contínuo e canal de alta prioridade.
   3. **Filtro Estrito por Habilitação de Serviço**: Validar em `send-push/index.ts`, `notifyNewDelivery` e `notifyNewRide` se o motorista online possui perfil habilitado para o tipo específico de corrida (Moto Táxi vs Táxi) ou para entregas de encomendas.
 
+---
+
+### 154. Erro ao Enviar Imagem no Painel PPP (`supabase is not defined`) e Erro de Hidratação React #418
+* **Sintoma**:
+  1. Ao fazer upload da imagem de arte de um prestador em `/admin/directory`, o sistema exibe toast: `[Erro na Tela] Erro ao enviar imagem: supabase is not defined`.
+  2. Erro não capturado `Minified React error #418` nas rotas do Painel Administrador.
+* **Causa Raiz**:
+  1. O arquivo `src/routes/admin/directory.tsx` chamava métodos `supabase.storage.from("avatars").upload(...)` e `.getPublicUrl(...)`, mas `supabase` não constava na lista de imports do arquivo.
+  2. O formulário do modal também chamava o setter auxiliar `set("campo", valor)`, que não estava definido no escopo de `DirectoryAdminPage`.
+  3. O `RootShell` em `src/routes/__root.tsx` não continha a diretiva `suppressHydrationWarning` nos elementos `<html>` e `<body>`.
+* **Solução Padrão**:
+  1. Importar `supabase` de `@/integrations/supabase/client` em `src/routes/admin/directory.tsx`.
+  2. Definir a função auxiliar `const set = (key: keyof DirectoryBusiness, val: any) => setForm(prev => ({ ...prev, [key]: val }));`.
+  3. Adicionar `suppressHydrationWarning` nas tags `<html lang="pt-BR" suppressHydrationWarning>` e `<body suppressHydrationWarning>` no `RootShell` de `__root.tsx`.
+
+
