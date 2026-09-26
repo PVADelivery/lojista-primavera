@@ -115,7 +115,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
       latitude: raw.latitude || raw.current_latitude || null,
       longitude: raw.longitude || raw.current_longitude || null,
       status: raw.status || (raw.is_active === false ? "suspended" : "active"),
-      commission_rate: raw.commission_rate !== null && raw.commission_rate !== undefined ? Number(raw.commission_rate) : 15.00,
+      commission_rate: raw.commission_rate !== null && raw.commission_rate !== undefined ? Number(raw.commission_rate) : 25.00,
       created_at: driver.created_at || profile?.created_at,
     });
   }
@@ -144,7 +144,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
         latitude: null,
         longitude: null,
         status: "active",
-        commission_rate: 15.00,
+        commission_rate: 25.00,
         created_at: profile?.created_at || new Date().toISOString(),
       });
       processedUserIds.add(userId);
