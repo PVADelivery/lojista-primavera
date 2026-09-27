@@ -53,6 +53,15 @@ export default defineConfig(({ command }) => {
         "@tanstack/react-query",
         "@tanstack/query-core"
       ]
+    },
+    ssr: {
+      external: [
+        "@capacitor/core",
+        "@capacitor/app",
+        "@capacitor/status-bar",
+        "@capacitor/push-notifications",
+        "@capacitor/local-notifications"
+      ]
     }
   };
 });
