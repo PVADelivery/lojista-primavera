@@ -36,7 +36,6 @@
 	"packageClassList": [
 		"AppPlugin",
 		"LocalNotificationsPlugin",
-		"PushNotificationsPlugin",
-		"StatusBarPlugin"
+		"PushNotificationsPlugin"
 	]
 }
