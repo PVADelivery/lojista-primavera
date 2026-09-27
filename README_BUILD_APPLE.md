@@ -141,7 +141,7 @@ xcrun altool --upload-app \
 ---
 
 ## 🏬 3. LOJISTA (MT 24 Horas Express - Lojista)
-> **Bundle ID:** `com.mt24horasexpress.lojista`
+> **Bundle ID:** `com.mt24horasexpress.delivery`
 
 Copie e cole este bloco completo no terminal do Mac:
 
