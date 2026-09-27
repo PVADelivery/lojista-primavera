@@ -211,7 +211,8 @@ serve(async (req) => {
       apns: {
         headers: {
           'apns-priority': '10',
-          'apns-push-type': 'alert'
+          'apns-push-type': 'alert',
+          'apns-topic': 'com.mt24horasexpress.entregador'
         },
         payload: {
           aps: {
@@ -220,12 +221,8 @@ serve(async (req) => {
               body: notifBody
             },
             sound: 'default',
-            badge: 1,
-            contentAvailable: true
-          },
-          type: isRide ? (isTaxi ? 'taxi' : 'mototaxi') : 'delivery',
-          deliveryId: String(record.id),
-          rideId: String(record.id)
+            badge: 1
+          }
         }
       },
       tokens
