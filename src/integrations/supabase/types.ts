@@ -1019,7 +1019,7 @@ export type Database = {
           city_id: string | null
           collected_at: string | null
           commission: number
-          company_id: string
+          company_id: string | null
           company_name: string | null
           completed_at: string | null
           created_at: string
@@ -1076,7 +1076,7 @@ export type Database = {
           city_id?: string | null
           collected_at?: string | null
           commission?: number
-          company_id: string
+          company_id?: string | null
           company_name?: string | null
           completed_at?: string | null
           created_at?: string
@@ -1133,7 +1133,7 @@ export type Database = {
           city_id?: string | null
           collected_at?: string | null
           commission?: number
-          company_id?: string
+          company_id?: string | null
           company_name?: string | null
           completed_at?: string | null
           created_at?: string
@@ -2764,6 +2764,42 @@ export type Database = {
           },
         ]
       }
+      social_posts: {
+        Row: {
+          body: string | null
+          category: Database["public"]["Enums"]["social_category"]
+          contact: string | null
+          created_at: string
+          id: string
+          images: string[] | null
+          is_active: boolean
+          title: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          category: Database["public"]["Enums"]["social_category"]
+          contact?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          title: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          category?: Database["public"]["Enums"]["social_category"]
+          contact?: string | null
+          created_at?: string
+          id?: string
+          images?: string[] | null
+          is_active?: boolean
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       system_error_logs: {
         Row: {
           created_at: string | null
@@ -3116,6 +3152,7 @@ export type Database = {
             Returns: Json
           }
         | { Args: { payload: Json }; Returns: Json }
+      create_customer_errand: { Args: { p_delivery: Json }; Returns: Json }
       create_delivery_with_credits: { Args: { p_payload: Json }; Returns: Json }
       create_invitation: {
         Args: {
@@ -3272,6 +3309,7 @@ export type Database = {
         Args: { p_delivery_id: string }
         Returns: Json
       }
+      unassign_ride_driver: { Args: { p_ride_id: string }; Returns: Json }
       update_delivery_status_safe:
         | { Args: { p_delivery_id: string; p_status: string }; Returns: Json }
         | {
@@ -3319,6 +3357,7 @@ export type Database = {
       profile_status: "pending" | "active" | "rejected"
       property_deal: "locacao" | "venda"
       property_type: "casa" | "apartamento" | "sala" | "kitnet" | "terreno"
+      social_category: "vagas" | "achados" | "doacoes" | "servicos"
       user_status: "pending" | "active" | "suspended" | "rejected"
       vehicle_type: "carro" | "moto" | "caminhao" | "utilitario" | "outro"
     }
@@ -3474,6 +3513,7 @@ export const Constants = {
       profile_status: ["pending", "active", "rejected"],
       property_deal: ["locacao", "venda"],
       property_type: ["casa", "apartamento", "sala", "kitnet", "terreno"],
+      social_category: ["vagas", "achados", "doacoes", "servicos"],
       user_status: ["pending", "active", "suspended", "rejected"],
       vehicle_type: ["carro", "moto", "caminhao", "utilitario", "outro"],
     },
