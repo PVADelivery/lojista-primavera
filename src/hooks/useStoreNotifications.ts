@@ -11,7 +11,7 @@ import {
 } from "@/hooks/useAudioAlert";
 import { useMyCompany } from "@/services/companies";
 import { Capacitor } from "@capacitor/core";
-import { PushNotifications } from "@capacitor/push-notifications";
+import { PushNotifications } from "@/lib/pushNotifications";
 
 // Set global de IDs de pedidos já notificados para prevenir qualquer duplicata no dispositivo
 const processedOrders = new Set<string>();

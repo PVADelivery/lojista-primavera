@@ -4,6 +4,11 @@ import react from "@vitejs/plugin-react";
 import tsconfigPaths from "vite-tsconfig-paths";
 import tailwindcss from "@tailwindcss/vite";
 import { nitro } from "nitro/vite";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const SUPABASE_URL = process.env.SUPABASE_URL || "https://owlbzwsdcognrgolvnzg.supabase.co";
 const RAW_KEY = process.env.SUPABASE_PUBLISHABLE_KEY || process.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
@@ -45,6 +50,9 @@ export default defineConfig(({ command }) => {
       react(),
     ].filter(Boolean),
     resolve: {
+      alias: {
+        "@capacitor/push-notifications": path.resolve(__dirname, "./src/lib/pushNotifications.ts"),
+      },
       dedupe: [
         "react",
         "react-dom",
