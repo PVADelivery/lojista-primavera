@@ -199,7 +199,8 @@ xcrun altool --upload-app \
   -f build/App.ipa \
   -t ios \
   --apiKey "GNCVF862P9" \
-  --apiIssuer "b3214eff-b69b-4b7a-bfd0-0c476ed2605c"
+  --apiIssuer "b3214eff-b69b-4b7a-bfd0-0c476ed2605c" \
+  --apple-id 6814484012
 ```
 
 ---
