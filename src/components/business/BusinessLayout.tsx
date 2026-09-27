@@ -86,7 +86,8 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
         .order("created_at", { ascending: false }).limit(10);
       return data ?? [];
     },
-    refetchInterval: 15000,
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: false,
   });
 
   // realtime

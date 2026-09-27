@@ -29,7 +29,8 @@ function BusinessHomePage() {
 
   const { data: deliveries = [] } = useQuery({
     queryKey: ["deliveries", company?.id, profile?.user_id],
-    enabled: true,
+    enabled: !!company?.id || !!profile?.user_id,
+    staleTime: 1000 * 30,
     queryFn: async () => {
       let query = supabase.from("deliveries").select(`
         *,
