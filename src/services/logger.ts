@@ -49,7 +49,11 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "MT
     msg.includes("e-mail ou senha incorretos") ||
     msg.includes("email ou senha incorretos") ||
     msg.includes("credenciais inválidas") ||
-    msg.includes("email not confirmed");
+    msg.includes("email not confirmed") ||
+    msg.includes("minified react error #418") ||
+    msg.includes("minified react error #423") ||
+    msg.includes("minified react error #425") ||
+    msg.includes("hydration failed");
 
   if (isIgnored) return;
 
@@ -261,8 +265,18 @@ export function initializeGlobalErrorHandlers(appName: string) {
   // 1. Unhandled exceptions
   window.onerror = (message, source, lineno, colno, error) => {
     const msgStr = String(message);
+    const lower = msgStr.toLowerCase();
     if (msgStr.includes("insertBefore") || msgStr.includes("removeChild")) {
       return true; // Ignore browser-translation DOM mutation errors
+    }
+    if (
+      lower.includes("minified react error #418") ||
+      lower.includes("minified react error #423") ||
+      lower.includes("minified react error #425") ||
+      lower.includes("hydration failed")
+    ) {
+      console.warn("[Logger] React hydration notice handled gracefully by client renderer.");
+      return true;
     }
     reportErrorToTelegram({
       error_message: String(message),
