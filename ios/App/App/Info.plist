@@ -59,6 +59,14 @@
 	</array>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>O MT 24 Horas Lojista necessita de notificações ativas para alertar imediatamente sobre novos pedidos e mensagens dos clientes mesmo com o aplicativo fechado ou em segundo plano.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>O MT 24 Horas Lojista precisa de acesso à câmera para você tirar fotos dos seus produtos, cardápio, logo e fachada do estabelecimento.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>O MT 24 Horas Lojista precisa de acesso à sua biblioteca de fotos para você selecionar fotos dos seus produtos, catálogo e perfil do estabelecimento.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>O MT 24 Horas Lojista precisa de permissão para salvar comprovantes e imagens na sua galeria de fotos.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>O MT 24 Horas Lojista utiliza a localização para cadastrar com precisão o endereço de retirada do estabelecimento no mapa.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
