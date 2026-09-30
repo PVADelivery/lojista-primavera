@@ -4,7 +4,7 @@ import { LocalNotifications } from "@capacitor/local-notifications";
 import { PushNotifications } from "@/lib/pushNotifications";
 
 // Singleton instances to be used globally outside React lifecycle
-const ALERT_SOUND_URL = "/notification_sound.mp3";
+const ALERT_SOUND_URL = "/ring.mp3";
 
 let globalAudio: HTMLAudioElement | null = null;
 let isUnlocked = false;
@@ -83,14 +83,15 @@ export function requestNotificationPermission() {
     LocalNotifications.requestPermissions().then((res) => {
         if (Capacitor.getPlatform() === 'android') {
           LocalNotifications.deleteChannel({ id: "default" }).catch(() => {});
+          LocalNotifications.deleteChannel({ id: "lojista_orders_v2" }).catch(() => {});
           LocalNotifications.createChannel({
-            id: "lojista_orders_v2",
+            id: "lojista_orders_v3",
             name: "Notificações do Lojista",
             description: "Avisos de novos pedidos e mensagens dos clientes",
             importance: 5,
             visibility: 1,
             vibration: true,
-            sound: "notification_sound.mp3",
+            sound: "ring.mp3",
           }).catch(() => {});
         }
     }).catch(() => {});
@@ -127,8 +128,8 @@ export function sendNativeDeviceNotification(
             title: title || "Chegou um novo pedido!",
             body: options?.body || "Acesse o app para aceitar e começar a preparar",
             id: Math.floor(Math.random() * 100000),
-            channelId: "lojista_orders_v2",
-            sound: "notification_sound.mp3",
+            channelId: "lojista_orders_v3",
+            sound: "ring.mp3",
             extra: {
               tag: options?.tag || "mt24-new-order"
             }

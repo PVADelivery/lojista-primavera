@@ -14,7 +14,7 @@ import android.os.Build;
  */
 public final class NotificationChannels {
 
-    public static final String LOJISTA_CHANNEL_ID = "lojista_orders_v2";
+    public static final String LOJISTA_CHANNEL_ID = "lojista_orders_v3";
 
     private NotificationChannels() {}
 
@@ -24,11 +24,12 @@ public final class NotificationChannels {
         if (nm == null) return;
 
         try {
-            // Remove o canal padrão antigo sem som se existir
+            // Remove os canais legados
             nm.deleteNotificationChannel("default");
+            nm.deleteNotificationChannel("lojista_orders_v2");
         } catch (Exception ignored) {}
 
-        Uri soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.notification_sound);
+        Uri soundUri = Uri.parse("android.resource://" + context.getPackageName() + "/" + R.raw.ring);
         AudioAttributes audioAttributes = new AudioAttributes.Builder()
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .setUsage(AudioAttributes.USAGE_NOTIFICATION_RINGTONE)

@@ -992,39 +992,8 @@ function NewDeliveryPage() {
         }
       }
 
-      // 2. Save Address if customer exists and in normal mode
-      if (custId && f.address.trim() && deliveryMode === "normal") {
-        try {
-          const houseNo = f.customer_address_number.trim() || "S/N";
-          const { data: existingAddress } = await supabase
-            .from("addresses")
-            .select("id")
-            .eq("customer_id", custId)
-            .eq("street", f.address.trim())
-            .eq("number", houseNo)
-            .maybeSingle();
+      // 2. O endereço do cliente é persistido nativamente com precisão completa no registro de delivery abaixo
 
-          if (!existingAddress) {
-            await supabase.from("addresses").insert([
-              {
-                customer_id: custId,
-                street: f.address.trim(),
-                number: houseNo,
-                complement: f.customer_address_complement.trim() || null,
-                neighborhood: f.customer_neighborhood.trim() || null,
-                city: "Primavera do Leste",
-                state: "MT",
-                latitude: dropoffCoords ? dropoffCoords[1] : null,
-                longitude: dropoffCoords ? dropoffCoords[0] : null,
-                region_id: f.region_id === "none" ? null : f.region_id,
-                label: f.address_label || "Casa",
-              },
-            ]);
-          }
-        } catch (addrErr) {
-          console.warn("[Address Auto-Save Error (non-blocking)]", addrErr);
-        }
-      }
 
       // 3. Write Manual Delivery (either update or insert)
       let deliveryWrite: any = { data: null, error: null };
