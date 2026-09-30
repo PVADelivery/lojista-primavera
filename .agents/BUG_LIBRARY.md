@@ -1714,3 +1714,23 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. Ajustar o tempo limite de notificação no polling para até 600 segundos (10 minutos), permitindo que entregas válidas continuem tocando para motoboys que entrarem online depois.
   5. Adicionar sincronização periódica resiliente (a cada 12 segundos) em `useDriverNotifications.ts`.
   6. Throttlar o envio de GPS em `driver.deliveries.tsx` (máximo 1 update a cada 15 segundos ou 35 metros) e adicionar cache em memória de 2 minutos para `getAllMyDriverIds()`.
+
+---
+
+### 157. Ausência Total de Som e Notificações no App do Entregador no iPhone / iOS
+* **Sintoma**: Ao surgir nova corrida ou pedido de entrega, nenhum alerta sonoro ou notificação toca no app do entregador rodando no iPhone (iOS).
+* **Causa Raiz**:
+  1. **Recurso de Áudio Não Vinculado no Bundle iOS**: No iOS (UserNotifications Framework), o arquivo de som customizado (`ring.mp3`) precisa obrigatoriamente estar presente no diretório raiz do target da aplicação (`Bundle.main`) e registrado no `PBXResourcesBuildPhase` do projeto Xcode (`project.pbxproj`). O arquivo não existia em `ios/App/App/ring.mp3` e não constava nas referências do projeto.
+  2. **Extensão de Arquivo Ausente na Chamada Nativa**: No `LocalNotifications.schedule` e `sendNativeDeviceNotification`, o parâmetro de som estava como `sound: "ring"`. Enquanto o Android mapeia `ring` para `res/raw/ring.mp3`, o iOS exige estritamente o nome com a extensão (`ring.mp3`).
+  3. **Configuração de Som Incorreta em `capacitor.config.json`**: Em `ios/App/App/capacitor.config.json`, constava `"sound": "notification_sound.mp3"` (arquivo inexistente).
+  4. **Som Default no APNs**: Na Edge Function `send-push/index.ts`, o cabeçalho APNs enviava `sound: "default"`, disparando apenas o bipe padrão discreto do iOS em vez do toque oficial da central.
+  5. **Binding de Token APNs no Firebase Messaging**: No `AppDelegate.swift`, `Messaging.messaging().apnsToken = deviceToken` não estava sendo executado ao registrar no APNs, e o `FirebaseApp.configure()` não era inicializado no `didFinishLaunchingWithOptions`.
+  6. **Desincronização do Bundle Web Compilado**: O diretório `ios/App/App/public` continha uma compilação antiga (25/09/2026) que ainda continha o bug de ignorar o áudio HTML5/WebAudio quando `Capacitor.isNativePlatform()` era verdadeiro.
+* **Solução Padrão**:
+  1. Copiar `public/ring.mp3` para `ios/App/App/ring.mp3` e registrá-lo nas seções `PBXBuildFile`, `PBXFileReference`, `PBXGroup` e `PBXResourcesBuildPhase` do `project.pbxproj`.
+  2. Condicionar o parâmetro de som por plataforma: `sound: Capacitor.getPlatform() === "ios" ? "ring.mp3" : "ring"` em `useDriverNotifications.ts` e `useAudioAlert.ts`.
+  3. Atualizar `capacitor.config.json` e `capacitor.config.ts` com `sound: "ring.mp3"`.
+  4. Em `send-push/index.ts`, atualizar o payload APNs para `sound: "ring.mp3"`.
+  5. Configurar `FirebaseApp.configure()`, `Messaging.messaging().delegate = self`, `Messaging.messaging().apnsToken = deviceToken` e implementar `MessagingDelegate` em `AppDelegate.swift`.
+  6. Compilar o frontend com `npm run build` e sincronizar os novos assets em `ios/App/App/public` e subir ao repositório git.
+
