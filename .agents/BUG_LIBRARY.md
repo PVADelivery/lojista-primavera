@@ -1692,3 +1692,25 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 
 
+
+---
+
+### 156. Notificações Silenciosas no iOS/Android e Lentidão/Gargalo de CPU no App do Entregador (`entrega-primavera`)
+* **Sintoma**:
+  1. O aplicativo do entregador não tocava som de alerta de novas corridas em diversos aparelhos (especialmente no iOS / iPhone / iPad e navegadores).
+  2. O aplicativo apresentava extrema lentidão, aquecimento e congelamento da tela em segundo plano e durante o acompanhamento de corridas.
+  3. Corridas disponíveis eram marcadas como "vistas" sem nunca tocar o som se tivessem sido criadas há mais de 120 segundos.
+* **Causa Raiz**:
+  1. **iOS Silencioso**: No iOS, `Capacitor.isNativePlatform()` é verdadeiro, mas a biblioteca nativa `DeliveryOverlay` é exclusiva do Android (no iOS é um mock com `playNativeAudio: async () => {}`). O código chamava o mock e pulava o bloco de som `startLoop()`, deixando o iOS em silêncio total.
+  2. **Bloqueio de Autoplay**: Em navegadores e webviews, `globalAudio.play()` era bloqueado por falta de interação do usuário sem acionar um sintetizador sonoro Web Audio de contingência.
+  3. **Canais Android Obsoletos / Congelados**: O Android congela as configurações de um canal após a criação. Versões anteriores criaram canais com som divergente (`ring.mp3` vs `ring`), deixando o canal mudo.
+  4. **Entregas Descartadas no Polling**: O filtro fazia `if (elapsed <= 120) notifyNewDelivery(d) else seenIdsRef.add(d.id)`, descartando silenciosamente entregas criadas há mais de 2 minutos.
+  5. **Inundação de GPS (`watchPosition`)**: No `driver.deliveries.tsx`, `navigator.geolocation.watchPosition` executava um `UPDATE delivery_drivers` no Supabase a cada frame de GPS (várias vezes por segundo sem throttle), gerando cascata de eventos Realtime e 100% de uso de CPU/rede.
+  6. **Consultas N+1 em `getAllMyDriverIds`**: A função executava 3 queries ao banco a cada 5 segundos para buscar IDs já conhecidos.
+* **Solução Padrão**:
+  1. Em `useDriverNotifications.ts`, verificar `Capacitor.getPlatform() === "android"` para o `DeliveryOverlay.playNativeAudio()`, e no iOS e navegadores executar diretamente `unlockAudio()` e `startLoop()`. No Android, adicionar fallback para `startLoop()` caso o plugin nativo falhe.
+  2. Implementar sintetizador de sirene sonoro de emergência com **Web Audio API** (`AudioContext` / `OscillatorNode`) em `useAudioAlert.ts` para tocar som mesmo se o arquivo `.mp3` for bloqueado por autoplay.
+  3. Atualizar o canal de notificações para `mt24_driver_alerts_v40` com `importance: 5`, `sound: "ring"`, `vibration: true` e `visibility: 1`, limpando os canais antigos (`mt24_delivery_alerts_v35` e `default`).
+  4. Ajustar o tempo limite de notificação no polling para até 600 segundos (10 minutos), permitindo que entregas válidas continuem tocando para motoboys que entrarem online depois.
+  5. Adicionar sincronização periódica resiliente (a cada 12 segundos) em `useDriverNotifications.ts`.
+  6. Throttlar o envio de GPS em `driver.deliveries.tsx` (máximo 1 update a cada 15 segundos ou 35 metros) e adicionar cache em memória de 2 minutos para `getAllMyDriverIds()`.
