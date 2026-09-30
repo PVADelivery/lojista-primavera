@@ -99,9 +99,13 @@ function BusinessHomePage() {
     qc.invalidateQueries({ queryKey: ["deliveries"] });
   };
 
-  const cancelDelivery = async (id: string) => {
+  const cancelDelivery = async (id: string, hasDriver?: boolean) => {
     if (cancellingId) return;
-    if (!confirm("Deseja realmente cancelar esta entrega?")) return;
+    if (hasDriver) {
+      if (!confirm("Atenção: Cancelar vai abortar a entrega definitivamente no sistema.\n\nSe você deseja apenas que OUTRO entregador faça a entrega, use 'Trocar Entregador' em vez de Cancelar.\n\nDeseja realmente CANCELAR a entrega de forma definitiva?")) return;
+    } else {
+      if (!confirm("Deseja realmente cancelar esta entrega?")) return;
+    }
 
     setCancellingId(id);
     const cancelledByName = profile?.full_name ? `Lojista: ${profile.full_name}` : company?.name ? `Lojista: ${company.name}` : "Lojista";
@@ -130,6 +134,54 @@ function BusinessHomePage() {
       }
     } catch (err: any) {
       toast.error("Erro ao cancelar entrega: " + (err?.message || "Tente novamente"));
+    } finally {
+      setCancellingId(null);
+    }
+  };
+
+  const unassignDriver = async (id: string) => {
+    if (cancellingId) return;
+    if (!confirm("Deseja desvincular o entregador atual e devolver esta entrega para a fila de disponíveis para os outros entregadores?")) return;
+
+    setCancellingId(id);
+    try {
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("unassign_delivery_driver", {
+          p_delivery_id: id,
+        });
+        if (!rpcErr && (rpcRes as any)?.success) {
+          toast.success("Entregador desvinculado! A entrega voltou para a fila de disponíveis.");
+          await qc.invalidateQueries({ queryKey: ["deliveries"] });
+          return;
+        }
+      } catch {}
+
+      const now = new Date().toISOString();
+      const { data: del, error: updateErr } = await supabase
+        .from("deliveries")
+        .update({
+          driver_id: null,
+          status: "pending" as any,
+          accepted_at: null,
+          updated_at: now,
+        })
+        .eq("id", id)
+        .select("order_id")
+        .maybeSingle();
+
+      if (updateErr) throw updateErr;
+
+      if (del?.order_id) {
+        await supabase
+          .from("orders")
+          .update({ status: "ready" as any, updated_at: now })
+          .eq("id", del.order_id);
+      }
+
+      toast.success("Entregador desvinculado! A entrega voltou para a fila de disponíveis.");
+      await qc.invalidateQueries({ queryKey: ["deliveries"] });
+    } catch (err: any) {
+      toast.error("Erro ao desvincular entregador: " + (err?.message || "Tente novamente"));
     } finally {
       setCancellingId(null);
     }
@@ -225,7 +277,8 @@ function BusinessHomePage() {
                 d={d}
                 marketplace
                 onFinish={() => finishDelivery(d.id)}
-                onCancel={() => cancelDelivery(d.id)}
+                onCancel={() => cancelDelivery(d.id, Boolean(d.delivery_drivers || d.driver_id))}
+                onUnassign={() => unassignDriver(d.id)}
                 cancelling={cancellingId === d.id}
               />
             ))}
@@ -253,7 +306,8 @@ function BusinessHomePage() {
                 key={d.id}
                 d={d}
                 onFinish={() => finishDelivery(d.id)}
-                onCancel={() => cancelDelivery(d.id)}
+                onCancel={() => cancelDelivery(d.id, Boolean(d.delivery_drivers || d.driver_id))}
+                onUnassign={() => unassignDriver(d.id)}
                 cancelling={cancellingId === d.id}
               />
             ))}
@@ -333,7 +387,7 @@ function EmptyState({ icon: Icon, text, action }: any) {
   );
 }
 
-function DeliveryCard({ d, marketplace, onCancel, cancelling }: any) {
+function DeliveryCard({ d, marketplace, onCancel, cancelling, onUnassign }: any) {
   const navigate = useNavigate();
   const isPending = d.status === "pending" || d.status === "broadcasted";
   const isAccepted = d.status === "accepted";
@@ -435,7 +489,7 @@ function DeliveryCard({ d, marketplace, onCancel, cancelling }: any) {
       </div>
 
       {/* Entregador Designado (Se houver) */}
-      {d.delivery_drivers && (
+      {(d.delivery_drivers || d.driver_id) && (
         <div className="mt-3 flex items-center justify-between px-3 py-2 rounded-xl bg-primary/5 border border-primary/15 text-xs">
           <div className="flex items-center gap-2">
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">
@@ -443,17 +497,30 @@ function DeliveryCard({ d, marketplace, onCancel, cancelling }: any) {
             </span>
             <div>
               <p className="text-[9px] uppercase font-bold text-muted-foreground">Entregador</p>
-              <p className="font-bold text-foreground">{d.delivery_drivers.full_name}</p>
+              <p className="font-bold text-foreground">{d.delivery_drivers?.full_name || "Entregador Atribuído"}</p>
             </div>
           </div>
-          {d.delivery_drivers.phone && (
-            <a
-              href={`tel:${d.delivery_drivers.phone}`}
-              className="text-[11px] font-bold text-primary hover:underline"
-            >
-              Ligar
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            {d.delivery_drivers?.phone && (
+              <a
+                href={`tel:${d.delivery_drivers.phone}`}
+                className="text-[11px] font-bold text-primary hover:underline"
+              >
+                Ligar
+              </a>
+            )}
+            {d.status !== "delivered" && d.status !== "completed" && onUnassign && (
+              <button
+                type="button"
+                onClick={onUnassign}
+                disabled={cancelling}
+                className="text-[10px] font-bold text-amber-500 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-lg transition-colors border border-amber-500/20"
+                title="Desvincular entregador e devolver para a fila de disponíveis"
+              >
+                Trocar Entregador
+              </button>
+            )}
+          </div>
         </div>
       )}
 
