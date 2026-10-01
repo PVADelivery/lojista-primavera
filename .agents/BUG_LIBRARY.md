@@ -1851,3 +1851,29 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   1. Alterar a consulta de motoristas para `supabase.from("delivery_drivers" as any).select("user_id, full_name, phone")`.
   2. Alterar a consulta de clientes para `supabase.from("customers" as any).select("user_id, name, phone")` e mapear para `{ ...c, full_name: c.name || c.full_name }`.
+
+
+---
+
+### 165. Redesign "Layout de Milhões" da Central de Negócios (Imóveis, Locação e Veículos) no Marketplace (`marketplace.business.index.tsx`, `marketplace.business.vehicles.tsx`)
+* **Sintoma**: 
+  O layout anterior da Central de Negócios (`/marketplace/business` e `/marketplace/business/vehicles`) apresentava visual básico e simplório (tags cinzas genéricas, ausência de banners de destaque, selects nativos sem estilização e ausência de tratamento gráfico refinado para anúncios sem fotografias), gerando insatisfação visual do usuário ("layout uma porcaria").
+* **Causa Raiz**:
+  O módulo de classificados utilizava componentes genéricos básicos com cards brancos simples, sem gradientes de alto contraste, sem ambient glow obsidian/gold, sem carrosséis interativos modernos com contadores estilizados, e sem mockups arquitetônicos/automotivos de alto padrão para anúncios que ainda não possuíam fotos anexadas.
+* **Solução Padrão**:
+  1. **Hero Banners de Alto Padrão (Obsidian & Gold Ambient Glow)**:
+     - Fundo em gradientes escuros refinados (`from-slate-950 via-zinc-900 to-black`) com pontos de iluminação suave em ouro e esmeralda.
+     - Badges de prestígio ("OPORTUNIDADES EXCLUSIVAS" e "GARAGEM VIP") e contadores de anúncios ativos com backdrop blur.
+     - Abas de navegação direta estilizadas entre Imóveis e Veículos.
+  2. **Sistema de Filtros e Busca de Milhões**:
+     - Campo de busca com glassmorphism, anel de foco dourado e botão de limpeza instantânea.
+     - Seletores de transação (Locação / Venda / Favoritos com contador dinâmico e coração pulsante).
+     - Pílulas de categorias com ícones dedicados (Casa, Apartamento, Sala, Kitnet, Terreno / Carro, Moto, Caminhão, Utilitário).
+     - Dropdowns de Bairros, Cidades e Ordenação encapsulados em cards com ícones personalizados.
+  3. **Cards de Anúncios de Luxo**:
+     - Aspect ratio cinematográfico 16/10 com hover zoom suave.
+     - Badges flutuantes no topo com efeito vidro fosco (frosted glass) e gradientes de destaque.
+     - **Canvas Mockup Arquitetônico e Automotivo**: Quando o anúncio não possui fotos enviadas pelo proprietário, um canvas artístico de luxo com malha geométrica, ícones e insígnia oficial (`MT 24HORAS EXPRESS • EXCLUSIVIDADE` ou `GARAGEM VIP`) é renderizado no lugar de caixas cinzas vazias.
+     - Faixa de especificações técnicas em micro-cards destacados (m² de área, quartos, banheiros, vagas / ano, km, combustível, câmbio).
+     - Tipografia proeminente de valores e botão de conversão WhatsApp verde neon com mensagem personalizada pré-formatada.
+     - Botão flutuante dourado de ação para publicação rápida de anúncios.
