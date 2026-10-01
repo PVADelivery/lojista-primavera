@@ -1837,3 +1837,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   1. **Ajuste em Tempo Real pelo Painel**: O administrador pode alterar a comissão de qualquer entregador para **25%** imediatamente clicando em `...` -> **Editar Informações**, ou excluir a conta de teste duplicada em `...` -> **Excluir**.
   2. **Padronização Estrita nos Modais**: Corrigir `commissionRate` para `"25"` em `CreateDriverDialog.tsx` e definir o fallback obrigatório de `commission_rate: parseFloat(form.commission) || 25` em `EditDriverDialog.tsx`.
+
+---
+
+### 164. Erros HTTP 400 em `customers` e HTTP 404 em `drivers` no Módulo de Chat do Painel Admin (`chat.tsx`)
+* **Sintoma**: 
+  No console do navegador do Painel Admin apareciam dois erros no carregamento das conversas de atendimento/chat:
+  `GET https://.../rest/v1/customers?select=user_id,full_name,phone... 400 (Bad Request)`
+  `GET https://.../rest/v1/drivers?select=user_id,full_name,phone... 404 (Not Found)`
+* **Causa Raiz**:
+  1. No arquivo `src/routes/admin/chat.tsx`, a busca de enriquecimento de motoristas consultava a tabela inexistente `drivers` em vez de `delivery_drivers`, disparando HTTP 404 Not Found no Supabase PostgREST.
+  2. A busca de clientes consultava a coluna inexistente `full_name` na tabela `customers` (onde a coluna correta é `name`), disparando HTTP 400 Bad Request no PostgREST (`column customers.full_name does not exist`).
+* **Solução Padrão**:
+  1. Alterar a consulta de motoristas para `supabase.from("delivery_drivers" as any).select("user_id, full_name, phone")`.
+  2. Alterar a consulta de clientes para `supabase.from("customers" as any).select("user_id, name, phone")` e mapear para `{ ...c, full_name: c.name || c.full_name }`.
