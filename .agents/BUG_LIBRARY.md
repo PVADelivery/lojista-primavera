@@ -1781,5 +1781,28 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Remover completamente qualquer chamada mutativa (`.update(...)`) de dentro da função de leitura `fetchDrivers()`.
   2. Resolver o `user_id` estritamente em memória: `const finalUserId = driver.user_id || targetUserId || driver.id;`, eliminando 100% dos erros 409 e preservando a idempotência da consulta.
 
+---
+
+### 161. Faturamento Zerado (R$ 0,00) e 0 Entregas Concluídas no Dashboard do Painel Admin
+* **Sintoma**: 
+  No Dashboard do Painel Admin (`/admin`), mesmo havendo dezenas de entregas finalizadas na seção "Atividade Recente" (com valores como R$ 10,00, R$ 11,50, R$ 15,00) e 47 entregas no status `delivered`:
+  - O card de Faturamento exibia `R$ 0,00` e `0 entregas concluídas`.
+  - O card de Pedidos exibia `50 Pedidos (0 entregues)`.
+  - O gráfico "Tendência de Receita" exibia "Sem receita no período".
+  - O gráfico de pizza "Distribuição de Status" exibia a fatia cinza com texto em inglês bruto `47 delivered`.
+* **Causa Raiz**:
+  1. **Discrepância de Enum de Status no Filtro**: No banco PostgreSQL/Supabase, as entregas concluídas são armazenadas com `status = 'delivered'`. No arquivo `painel-primavera/src/routes/admin/index.tsx`, as métricas de receita e entregas concluídas filtravam estritamente por `d.status === "completed"`, resultando em um array vazio `[]` e faturamento R$ 0,00.
+  2. **Timestamp do Gráfico de Tendência**: O gráfico de tendência filtrava por `d.status === "completed" && d.completed_at?.startsWith(...)`. As entregas têm status `delivered` e carimbo salvo em `delivered_at` (ou `completed_at` ou `created_at`), fazendo com que o somatório de todos os dias resultasse em 0.
+  3. **Falta de Mapeamento de Cores e Nomes para `delivered` no Gráfico de Status**: O dicionário de cores continha `completed`, mas não mapeava `delivered`, caindo no cinza padrão (`#888`), e os nomes dos status eram exibidos sem tradução para português.
+  4. **Parâmetro `sinceDays` Ignorado em `useDeliveries`**: A chamada `useDeliveries({ sinceDays: days })` não tinha correspondência no hook `useDeliveries`, que aceitava apenas `dateFrom` e paginava em 50 registros.
+* **Solução Padrão**:
+  1. Criar helpers universais em `admin/index.tsx`:
+     - `const isDelivered = (s?: string) => s === "delivered" || s === "completed" || s === "concluded" || s === "finalizada";`
+     - `const isInTransit = (s?: string) => ["in_route", "in_transit", "collecting", "collected", "accepted"].includes(s || "");`
+  2. Atualizar o cálculo de receita para `Number(d.value ?? d.price ?? 0)` considerando `isDelivered(d.status)`.
+  3. No gráfico de tendência, verificar `isDelivered(d.status)` e comparar a data local formatada de `(d.delivered_at || d.completed_at || d.created_at)`.
+  4. Adicionar suporte a `sinceDays` no hook `useDeliveries` (`effectiveDateFrom` dinâmico e `pageSize: 1000` quando `sinceDays` for passado).
+  5. Adicionar mapeamento de cores (`delivered: "hsl(145 63% 42%)"`) e rótulos amigáveis em português (`Entregue`, `Disponível`, `Cancelado`, `Em trânsito`, etc.) na Distribuição de Status.
+
 
 
