@@ -1754,5 +1754,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. **Notificação Sonoro-Visual Resiliente para Reaberturas**:
      - Em `useDriverNotifications.ts`, verificar se a entrega foi reaberta recentemente (`updated_at` nos últimos 5 minutos). Se `isReopened` for verdadeiro, permitir que a notificação e sirene toquem normalmente mesmo que `created_at` seja superior a 10 minutos.
 
+---
+
+### 159. Ocultação de Entregadores no Painel Admin e Modal de Direcionamento Restrito a Online
+* **Sintoma**: O Administrador/cliente reclamou que vários entregadores cadastrados não apareciam no Painel Admin (`/admin/drivers`), nem na listagem de entregadores da tela de entregas (`/admin/deliveries`).
+* **Causa Raiz**:
+  1. **Ausência de Busca em `user_roles`**: A função `fetchDrivers()` em `painel-primavera/src/services/drivers.ts` consultava apenas `delivery_drivers` e `profiles`. Usuários que se cadastraram via convite/Auth têm papel gravado em `user_roles` (`role = 'driver'`), mas seus perfis em `profiles` podem ter `role = null` ou ainda não possuir linha espelhada em `delivery_drivers`. Com isso, esses entregadores eram completamente ignorados.
+  2. **Exclusão Indevida por `status = 'deleted'`**: Entregadores que sofreram exclusões parciais ou testes anteriores ficavam com flag `status = 'deleted'` em `delivery_drivers`, sendo descartados por `fetchDrivers` mesmo possuindo cadastro e login ativos.
+  3. **Modal de Direcionamento em `/admin/deliveries` Filtrando Estritamente `is_online: true`**: Ao clicar em "Direcionar" para atribuir uma entrega a um entregador, o modal executava `drivers.filter(d => d.is_online)`. Se os entregadores estivessem offline no exato momento, o modal exibia "Nenhum entregador online" e ocultava todos os demais entregadores da frota.
+  4. **Filtro de Abas Rígido em `/admin/drivers`**: Comparação estrita `d.vehicle_type === "moto"` sem conversão para minúsculas e sem suporte a variações de tipos de serviço (`motoboy`, `car`, etc.).
+* **Solução Padrão**:
+  1. Atualizar `fetchDrivers()` para mesclar `delivery_drivers`, `user_roles` e `profiles`, recuperando 100% dos usuários com papéis de motorista (`driver`, `motoboy`, `entregador`, `taxi`, `mototaxi`, `motorista`).
+  2. Ajustar a verificação de `status = 'deleted'` para mantê-los se estiverem online ou com role ativa no Auth.
+  3. Reformular o modal de direcionamento de `/admin/deliveries` para listar **todos os entregadores cadastrados**, com motoristas online destacados no topo (`● Online`), entregadores cadastrados abaixo (`● Cadastrado`), e campo de busca rápida por nome, fone ou placa.
+  4. Flexibilizar o filtro de abas em `/admin/drivers` normalizando `(d.vehicle_type || '').toLowerCase()` e aceitando termos comuns de serviço.
+
 
 
