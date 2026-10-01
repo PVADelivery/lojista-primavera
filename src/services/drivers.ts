@@ -101,15 +101,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
     );
 
     const targetUserId = profile?.user_id || profile?.id;
-    if (driver.id && targetUserId && (!driver.user_id || driver.user_id !== targetUserId)) {
-      supabase
-        .from("delivery_drivers")
-        .update({ user_id: targetUserId })
-        .eq("id", driver.id)
-        .then()
-        .catch(() => {});
-      driver.user_id = targetUserId;
-    }
+    const finalUserId = driver.user_id || targetUserId || driver.id;
 
     const driverName = raw.full_name || profile?.full_name || raw.name || "Entregador";
     if (/^driver\s+(one|two|three|four|five|six|seven|eight|nine|ten|\d+)/i.test(driverName.trim())) {
@@ -117,8 +109,8 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
     }
 
     resultDrivers.push({
-      id: driver.id || driver.user_id,
-      user_id: driver.user_id || driver.id,
+      id: driver.id || finalUserId,
+      user_id: finalUserId,
       full_name: driverName,
       phone: raw.phone || raw.whatsapp || raw.celular || raw.telephone || profile?.phone || profile?.whatsapp || profile?.celular || null,
       document: raw.document || raw.cpf || raw.cnpj || profile?.document || profile?.cpf || profile?.cnpj || null,
