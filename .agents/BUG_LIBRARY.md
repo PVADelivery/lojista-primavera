@@ -1769,5 +1769,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Reformular o modal de direcionamento de `/admin/deliveries` para listar **todos os entregadores cadastrados**, com motoristas online destacados no topo (`● Online`), entregadores cadastrados abaixo (`● Cadastrado`), e campo de busca rápida por nome, fone ou placa.
   4. Flexibilizar o filtro de abas em `/admin/drivers` normalizando `(d.vehicle_type || '').toLowerCase()` e aceitando termos comuns de serviço.
 
+---
+
+### 160. Erro 409 Conflict no Supabase PostgREST por Auto-Heal Mutativo em `fetchDrivers`
+* **Sintoma**: No console do navegador apareciam erros em cascata:
+  `Failed to load resource: the server responded with a status of 409 ()`
+  `[fetchDrivers] Auto-healed driver 7aa34541-7ce4-4f7f-95ed-8072d6bda1e9 with user_id 6b042e4d-390d-48fb-9b57-612b8d5d1353`
+* **Causa Raiz**:
+  A função `fetchDrivers()` continha um efeito colateral (`side-effect`) que executava `supabase.from("delivery_drivers").update({ user_id: targetUserId }).eq("id", driver.id)` durante uma requisição de leitura (GET). Como a coluna `user_id` na tabela `delivery_drivers` possui restrição de unicidade (`UNIQUE`), quando `targetUserId` já pertencia a outro registro, o banco rejeitava com HTTP 409 (Conflict / Unique violation). Além disso, por rodar a cada refetch de React Query, gerava um loop contínuo de erros 409 na rede.
+* **Solução Padrão**:
+  1. Remover completamente qualquer chamada mutativa (`.update(...)`) de dentro da função de leitura `fetchDrivers()`.
+  2. Resolver o `user_id` estritamente em memória: `const finalUserId = driver.user_id || targetUserId || driver.id;`, eliminando 100% dos erros 409 e preservando a idempotência da consulta.
+
 
 
