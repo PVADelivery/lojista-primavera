@@ -1896,3 +1896,34 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Linha superior com label `VALOR DE VENDA`, tipografia ampla do valor (`26px`) e badge elegante com o telefone do anunciante (`Phone` icon).
      - Botão de conversão WhatsApp em **largura total (100%)** com gradiente esmeralda neon, sombra pronunciada e texto de alta conversão: `Negociar no WhatsApp`.
   3. **Filtro de Descrição Redundante**: Ocultar trechos de descrição quando forem inferiores a 3 caracteres ou idênticos ao nome do modelo/marca cadastrado.
+
+
+---
+
+### 166. Truncamento de Especificações de Veículos ("2...", "27...") e Desproporção do Botão WhatsApp no Footer dos Cards (`marketplace.business.vehicles.tsx`, `marketplace.business.index.tsx`)
+* **Sintoma**: 
+  1. Em telas mobile ou em grids de 2 colunas, os chips de especificações técnicas dos veículos (ano, quilometragem, etc.) eram cortados por reticências precoces (ex: ano `2021` virava `📅 2...` e quilometragem `27.000 km` virava `⏱️ 27...`).
+  2. Na parte inferior do card, o botão verde do WhatsApp ficava exprimido no canto direito ao lado de valores longos, gerando espaçamento vertical desigual e desarmonia visual.
+  3. Trechos de descrição redundantes de 1 palavra (ex: "Civic" sob o título "Honda Civic 1.9", ou fragmentos como "At") poluíam o topo do card.
+* **Causa Raiz**:
+  1. O container de especificações utilizava `grid grid-cols-2` com classe CSS `truncate` e padding interno fixo. Em cards estreitos, a largura disponível era inferior a 50px, fazendo o texto truncar após o primeiro ou segundo caractere.
+  2. O rodapé utilizava `flex-row justify-between` horizontal, disputando espaço entre a caixa de 2 linhas do preço e o botão de WhatsApp.
+  3. Não havia filtragem para impedir a repetição de strings curtas idênticas ao modelo/marca no campo de descrição.
+* **Solução Padrão**:
+  1. **Remoção de Truncate & Adoção de Flex Wrap Dinâmico**: Substituir o grid rígido por `flex flex-wrap items-center gap-2`, permitindo que cada pílula (`inline-flex px-3 py-1.5 rounded-xl bg-muted/60`) expanda conforme seu conteúdo, garantindo a exibição integral de `📅 2021`, `⏱️ 27.000 km`, `⛽ Flex` e `🕹️ Automático`.
+  2. **Estruturação Premium do Rodapé**:
+     - Linha superior com label `VALOR DE VENDA`, tipografia ampla do valor (`26px`) e badge elegante com o telefone do anunciante (`Phone` icon).
+     - Botão de conversão WhatsApp em **largura total (100%)** com gradiente esmeralda neon, sombra pronunciada e texto de alta conversão: `Negociar no WhatsApp`.
+  3. **Filtro de Descrição Redundante**: Ocultar trechos de descrição quando forem inferiores a 3 caracteres ou idênticos ao nome do modelo/marca cadastrado.
+
+
+---
+
+### 167. Remoção da Frase e Badge "Garagem VIP" na Central de Veículos (`marketplace.business.vehicles.tsx`)
+* **Sintoma**: 
+  O topo da página de veículos exibia um badge amarelo com o texto "Garagem VIP", além de estar presente no selo padrão de anúncios sem foto, termo rejeitado pelo cliente por não condizer com a nomenclatura oficial da plataforma.
+* **Causa Raiz**:
+  Inserção da insígnia decorativa `<Sparkles /> Garagem VIP` no hero banner e no canvas gráfico durante o redesenho inicial.
+* **Solução Padrão**:
+  1. No header da página (`marketplace.business.vehicles.tsx`), remover o badge `Garagem VIP`, mantendo apenas o contador transparente de anúncios ativos: `{list.length} anúncios ativos`.
+  2. No canvas gráfico de fallback para anúncios sem fotos anexadas, substituir `MT 24HORAS EXPRESS • GARAGEM VIP` por `MT 24HORAS EXPRESS • VEÍCULOS`.
