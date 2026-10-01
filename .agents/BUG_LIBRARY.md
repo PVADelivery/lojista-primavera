@@ -1824,3 +1824,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Incluir `driver.email` no filtro de busca textual da página.
   3. **Visualização no Modal de Edição (`EditDriverDialog.tsx`)**: Exibir um badge destacado com o e-mail de login do entregador no topo do formulário.
   4. **Exclusão de Contas Obsoletas**: Para contas duplicadas de teste, o administrador pode clicar no menu de ações `...` da linha do entregador obsoleto e selecionar "Excluir", removendo o registro duplicado da frota ativa.
+
+---
+
+### 163. Dúvida sobre Comissão de 15% em Entregador e Fixação Estrita de 25% de Comissão (`CreateDriverDialog.tsx`, `EditDriverDialog.tsx`, `drivers.ts`)
+* **Sintoma**: 
+  O administrador visualizou um entregador na listagem com taxa de comissão de 15% ("Anthony Both 2") e questionou de onde surgiu esse valor, reforçando que no MT 24 Horas Express **todas as comissões são estritamente de 25%**.
+* **Causa Raiz**:
+  1. No código-fonte dos aplicativos e painéis, a taxa padrão do sistema sempre foi de **25%** (repassando 75% ao entregador e retendo 25% para a central). Em nenhum lugar do código existia regra de 15% para entregadores.
+  2. Aquele valor de **15%** estava salvo **diretamente no registro daquele motorista no banco de dados Supabase** (`delivery_drivers.commission_rate = 15`), tendo sido digitado manualmente durante algum teste anterior.
+  3. No modal `CreateDriverDialog.tsx`, a função `reset()` possuía um valor resquício de `commissionRate: "0.40"`, e o fallback de `EditDriverDialog.tsx` utilizava `|| 0`.
+* **Solução Padrão**:
+  1. **Ajuste em Tempo Real pelo Painel**: O administrador pode alterar a comissão de qualquer entregador para **25%** imediatamente clicando em `...` -> **Editar Informações**, ou excluir a conta de teste duplicada em `...` -> **Excluir**.
+  2. **Padronização Estrita nos Modais**: Corrigir `commissionRate` para `"25"` em `CreateDriverDialog.tsx` e definir o fallback obrigatório de `commission_rate: parseFloat(form.commission) || 25` em `EditDriverDialog.tsx`.
