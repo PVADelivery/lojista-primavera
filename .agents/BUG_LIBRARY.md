@@ -1806,3 +1806,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 
 
+
+---
+
+### 162. Contas Duplicadas de Entregadores/Testes e Ausência de E-mail de Acesso no Painel Admin (`drivers.ts`, `drivers.tsx`, `EditDriverDialog.tsx`)
+* **Sintoma**: 
+  1. O administrador ou usuário identifica cadastros duplicados com o mesmo número de telefone ou nomes parecidos (exemplo: "Anthony Both" e "Anthony Both 2") com veículos ou comissões distintas (15% vs 25%).
+  2. Dificuldade do administrador em confirmar qual conta corresponde a qual login de e-mail de acesso, pois a listagem de entregadores e motoristas no Painel Admin não exibia os e-mails associados e não permitia pesquisar por e-mail.
+* **Causa Raiz**:
+  1. **Contas de Teste / Registros Separados em `delivery_drivers`**: Durante fases de desenvolvimento ou homologação de novas frotas (ex: separar veículo moto e carro, ou testar taxas de 15% e 25%), foram criados dois registros de motoristas distintos no banco de dados Supabase com o mesmo telefone. Ambos permaneciam como registros válidos e ativos no banco.
+  2. **Ausência da Coluna e Resolução de E-mail na Interface**: O tipo `DriverWithProfile` e o serviço `fetchDrivers()` não mapeavam nem cruzavam os e-mails das tabelas de autenticação/clientes (`customers`, `invitations`, `customer_credits`, `profiles`). A tabela em `admin/drivers.tsx` não possuía uma coluna dedicada de `E-mail / Acesso`, impossibilitando o administrador de verificar o login exato de cada entregador ou filtrar pelo endereço de e-mail.
+* **Solução Padrão**:
+  1. **Mapeamento de E-mail em `fetchDrivers`**: Buscar em paralelo dados de `customers`, `invitations` e `customer_credits` e associar o e-mail prioritário (`raw.email`, `profile.email`, `customer.email`, `invitations.email`).
+  2. **Exibição no Painel Admin (`drivers.tsx`)**:
+     - Adicionar coluna de cabeçalho e célula `E-mail / Acesso` com ícone `Mail`.
+     - Exibir sub-linha com e-mail também na visualização mobile.
+     - Incluir `driver.email` no filtro de busca textual da página.
+  3. **Visualização no Modal de Edição (`EditDriverDialog.tsx`)**: Exibir um badge destacado com o e-mail de login do entregador no topo do formulário.
+  4. **Exclusão de Contas Obsoletas**: Para contas duplicadas de teste, o administrador pode clicar no menu de ações `...` da linha do entregador obsoleto e selecionar "Excluir", removendo o registro duplicado da frota ativa.
