@@ -226,6 +226,10 @@ export function useCredits() {
         qc.invalidateQueries({ queryKey: ["credits", companyId] });
         qc.invalidateQueries({ queryKey: ["credit-transactions", companyId] });
       })
+      .on("postgres_changes", { event: "*", schema: "public", table: "company_credit_transactions", filter: `company_id=eq.${companyId}` }, () => {
+        qc.invalidateQueries({ queryKey: ["credits", companyId] });
+        qc.invalidateQueries({ queryKey: ["credit-transactions", companyId] });
+      })
       .subscribe();
     return () => {
       supabase.removeChannel(channel);

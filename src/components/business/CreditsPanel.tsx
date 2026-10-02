@@ -275,7 +275,7 @@ export function CreditsPanel() {
               }`}
             >
               <RotateCcw className="h-3 w-3" />
-              Estornos ({rawList.filter(t => t.type === 'refund' || t.description?.toLowerCase().includes('estorno')).length})
+              Estornos ({rawList.filter(t => t.type === 'refund' || t.description?.toLowerCase().includes('estorno') || t.description?.toLowerCase().includes('cancelad')).length})
             </button>
             <button
               onClick={() => { setTabFilter("topup"); setPage(0); }}
