@@ -137,6 +137,30 @@ Deno.serve(async (req) => {
     .gt('created_at', new Date(Date.now() - 60000).toISOString());
 
   if (recentOrdersCount !== null && recentOrdersCount >= 5) {
+    const clientIp = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "IP Desconhecido";
+    const botToken = Deno.env.get("TELEGRAM_BOT_TOKEN") || "8408781765:AAEoxY7J9VrNeagGNFu1yHpW3HQlq103gmM";
+    const chatId = Deno.env.get("TELEGRAM_CHAT_ID") || "-5333281601";
+    if (botToken && chatId) {
+      try {
+        const timestamp = new Date().toLocaleString("pt-BR", { timeZone: "America/Cuiaba" });
+        await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text: `🛡️ <b>ALERTA DE SEGURANÇA: SPAM DE PEDIDOS DETECTADO</b> 🛡️\n\n` +
+              `📱 <b>Servidor:</b> Edge Function (create-order)\n` +
+              `🕒 <b>Hora:</b> ${timestamp}\n` +
+              `🌐 <b>IP de Origem:</b> <code>${clientIp}</code>\n` +
+              `👤 <b>Usuário:</b> ${user.email ?? 'Anônimo'} (<code>${user.id}</code>)\n` +
+              `⚠️ <b>Motivo:</b> Tentativa de flood de pedidos (&gt;= 5 pedidos em menos de 1 minuto)\n` +
+              `🔒 <b>Ação do Servidor:</b> Pedido bloqueado com HTTP 429 (Rate Limit).`,
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+          }),
+        });
+      } catch (_) {}
+    }
     return fail(429, 'create_order.rate_limit', 'Você está fazendo pedidos muito rápido. Por favor, aguarde alguns instantes.');
   }
 

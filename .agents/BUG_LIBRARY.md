@@ -1978,3 +1978,27 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Atualizar os arquivos `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` e as imagens PWA correspondentes.
   3. Incrementar o número de build (`CURRENT_PROJECT_VERSION`) no arquivo `project.pbxproj` de cada aplicativo (ex: Cliente para build 5, Lojista para build 6, Entregador para build 5).
   4. Gerar nova compilação e reenviar para a revisão da Apple no App Store Connect.
+
+---
+
+### 171. Proteção do Servidor contra Spam, Flood de Requisições e Integração com Monitoramento no Telegram
+* **Sintoma**: 
+  1. O servidor da aplicação (Edge Functions e APIs) não possuía bloqueio ativo com alerta integrado em caso de tentativas de flood, autoclickers ou sobrecarga de requisições maliciosas.
+  2. A Edge Function de pedidos (`create-order`) possuía um rate limit silencioso (5 pedidos por minuto) que retornava HTTP 429 mas não alertava o canal de suporte/monitoramento no Telegram.
+  3. A Edge Function de monitoramento (`telegram-logger`) não possuía limitação de taxa por IP, podendo sofrer exaustão ou flood em caso de ataque externo.
+  4. Os aplicativos móveis e web não possuíam detectores de injeção em formulários (XSS/SQLi), varredura automatizada ou autoclickers integrados ao monitoramento preventivo.
+* **Causa Raiz**:
+  Ausência de uma camada unificada de proteção de borda (Edge Rate Limiting) em memória combinada com alertas forenses em tempo real e interceptação de HTTP 429 no frontend.
+* **Solução Padrão**:
+  1. **Blindagem e Rate Limiting no `telegram-logger`**:
+     - Implementação de um sliding window rate limiter em memória por IP (máximo 20 requisições por minuto por IP) e teto de payload (32KB).
+     - Em caso de flood, o IP é bloqueado temporariamente com HTTP 429 por 2 minutos e um alerta consolidado é enviado ao Telegram:
+       `🛡️ ALERTA DE SEGURANÇA: FLOOD / SPAM BLOQUEADO NO SERVIDOR 🛡️`.
+     - Suporte nativo a alertas de abuso (`is_spam: true`, `is_attack: true` ou marcadores de injeção), formatando a mensagem com cabeçalho de segurança, IP de origem, rota, usuário e evidências técnicas.
+  2. **Alerta Instantâneo em `create-order`**:
+     - Quando um usuário ou bot tentar criar >= 5 pedidos em menos de 1 minuto, o servidor bloqueia com HTTP 429 e dispara imediatamente um alerta ao Telegram com os dados do usuário, IP e motivo da contenção.
+  3. **Monitoramento e Proteção Global Client-Side (`useAntiSpamMonitor` / `GlobalAntiSpam`)**:
+     - Monitoramento de autoclickers e rage clicks (> 10 cliques por segundo).
+     - Interceptação automática de respostas HTTP 429 (`Too Many Requests`) no cliente com notificação ao canal.
+     - Detecção de tentativas de injeção de scripts/SQL nos campos de input.
+     - Montagem global de `<GlobalAntiSpam />` nos 4 aplicativos (`cliente-primavera`, `lojista-primavera-1`, `painel-primavera` e `entrega-primavera`).

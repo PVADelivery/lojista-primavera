@@ -138,6 +138,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
 }
 
 import { useStoreNotifications } from "@/hooks/useStoreNotifications";
+import { GlobalAntiSpam } from "@/components/GlobalAntiSpam";
 
 function StoreNotifications() {
   useStoreNotifications();
@@ -158,6 +159,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
+          <GlobalAntiSpam appName="Painel do Lojista" />
           <StoreNotifications />
           <Outlet />
           <Toaster richColors position="top-right" theme="system" duration={3500} closeButton />
