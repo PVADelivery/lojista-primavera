@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
+import { reportFailedLogin } from "@/services/logger";
 
 type Role = "admin" | "company" | "driver" | "customer";
 type Status = "pending" | "active" | "rejected";
@@ -101,6 +102,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      reportFailedLogin(email, { error_message: error.message }, "MT 24 Horas Express - Lojista");
+    }
     return { error };
   };
 

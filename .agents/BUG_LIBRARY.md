@@ -2002,3 +2002,24 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Interceptação automática de respostas HTTP 429 (`Too Many Requests`) no cliente com notificação ao canal.
      - Detecção de tentativas de injeção de scripts/SQL nos campos de input.
      - Montagem global de `<GlobalAntiSpam />` nos 4 aplicativos (`cliente-primavera`, `lojista-primavera-1`, `painel-primavera` e `entrega-primavera`).
+
+---
+
+### 172. Relatório Diário Automatizado de Erros, Bugs, Falhas de Senha e Acessos a Links Indevidos no Robô do Telegram (Ciclo 24h)
+* **Sintoma**:
+  Necessidade de acompanhamento consolidado a cada 24 horas no robô de monitoramento do Telegram (@mt24horasexpress_bot, Chat ID -5333281601) contendo resumo de logs, total de acessos ao sistema, erros de senha/tentativas de login inválidas, tentativas de acessos por links indevidos (rotas 404/scans), erros/bugs de aplicação e saúde geral da infraestrutura.
+* **Causa Raiz**:
+  O sistema emitia apenas alertas pontuais de erro no momento em que ocorriam, sem agregação periódica nem rastreamento dedicado de falhas de autenticação (senhas incorretas) e tentativas de acesso a URLs inexistentes ou maliciosas.
+* **Solução Padrão**:
+  1. **Instrumentação de Telemetria Client-Side**:
+     - Em logger.ts de todos os 4 aplicativos (cliente-primavera, lojista-primavera-1, entrega-primavera e painel-primavera), implementação das funções reportFailedLogin(email, details) e reportInvalidRoute(path, details).
+     - Nos fluxos de login (AuthContext.tsx e login.tsx), interceptar erros de signInWithPassword e disparar evento failed_login.
+     - Nos componentes de rota 404 (NotFoundComponent em __root.tsx), disparar evento invalid_route registrando o caminho e o referrer.
+  2. **Edge Function telegram-logger com Ledger de 24 Horas**:
+     - Processamento específico de eventos failed_login (com detecção imediata de força bruta se >= 5 tentativas em 10 min por IP/email).
+     - Processamento de eventos invalid_route (com detecção imediata de ataques/scans caso a URL contenha .env, wp-, eval(, <script>, etc.).
+     - Ação send_daily_report: consulta métricas consolidadas em tempo real do banco de dados (entregas no período, lojistas ativos, anúncios da Central de Negócios) e formata relatório com emojis e status operacional.
+  3. **Serviço Autônomo e Daemon de 24 Horas (scripts_para_rodar/daily_telegram_report_service.js)**:
+     - Serviço contínuo em background executando como daemon (IsDaemon: true) com verificação a cada 15 minutos.
+     - Persistência de estado em daily_report_state.json com last_sent_timestamp e histórico dos últimos 30 dias para evitar perdas em reinicializações.
+     - Suporte à flag --now para testes e disparos imediatos sob demanda.

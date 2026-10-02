@@ -189,6 +189,7 @@ export function useDeliveryStats() {
         cancelled: normalizedData.filter((d) => d.status === "cancelled").length,
         todayRevenue: normalizedData.filter((d) => d.status === "delivered").reduce((sum, d) => sum + Number(d.price ?? 0), 0),
       };
+    },
     staleTime: 60000,
     gcTime: 300000,
     refetchOnWindowFocus: false,

@@ -17,6 +17,7 @@ export type DriverWithProfile = {
   longitude: number | null;
   status?: string | null;
   commission_rate?: number | null;
+  service_types?: string[] | null;
   created_at?: string;
 };
 
@@ -71,6 +72,7 @@ export async function fetchDrivers(): Promise<DriverWithProfile[]> {
   const processedDriverIds = new Set<string>();
 
   for (const driver of (driversData || [])) {
+    const raw = driver as any;
     const dUserId = driver.user_id || driver.id;
     if (driver.user_id) processedUserIds.add(driver.user_id);
     if (driver.id) processedDriverIds.add(driver.id);
