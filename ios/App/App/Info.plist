@@ -54,8 +54,6 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
-		<string>fetch</string>
-		<string>audio</string>
 	</array>
 	<key>NSUserNotificationsUsageDescription</key>
 	<string>O MT 24 Horas Lojista necessita de notificações ativas para alertar imediatamente sobre novos pedidos e mensagens dos clientes mesmo com o aplicativo fechado ou em segundo plano.</string>
