@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
-  Wallet, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, Package, TrendingDown, Plus,
+  Wallet, AlertTriangle, ArrowUpRight, ArrowDownRight, Loader2, Package, TrendingDown, Plus, RotateCcw, Filter,
 } from "lucide-react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Button } from "@/components/ui/button";
@@ -17,10 +17,10 @@ import {
 } from "@/services/credits";
 
 const TYPE_LABEL: Record<string, string> = {
-  topup: "Recarga",
-  debit: "Entrega",
-  refund: "Estorno",
-  adjustment: "Ajuste",
+  topup: "Recarga de saldo",
+  debit: "Taxa de entrega",
+  refund: "Estorno de cancelamento",
+  adjustment: "Ajuste manual",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -39,9 +39,26 @@ export function CreditsPanel() {
   const [amount, setAmount] = useState("300");
   const [notes, setNotes] = useState("");
   const [page, setPage] = useState(0);
+  const [tabFilter, setTabFilter] = useState<"all" | "refund" | "topup" | "debit">("all");
   const PAGE_SIZE = 12;
 
-  const list = txs.data ?? [];
+  const rawList = txs.data ?? [];
+
+  const list = useMemo(() => {
+    if (tabFilter === "all") return rawList;
+    if (tabFilter === "refund") {
+      return rawList.filter(
+        (t) => t.type === "refund" || t.description?.toLowerCase().includes("estorno") || t.description?.toLowerCase().includes("cancelad")
+      );
+    }
+    if (tabFilter === "topup") {
+      return rawList.filter((t) => t.type === "topup" || (t.amount > 0 && t.type !== "refund" && !t.description?.toLowerCase().includes("estorno")));
+    }
+    if (tabFilter === "debit") {
+      return rawList.filter((t) => t.type === "debit" || t.amount < 0);
+    }
+    return rawList;
+  }, [rawList, tabFilter]);
 
   const metrics = useMemo(() => {
     const topups = list.filter((t) => t.amount > 0).reduce((s, t) => s + t.amount, 0);
@@ -233,36 +250,108 @@ export function CreditsPanel() {
 
       {/* Extrato */}
       <div className="bg-card border border-border/60 rounded-2xl p-6">
-        <h3 className="text-base font-black text-foreground mb-4">Extrato de créditos</h3>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+          <div>
+            <h3 className="text-base font-black text-foreground">Extrato de créditos</h3>
+            <p className="text-xs text-muted-foreground font-medium">Controle detalhado de recargas, consumos e estornos de entregas canceladas</p>
+          </div>
+
+          {/* Filtros rápidos */}
+          <div className="flex items-center gap-1.5 p-1 bg-muted/50 rounded-xl overflow-x-auto">
+            <button
+              onClick={() => { setTabFilter("all"); setPage(0); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                tabFilter === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Todas ({rawList.length})
+            </button>
+            <button
+              onClick={() => { setTabFilter("refund"); setPage(0); }}
+              className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                tabFilter === "refund"
+                  ? "bg-emerald-500 text-white shadow-sm"
+                  : "text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10"
+              }`}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Estornos ({rawList.filter(t => t.type === 'refund' || t.description?.toLowerCase().includes('estorno')).length})
+            </button>
+            <button
+              onClick={() => { setTabFilter("topup"); setPage(0); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                tabFilter === "topup" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Recargas ({rawList.filter(t => t.type === 'topup' || (t.amount > 0 && t.type !== 'refund')).length})
+            </button>
+            <button
+              onClick={() => { setTabFilter("debit"); setPage(0); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                tabFilter === "debit" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              Entregas ({rawList.filter(t => t.type === 'debit' || t.amount < 0).length})
+            </button>
+          </div>
+        </div>
+
         {txs.isLoading ? (
           <div className="flex justify-center py-10 text-muted-foreground">
             <Loader2 className="h-5 w-5 animate-spin" />
           </div>
         ) : list.length === 0 ? (
-          <EmptyState text="Nenhuma movimentação de créditos até agora." />
+          <EmptyState text={tabFilter === "refund" ? "Nenhum estorno registrado no período." : "Nenhuma movimentação de créditos até agora."} />
         ) : (
           <>
             <div className="divide-y divide-border/50">
-              {pageItems.map((t) => (
-                <div key={t.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold truncate">
-                      {TYPE_LABEL[t.type] ?? t.type}
-                      {t.description ? <span className="text-muted-foreground font-medium"> · {t.description}</span> : null}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground font-medium">
-                      {new Date(t.created_at).toLocaleString("pt-BR")}
-                    </p>
+              {pageItems.map((t) => {
+                const isRefund = t.type === "refund" || t.description?.toLowerCase().includes("estorno");
+                const isDebit = t.amount < 0;
+                return (
+                  <div key={t.id} className="flex items-center justify-between gap-3 py-3.5">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
+                        isRefund ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400" :
+                        isDebit ? "bg-destructive/10 text-destructive" :
+                        "bg-primary/10 text-primary"
+                      }`}>
+                        {isRefund ? <RotateCcw className="h-4 w-4" /> :
+                         isDebit ? <ArrowDownRight className="h-4 w-4" /> :
+                         <ArrowUpRight className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-bold text-foreground">
+                            {TYPE_LABEL[t.type] ?? (isRefund ? "Estorno de cancelamento" : t.type)}
+                          </p>
+                          {isRefund && (
+                            <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                              <RotateCcw className="h-2.5 w-2.5" /> Devolvido
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground font-medium truncate mt-0.5">
+                          {t.description || "Movimentação de saldo"}
+                        </p>
+                        <p className="text-[11px] text-muted-foreground/80 font-medium mt-0.5">
+                          {new Date(t.created_at).toLocaleString("pt-BR")}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <p className={`text-sm font-black tabular-nums ${
+                        isRefund ? "text-emerald-600 dark:text-emerald-400" :
+                        isDebit ? "text-destructive" :
+                        "text-emerald-600 dark:text-emerald-400"
+                      }`}>
+                        {isDebit ? "-" : "+"} {brl(Math.abs(t.amount))}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground font-medium mt-0.5">Saldo: {brl(t.balance_after)}</p>
+                    </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <p className={`text-sm font-black ${t.amount < 0 ? "text-destructive" : "text-emerald-500"}`}>
-                      {t.amount < 0 ? "-" : "+"}
-                      {brl(Math.abs(t.amount))}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground font-medium">Saldo: {brl(t.balance_after)}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {list.length > PAGE_SIZE && (
               <div className="flex items-center justify-between mt-4">

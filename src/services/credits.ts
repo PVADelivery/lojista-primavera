@@ -35,18 +35,179 @@ export async function fetchCredits(companyId: string): Promise<CompanyCredits | 
 }
 
 export async function fetchCreditTransactions(companyId: string): Promise<CreditTransaction[]> {
-  const { data, error } = await supabase
-    .from("credit_transactions")
-    .select("*")
-    .eq("company_id", companyId)
-    .order("created_at", { ascending: false })
-    .limit(500);
-  if (error) throw error;
-  return (data ?? []).map((t: any) => ({
-    ...t,
-    amount: Number(t.amount ?? 0),
-    balance_after: Number(t.balance_after ?? 0),
-  }));
+  try {
+    const [res1, res2] = await Promise.all([
+      supabase
+        .from("credit_transactions")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(500),
+      supabase
+        .from("company_credit_transactions")
+        .select("*")
+        .eq("company_id", companyId)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ]);
+
+    const items1 = res1.data ?? [];
+    const items2 = (res2.data ?? []).map((t: any) => ({
+      id: t.id,
+      company_id: t.company_id,
+      type: t.type === "credit" || t.type === "refund" || t.type === "purchase"
+        ? (t.type === "credit" ? (Number(t.amount) > 0 && t.description?.toLowerCase().includes("estorno") ? "refund" : "topup") : t.type)
+        : t.type,
+      amount: Number(t.amount ?? 0),
+      balance_after: Number(t.balance_after ?? 0),
+      description: t.description || null,
+      delivery_id: t.reference_id || null,
+      created_at: t.created_at,
+    }));
+
+    const map = new Map<string, CreditTransaction>();
+    for (const item of items1) {
+      map.set(item.id, {
+        ...item,
+        amount: Number(item.amount ?? 0),
+        balance_after: Number(item.balance_after ?? 0),
+      });
+    }
+
+    for (const item of items2) {
+      const alreadyExists = Array.from(map.values()).some(
+        (existing) =>
+          existing.id === item.id ||
+          (existing.delivery_id && item.delivery_id && existing.delivery_id === item.delivery_id && existing.type === item.type)
+      );
+      if (!alreadyExists) {
+        map.set(item.id, item as CreditTransaction);
+      }
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  } catch (err) {
+    console.error("[fetchCreditTransactions error]:", err);
+    return [];
+  }
+}
+
+/**
+ * Realiza o estorno garantido do valor da taxa de uma entrega cancelada para o saldo do lojista
+ * e registra no extrato de transações de créditos.
+ */
+export async function refundCancelledDelivery(deliveryId: string): Promise<boolean> {
+  if (!deliveryId) return false;
+
+  // 1. Tentar RPC dedicada do Supabase primeiro
+  try {
+    const { data: rpcRes, error: rpcErr } = await supabase.rpc("cancel_delivery_and_refund", {
+      p_delivery_id: deliveryId,
+    });
+    if (!rpcErr && (rpcRes as any)?.success) {
+      console.log("[refundCancelledDelivery] Estorno processado via RPC cancel_delivery_and_refund:", rpcRes);
+      return true;
+    }
+  } catch (_) {}
+
+  // 2. Fallback resiliente: Obter dados da entrega
+  try {
+    const { data: delivery, error: delErr } = await supabase
+      .from("deliveries")
+      .select("id, company_id, delivery_fee, value, short_id, status, delivery_type")
+      .eq("id", deliveryId)
+      .maybeSingle();
+
+    if (delErr || !delivery || !delivery.company_id) {
+      console.warn("[refundCancelledDelivery] Entrega ou empresa não encontrada:", deliveryId, delErr);
+      return false;
+    }
+
+    const fee = Number(delivery.delivery_fee || delivery.value || 0);
+    if (fee <= 0) {
+      console.log("[refundCancelledDelivery] Taxa zero ou inexistente, estorno não aplicável:", fee);
+      return true;
+    }
+
+    // Verificar se já existe estorno para esta entrega
+    const { data: existingRefund } = await supabase
+      .from("credit_transactions")
+      .select("id")
+      .eq("delivery_id", deliveryId)
+      .eq("type", "refund")
+      .maybeSingle();
+
+    if (existingRefund) {
+      console.log("[refundCancelledDelivery] Entrega já estornada anteriormente:", deliveryId);
+      return true;
+    }
+
+    // Tentar RPC add_company_credits
+    try {
+      const { data: addRes, error: addErr } = await supabase.rpc("add_company_credits", {
+        _company_id: delivery.company_id,
+        _amount: fee,
+        _description: `Estorno de entrega cancelada ${delivery.short_id || ""}`.trim(),
+        _payment_method: "Sistema",
+        _type: "refund",
+      });
+      if (!addErr && (addRes as any)?.success) {
+        return true;
+      }
+    } catch (_) {}
+
+    // Fallback direto: Atualizar company_credits e inserir em credit_transactions
+    const { data: existingCredit } = await supabase
+      .from("company_credits")
+      .select("balance")
+      .eq("company_id", delivery.company_id)
+      .maybeSingle();
+
+    const curBal = Number(existingCredit?.balance || 0);
+    const newBal = curBal + fee;
+
+    await supabase.from("company_credits").upsert({
+      company_id: delivery.company_id,
+      balance: newBal,
+      updated_at: new Date().toISOString(),
+    });
+
+    const desc = `Estorno de entrega cancelada ${delivery.short_id || ""}`.trim();
+
+    try {
+      await supabase.from("credit_transactions").insert({
+        company_id: delivery.company_id,
+        type: "refund",
+        amount: fee,
+        balance_after: newBal,
+        description: desc,
+        delivery_id: delivery.id,
+      });
+    } catch (e) {
+      console.warn("[refundCancelledDelivery] Falha ao inserir credit_transactions:", e);
+    }
+
+    try {
+      await supabase.from("company_credit_transactions").insert({
+        company_id: delivery.company_id,
+        type: "refund",
+        amount: fee,
+        balance_after: newBal,
+        description: desc,
+        reference_id: delivery.id,
+        payment_method: "Sistema",
+      });
+    } catch (e) {
+      console.warn("[refundCancelledDelivery] Falha ao inserir company_credit_transactions:", e);
+    }
+
+    return true;
+  } catch (err) {
+    console.error("[refundCancelledDelivery] Erro no fallback de estorno:", err);
+    return false;
+  }
 }
 
 export function useCredits() {

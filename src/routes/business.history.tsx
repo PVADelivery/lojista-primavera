@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { ClipboardList, Search, Calendar, RefreshCw, Eye, CheckCircle, XCircle, Clock, ShoppingBag, Truck } from "lucide-react";
+import { ClipboardList, Search, Calendar, RefreshCw, Eye, CheckCircle, XCircle, Clock, ShoppingBag, Truck, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import OrderDetailModal from "@/components/business/OrderDetailModal";
@@ -297,14 +297,27 @@ function BusinessHistoryPage() {
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                             {order.status === 'completed' || order.status === 'delivered' ? <CheckCircle className="h-3 w-3 text-success" /> : 
-                              order.status === 'cancelled' ? <XCircle className="h-3 w-3 text-destructive" /> : 
-                              <Clock className="h-3 w-3 text-warning" />}
-                               <span className={cn("text-xs font-bold", 
-                                order.status === 'completed' || order.status === 'delivered' ? "text-success" : 
-                                order.status === 'cancelled' ? "text-destructive" : "text-warning")}>
-                                {STATUS_LABELS[order.status] || (order.status === 'delivered' ? 'Entregue' : order.status)}
-                               </span>
+                             {order.status === 'completed' || order.status === 'delivered' ? (
+                               <div className="flex items-center gap-1.5 text-success">
+                                 <CheckCircle className="h-3.5 w-3.5" />
+                                 <span className="text-xs font-bold">Entregue</span>
+                               </div>
+                             ) : order.status === 'cancelled' ? (
+                               <div className="flex flex-col gap-0.5">
+                                 <div className="flex items-center gap-1 text-destructive">
+                                   <XCircle className="h-3.5 w-3.5" />
+                                   <span className="text-xs font-bold">Cancelada</span>
+                                 </div>
+                                 <span className="inline-flex items-center gap-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded-md border border-emerald-500/20">
+                                   <RotateCcw className="h-2.5 w-2.5" /> Valor Estornado
+                                 </span>
+                               </div>
+                             ) : (
+                               <div className="flex items-center gap-1.5 text-warning">
+                                 <Clock className="h-3.5 w-3.5" />
+                                 <span className="text-xs font-bold">{STATUS_LABELS[order.status] || order.status}</span>
+                               </div>
+                             )}
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm font-black text-foreground">

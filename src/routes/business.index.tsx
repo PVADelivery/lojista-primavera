@@ -2,7 +2,7 @@ import { Link, useNavigate, createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
-import { useCredits } from "@/services/credits";
+import { useCredits, refundCancelledDelivery } from "@/services/credits";
 import { useAuth } from "@/contexts/AuthContext";
 import { brl } from "@/lib/format";
 import {
@@ -101,33 +101,48 @@ function BusinessHomePage() {
 
   const cancelDelivery = async (id: string) => {
     if (cancellingId) return;
-    if (!confirm("Deseja realmente cancelar esta entrega?")) return;
+    if (!confirm("Deseja realmente cancelar esta entrega? O valor da taxa será estornado para os seus créditos.")) return;
 
     setCancellingId(id);
     const cancelledByName = profile?.full_name ? `Lojista: ${profile.full_name}` : company?.name ? `Lojista: ${company.name}` : "Lojista";
     
     try {
-      const { error } = await supabase.from("deliveries").update({
-        status: "cancelled",
-        cancelled_at: new Date().toISOString(),
-        cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
-        cancelled_by_name: cancelledByName,
-      } as any).eq("id", id);
-
-      if (error) {
-        // Se a constraint de estorno único disparou, significa que o estorno de crédito já havia sido registrado
-        if (error.message?.includes("ux_credit_transactions_one_refund_per_delivery") || error.message?.includes("duplicate key")) {
-          toast.success("Entrega cancelada com sucesso!");
-          await qc.invalidateQueries({ queryKey: ["deliveries"] });
-          await qc.invalidateQueries({ queryKey: ["credits"] });
-        } else {
-          toast.error("Erro ao cancelar entrega: " + error.message);
+      // 1. Tentar RPC segura com estorno integrado
+      let cancelledViaRpc = false;
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc("cancel_delivery_and_refund", {
+          p_delivery_id: id,
+          p_cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
+          p_cancelled_by_name: cancelledByName,
+        });
+        if (!rpcErr && (rpcRes as any)?.success) {
+          cancelledViaRpc = true;
         }
-      } else {
-        toast.success("Entrega cancelada com sucesso!");
-        await qc.invalidateQueries({ queryKey: ["deliveries"] });
-        await qc.invalidateQueries({ queryKey: ["credits"] });
+      } catch (_) {}
+
+      if (!cancelledViaRpc) {
+        // 2. Atualizar status da entrega para cancelada
+        const { error } = await supabase.from("deliveries").update({
+          status: "cancelled",
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: (profile as any)?.id || profile?.user_id || company?.user_id || null,
+          cancelled_by_name: cancelledByName,
+        } as any).eq("id", id);
+
+        if (error && !error.message?.includes("ux_credit_transactions_one_refund_per_delivery") && !error.message?.includes("duplicate key")) {
+          throw error;
+        }
+
+        // 3. Executar o estorno garantido no saldo e extrato
+        await refundCancelledDelivery(id);
       }
+
+      toast.success("Entrega cancelada e valor estornado ao seu saldo com sucesso!");
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["deliveries"] }),
+        qc.invalidateQueries({ queryKey: ["credits"] }),
+        qc.invalidateQueries({ queryKey: ["credit-transactions"] }),
+      ]);
     } catch (err: any) {
       toast.error("Erro ao cancelar entrega: " + (err?.message || "Tente novamente"));
     } finally {

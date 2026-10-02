@@ -2023,3 +2023,34 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Serviço contínuo em background executando como daemon (IsDaemon: true) com verificação a cada 15 minutos.
      - Persistência de estado em daily_report_state.json com last_sent_timestamp e histórico dos últimos 30 dias para evitar perdas em reinicializações.
      - Suporte à flag --now para testes e disparos imediatos sob demanda.
+
+---
+
+### 173. Falha no Estorno de Créditos e Ausência de Registros de Cancelamento no Extrato do Lojista e Painel Admin
+* **Sintoma**:
+  Lojistas relatam que entregas canceladas não estão tendo os valores das taxas estornados de volta ao seu saldo de créditos, e que os cancelamentos não aparecem mais no Extrato de Movimentações para conferência e controle financeiro.
+* **Causa Raiz**:
+  1. No banco de dados Supabase (`owlbzwsdcognrgolvnzg`), o trigger `trg_delivery_cancelled_refund` não estava ativo ou falhava silenciosamente quando a loja não possuía registro prévio em `company_credits` (`UPDATE` afetava 0 linhas sem fazer UPSERT e abortava sem gerar inserção no extrato).
+  2. A função RPC `cancel_delivery_safe` não existia no cache de schema do banco.
+  3. No frontend do lojista (`business.index.tsx`), o botão de cancelamento executava apenas um `UPDATE deliveries SET status = 'cancelled'` direto, sem invocar uma RPC de estorno seguro nem implementar fallback resiliente em caso de falha de trigger no banco.
+  4. Havia discrepância entre tabelas de movimentações: o painel administrativo (`StoreCreditsPanel.tsx`) consultava unicamente `company_credit_transactions`, enquanto o app do lojista (`CreditsPanel.tsx`) consultava unicamente `credit_transactions`, resultando em extratos incompletos se as gravações ocorressem em tabelas distintas.
+  5. No `CreditsPanel.tsx`, não havia filtros rápidos por categoria (Todas, Estornos, Recargas, Débitos) nem destaque visual específico para transações de estorno devolvido ao saldo.
+  6. No histórico de entregas do lojista (`business.history.tsx`), o status "Cancelada" não indicava visualmente se a taxa havia sido estornada ao saldo.
+* **Solução Padrão**:
+  1. **Script SQL Definitivo (`scripts_para_rodar/FIX_ESTORNO_E_EXTRATO_DEFINITIVO.sql`)**:
+     - Recriação da função `handle_delivery_cancelled_refund()` com `SECURITY DEFINER`, UPSERT automático em `company_credits` e gravação em ambas as tabelas (`credit_transactions` e `company_credit_transactions`).
+     - Recriação do trigger `trg_delivery_cancelled_refund` na tabela `deliveries` disparado em `AFTER UPDATE OF status`.
+     - Criação da RPC `cancel_delivery_and_refund(p_delivery_id, p_cancelled_by, p_cancelled_by_name)` com `SECURITY DEFINER` e retorno detalhado do estorno.
+     - Atualização da RPC `update_delivery_status_safe` para executar o estorno de forma integrada quando o status for `'cancelled'`.
+     - Bloco anônimo PL/pgSQL de correção retroativa para buscar todas as entregas canceladas nos últimos 30 dias sem estorno registrado, atualizar o saldo e criar os registros de extrato retroativos.
+  2. **Camada de Serviço Resiliente (`refundCancelledDelivery`)**:
+     - Implementada em `lojista-primavera-1/src/services/credits.ts` e `painel-primavera/src/services/companyCredits.ts`.
+     - Tenta prioritariamente a RPC `cancel_delivery_and_refund`. Em caso de falha ou ausência, realiza o fluxo completo de fallback: consulta os valores da entrega, atualiza o saldo em `company_credits` e insere o registro em `credit_transactions` e `company_credit_transactions`.
+     - Em `fetchCreditTransactions` (lojista) e `useCreditTransactions` (admin), unificação e mesclagem com deduplicação de ambas as tabelas (`credit_transactions` e `company_credit_transactions`).
+  3. **Integração no Cancelamento de Entregas**:
+     - Em `business.index.tsx` (lojista) e `useUpdateDeliveryStatus` (ambos os apps), invocação prioritária do cancelamento com estorno integrado e garantia de fallback via `refundCancelledDelivery`.
+     - Invalidação automática dos caches React Query (`deliveries`, `credits`, `credit-transactions`, `company-credits`, `company-credit-transactions`).
+  4. **Interface e Extrato Aprimorados**:
+     - No `CreditsPanel.tsx`, adição de filtros rápidos (`Todas`, `Estornos`, `Recargas`, `Entregas`), badge visual "Estorno Devolvido" com ícone `RotateCcw` e valores destacados em verde (`+ R$ XX,XX`).
+     - No `business.history.tsx`, exibição do selo informativo `Cancelada · Valor Estornado` na coluna de status.
+     - No `StoreCreditsPanel.tsx` (painel admin), identificação visual de estornos com ícone `RotateCcw` e indicador de estorno devolvido à loja.

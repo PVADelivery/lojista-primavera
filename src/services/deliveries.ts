@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { DeliveryStatus } from "@/types/models";
+import { refundCancelledDelivery } from "./credits";
 
 // DB enum delivery_status: pending, broadcasted, accepted, collecting, in_transit, delivered, cancelled, returned, completed
 function toDbStatus(status: string) {
@@ -249,17 +250,19 @@ export function useUpdateDeliveryStatus() {
       if (status === "delivered") orderStatus = "delivered";
       if (status === "cancelled") orderStatus = "cancelled";
 
-      if (orderStatus) {
-        const { error: orderError } = await supabase
-          .from("orders")
-          .update({ status: orderStatus as any })
-          .eq("delivery_id", id);
-        if (orderError) console.error("Error updating order status:", orderError);
+      if (status === "cancelled") {
+        try {
+          await refundCancelledDelivery(id);
+        } catch (e) {
+          console.warn("[useUpdateDeliveryStatus] Erro ao estornar entrega:", e);
+        }
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["deliveries"] });
       queryClient.invalidateQueries({ queryKey: ["delivery-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["credits"] });
+      queryClient.invalidateQueries({ queryKey: ["credit-transactions"] });
     },
   });
 }
