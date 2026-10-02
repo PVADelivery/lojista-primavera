@@ -1940,3 +1940,23 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   Na Edge Function `telegram-logger`, adicionar validação estrita antes do envio para o Telegram:
   Se o corpo da requisição não contiver uma mensagem de erro válida (`!error_message || error_message === "Sem mensagem de erro" || error_message.trim() === ""`), a função retorna status 200 com `{ success: true, ignored: true }` e encerra silenciosamente sem disparar mensagem para o canal.
+
+
+---
+
+### 169. Rejeição Apple App Store (Diretriz 2.5.4 - Requisitos de Software) por "audio" em UIBackgroundModes (`Info.plist`, `project.pbxproj`)
+* **Sintoma**: 
+  A versão do aplicativo **MT 24 Horas Express Lojista** (ou Entregador) foi rejeitada pela equipe de revisão da Apple no App Store Connect com a mensagem:
+  `Diretriz 2.5.4 - Desempenho - Requisitos de Software: O aplicativo declara suporte para áudio na chave UIBackgroundModes do arquivo Info.plist, mas não conseguimos reproduzir nenhum conteúdo audível quando o aplicativo está em execução em segundo plano... Se o aplicativo não tiver um recurso que exija áudio persistente, seria apropriado remover a configuração "audio" da chave UIBackgroundModes.`
+* **Causa Raiz**:
+  O arquivo `ios/App/App/Info.plist` continha a chave `<string>audio</string>` dentro da lista `UIBackgroundModes`. Como o aplicativo é de comércio/pedidos e não um reprodutor contínuo de música/streaming (como Spotify), a Apple rejeita categoricamente o uso de background audio. Os sons de novos pedidos e notificações operam via push notification (`remote-notification`) pelo APNs nativo do iOS, dispensando o modo de áudio contínuo.
+* **Solução Padrão**:
+  1. Em `ios/App/App/Info.plist`, remover as tags `<string>audio</string>` e `<string>fetch</string>` de `UIBackgroundModes`, mantendo estritamente apenas:
+     ```xml
+     <key>UIBackgroundModes</key>
+     <array>
+         <string>remote-notification</string>
+     </array>
+     ```
+  2. Incrementar o número da build (`CURRENT_PROJECT_VERSION`) no arquivo `ios/App/App.xcodeproj/project.pbxproj` (ex: de `5` para `6`).
+  3. Gerar novo archive/build no Xcode Cloud ou localmente e reenviar para a revisão da Apple no App Store Connect.
