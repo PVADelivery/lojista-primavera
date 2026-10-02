@@ -1960,3 +1960,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      ```
   2. Incrementar o número da build (`CURRENT_PROJECT_VERSION`) no arquivo `ios/App/App.xcodeproj/project.pbxproj` (ex: de `5` para `6`).
   3. Gerar novo archive/build no Xcode Cloud ou localmente e reenviar para a revisão da Apple no App Store Connect.
+
+
+---
+
+### 170. Rejeição Apple App Store (Diretriz 4.3(a) Design: Spam) por Ícones Idênticos no Ecossistema (`AppIcon-512@2x.png`, `project.pbxproj`)
+* **Sintoma**: 
+  O aplicativo **MT 24 Horas Express** (ou Lojista/Entregador) foi rejeitado pela Apple no App Store Connect com a mensagem:
+  `Guideline 4.3(a) - Design: We noticed that the app icon is identical to the icons of other apps already submitted to the App Store. Apps that use the same icon make it difficult for users to find apps and are considered a form of spam. Next Steps: To resolve this issue, please revise the app icon to ensure it is unique and does not duplicate the icon of another app.`
+* **Causa Raiz**:
+  Os 3 aplicativos da conta de desenvolvedor da empresa (`cliente-primavera`, `lojista-primavera` e `entrega-primavera`) utilizavam exatamente o mesmo arquivo de ícone de 1024x1024 (`AppIcon-512@2x.png`) com o logotipo do relógio preto e amarelo. Quando submetidos sob a mesma conta, a verificação da Apple detecta duplicidade perceptual/binária exata e rejeita como spam por causar confusão aos usuários ao buscarem os apps na App Store.
+* **Solução Padrão**:
+  1. Diferenciar claramente os ícones de 1024x1024 px em cada aplicativo mantendo a identidade visual da marca:
+     - **App Cliente / Marketplace (`cliente-primavera`)**: Logotipo oficial com faixa âmbar de alta conversão: **`DELIVERY`** (com ícone de sacola de compras).
+     - **App Lojista (`lojista-primavera`)**: Logotipo oficial com faixa laranja e ícone de loja: **`LOJISTA`**.
+     - **App Entregador (`entrega-primavera`)**: Logotipo oficial com faixa esmeralda e ícone de moto: **`ENTREGADOR`**.
+  2. Atualizar os arquivos `ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png` e as imagens PWA correspondentes.
+  3. Incrementar o número de build (`CURRENT_PROJECT_VERSION`) no arquivo `project.pbxproj` de cada aplicativo (ex: Cliente para build 5, Lojista para build 6, Entregador para build 5).
+  4. Gerar nova compilação e reenviar para a revisão da Apple no App Store Connect.
