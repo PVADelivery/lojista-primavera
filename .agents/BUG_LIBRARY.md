@@ -1927,3 +1927,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Solução Padrão**:
   1. No header da página (`marketplace.business.vehicles.tsx`), remover o badge `Garagem VIP`, mantendo apenas o contador transparente de anúncios ativos: `{list.length} anúncios ativos`.
   2. No canvas gráfico de fallback para anúncios sem fotos anexadas, substituir `MT 24HORAS EXPRESS • GARAGEM VIP` por `MT 24HORAS EXPRESS • VEÍCULOS`.
+
+
+---
+
+### 168. Alertas Fantasmas no Telegram com "App Desconhecido" e "Sem mensagem de erro" (`telegram-logger/index.ts`)
+* **Sintoma**: 
+  O grupo de monitoramento no Telegram recebeu um alerta com dados genéricos:
+  `App: App Desconhecido | URL: N/A | Usuário: Anônimo (Não autenticado) | Mensagem: Sem mensagem de erro`.
+* **Causa Raiz**:
+  Essa mensagem não teve origem em nenhum dos aplicativos (Marketplace, Painel Admin, Entregador ou Lojista), pois todos eles enviam seus respectivos nomes e rotas completas. Os dados exibidos correspondem exatamente aos valores de fallback (padrão) da Edge Function `telegram-logger` quando ela recebe uma requisição HTTP POST vazia (`{}`) ou sem corpo JSON válido. Isso ocorre tipicamente quando um desenvolvedor clica no botão "Test function" (ou "Invoke") no dashboard do Supabase com o corpo padrão, ou quando um bot/scanner externo faz uma requisição POST direta ao endpoint.
+* **Solução Padrão**:
+  Na Edge Function `telegram-logger`, adicionar validação estrita antes do envio para o Telegram:
+  Se o corpo da requisição não contiver uma mensagem de erro válida (`!error_message || error_message === "Sem mensagem de erro" || error_message.trim() === ""`), a função retorna status 200 com `{ success: true, ignored: true }` e encerra silenciosamente sem disparar mensagem para o canal.
