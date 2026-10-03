@@ -2054,3 +2054,36 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - No `CreditsPanel.tsx`, adição de filtros rápidos (`Todas`, `Estornos`, `Recargas`, `Entregas`), badge visual "Estorno Devolvido" com ícone `RotateCcw` e valores destacados em verde (`+ R$ XX,XX`).
      - No `business.history.tsx`, exibição do selo informativo `Cancelada · Valor Estornado` na coluna de status.
      - No `StoreCreditsPanel.tsx` (painel admin), identificação visual de estornos com ícone `RotateCcw` e indicador de estorno devolvido à loja.
+
+---
+
+### 174. Race Condition no Preload do TanStack Router (TypeError: Cannot read properties of undefined (reading '_nonReactive'))
+* **Sintoma**:
+  Erro em tempo de execução no console do navegador / logs de monitoramento:
+  ```
+  index-BwYU3V9i.js:10 TypeError: Cannot read properties of undefined (reading '_nonReactive')
+      at kM (index-BwYU3V9i.js:10:64069)
+      at async Promise.all (index 2)
+      at async DS (index-BwYU3V9i.js:10:64910)
+      at async UM.preloadRoute (index-BwYU3V9i.js:10:88636)
+  ```
+* **Causa Raiz**:
+  1. O TanStack Router estava configurado com `defaultPreload: "intent"` em `router.tsx`. Isso faz com que todo e qualquer `<Link>` registre listeners de hover/focus disparando `router.preloadRoute()` após 120ms.
+  2. Quando o usuário passa o mouse rapidamente sobre links dinâmicos (ex: produtos, lojas, corridas, tabs), ocorre uma condição de corrida interna no `@tanstack/router-core` (`load-matches.ts` -> `loadRouteMatch`): `inner.router.getMatch(matchId)` retorna `undefined` (porque a rota já foi descartada, evictada do cache ou redirecionada).
+  3. O código interno tenta acessar `match._nonReactive.loaderPromise?.resolve()` sem verificar se `match` é nulo/indefinido, disparando o `TypeError: Cannot read properties of undefined (reading '_nonReactive')`.
+  4. Nossos aplicativos são SPAs onde todo o carregamento de dados é realizado no cliente via React Query e Supabase (nenhuma rota define `loader: () => ...`). Portanto, o pré-carregamento por hover (`preload: "intent"`) era redundante e danoso.
+* **Solução Padrão**:
+  1. Em `router.tsx` de todos os aplicativos (`cliente-primavera`, `lojista-primavera-1`, `lojista-primavera`, `entrega-primavera`), configurar explicitamente `defaultPreload: false` e `defaultPreloadStaleTime: 0`.
+  2. Envolver `router.preloadRoute` com wrapper defensivo em `router.tsx` para capturar e silenciar quaisquer erros não fatais caso invocado programaticamente:
+     ```ts
+     const originalPreload = router.preloadRoute.bind(router);
+     router.preloadRoute = async (opts: any) => {
+       try {
+         return await originalPreload(opts);
+       } catch {
+         return undefined;
+       }
+     };
+     ```
+  3. Em `__root.tsx`, apontar links diretos (ex: botão 404) para `/marketplace` em vez de rotas raiz com redirecionamento como `/`.
+  4. Em `logger.ts` (`window.onerror` e `window.onunhandledrejection`), adicionar filtro para ignorar mensagens contendo `_nonreactive` de modo a evitar alertas falso-positivos no robô do Telegram.
