@@ -82,7 +82,11 @@ export function useStoreNotifications() {
         }
       }
 
-      // 3. Registra na tabela device_tokens
+      // 3. Registra na tabela device_tokens com metadados do Lojista
+      const platform = Capacitor.getPlatform();
+      const app = "lojista";
+      const bundleId = "com.mt24horasexpress.delivery";
+
       try {
         await supabase
           .from("device_tokens")
@@ -90,7 +94,9 @@ export function useStoreNotifications() {
             {
               token: token.value,
               user_id: user?.id || null,
-              platform: Capacitor.getPlatform(),
+              platform,
+              app,
+              bundle_id: bundleId,
               updated_at: new Date().toISOString(),
             } as any,
             { onConflict: "token" }
@@ -99,18 +105,35 @@ export function useStoreNotifications() {
         console.warn("[Push] Falha ao persistir em device_tokens:", e);
       }
 
-      // 4. Registra via Edge Function send-push se existir
+      // 4. Registra via Edge Function notify-driver (conversão de APNs para FCM e vínculo)
       try {
-        await supabase.functions.invoke("send-push", {
+        const res = await supabase.functions.invoke("notify-driver", {
           body: {
             action: "register_token",
             token: token.value,
             userId: user?.id,
             companyId: companyId,
-            platform: Capacitor.getPlatform(),
+            platform,
+            app,
+            bundleId,
           },
         });
-      } catch {}
+        if (res.error) throw res.error;
+      } catch {
+        try {
+          await supabase.functions.invoke("send-push", {
+            body: {
+              action: "register_token",
+              token: token.value,
+              userId: user?.id,
+              companyId: companyId,
+              platform,
+              app,
+              bundleId,
+            },
+          });
+        } catch (_) {}
+      }
     }).then((listener) => { regListener = listener; });
 
     PushNotifications.addListener("registrationError", (error: any) => {
