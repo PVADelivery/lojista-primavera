@@ -151,7 +151,9 @@
 		504EC3021FED79650016851F /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
-			files = (
+			files = (				95A110062FE990060072D4E8 /* notification_sound.mp3 in Resources */,
+				95A110042FE990040072D4E8 /* ring.mp3 in Resources */,
+
 				504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */,
 				50B271D11FEDC1A000F3C39B /* public in Resources */,
 				504EC30F1FED79650016851F /* Assets.xcassets in Resources */,

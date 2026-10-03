@@ -2087,3 +2087,31 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      ```
   3. Em `__root.tsx`, apontar links diretos (ex: botão 404) para `/marketplace` em vez de rotas raiz com redirecionamento como `/`.
   4. Em `logger.ts` (`window.onerror` e `window.onunhandledrejection`), adicionar filtro para ignorar mensagens contendo `_nonreactive` de modo a evitar alertas falso-positivos no robô do Telegram.
+
+---
+
+### 175. Falha de Notificação Sonora Customizada no iPhone (iOS) com Som Padrão do App MT 24 Horas Express
+* **Sintomas**:
+  No iPhone (iOS), os usuários e entregadores recebem as notificações do MT 24 Horas Express, porém o som que toca é o "Tri-tone" (som padrão genérico da Apple) ou nenhum som toca, em vez de reproduzir o toque característico do aplicativo (`ring.mp3` / `notification_sound.mp3`).
+* **Causas Raízes Identificadas**:
+  1. **Discrepância no Nome do Arquivo no Payload do APNs**:
+     - A Edge Function `notify-driver/index.ts` enviava no payload APNs: `aps: { sound: "notification_sound.mp3" }`.
+     - No projeto nativo Xcode do entregador (`project.pbxproj`), apenas `ring.mp3` constava no `PBXResourcesBuildPhase`. O arquivo `notification_sound.mp3` não existia no bundle compilado do iOS.
+     - Nos projetos Xcode do lojista e cliente, nenhum arquivo de som estava registrado no `PBXResourcesBuildPhase`.
+     - No iOS (Apple Push Notification service - APNs), se o sistema recebe uma notificação com o campo `sound` apontando para um arquivo inexistente no bundle raiz compilado da aplicação, a Apple faz fallback automático para o som de sistema (`Tri-tone`) ou não emite som.
+  2. **Restrição Técnica do iOS no Safari / Web Push (PWA)**:
+     - Quando o sistema é acessado no iPhone via navegador Safari ou adicionado à Tela de Início como PWA (Web Push API), a especificação da Apple no iOS WebKit **não oferece suporte a sons customizados** em Web Push. A Apple força compulsoriamente o som padrão do sistema operacional em todas as notificações web.
+     - A API HTML5 `Audio()` é congelada pelo iOS em segundo plano ou tela bloqueada por políticas de economia de energia da Apple.
+  3. **Chave de Silencioso / Foco / Não Perturbe do iPhone**:
+     - No iOS, notificações APNs padrão respeitam compulsoriamente a chave física lateral de silencioso (mute switch) e modos de Foco/Não Perturbe, suprimindo o áudio caso o aparelho esteja com a chave no vermelho. Para tocar mesmo no silencioso, a Apple exige o entitlement especial restrito `com.apple.developer.usernotifications.critical-alerts`.
+  4. **Necessidade de Recompilação Nativa (Novo IPA no Mac)**:
+     - Como os recursos de áudio foram incluídos e registrados no projeto nativo Xcode (`App.xcodeproj`), uma nova compilação nativa no Mac (`xcodebuild` / export IPA / TestFlight) é mandatória para empacotar os arquivos `ring.mp3` e `notification_sound.mp3` dentro do contêiner do app no iPhone.
+* **Solução Padrão**:
+  1. **Padronização e Sincronização dos Arquivos de Som**:
+     - Copiar ambos os arquivos `ring.mp3` e `notification_sound.mp3` para as pastas `public/` e nativas `ios/App/App/` de todos os projetos (`entrega-primavera`, `lojista-primavera-1`, `lojista-primavera`, `cliente-primavera`).
+  2. **Unificação do Payload das Edge Functions**:
+     - Em `notify-driver/index.ts` e `send-push/index.ts`, padronizar o payload APNs para usar `sound: "ring.mp3"` garantindo total paridade.
+  3. **Registro Automático no Xcode (`project.pbxproj`)**:
+     - Adicionar via script de automação as referências `PBXBuildFile`, `PBXFileReference`, inclusão no grupo `App` e na fase `PBXResourcesBuildPhase` para ambos os arquivos de áudio nos projetos iOS.
+  4. **Instruções Operacionais para iOS**:
+     - Documentar que no iPhone a chave lateral de som não pode estar no mudo e o app deve ter permissão de Notificações ativada com Sons habilitados em Ajustes > MT 24 Horas > Notificações > Sons.
