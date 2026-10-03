@@ -2115,3 +2115,28 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Adicionar via script de automação as referências `PBXBuildFile`, `PBXFileReference`, inclusão no grupo `App` e na fase `PBXResourcesBuildPhase` para ambos os arquivos de áudio nos projetos iOS.
   4. **Instruções Operacionais para iOS**:
      - Documentar que no iPhone a chave lateral de som não pode estar no mudo e o app deve ter permissão de Notificações ativada com Sons habilitados em Ajustes > MT 24 Horas > Notificações > Sons.
+
+---
+
+### 176. Corridas Zumbis / Abandonadas Acumuladas na Aba "Em Rota" e Discrepância de Fallback de Preço no App do Entregador
+* **Sintomas**:
+  1. Ao abrir o App do Entregador na aba "Minhas Corridas" > "Em rota" (`/driver/deliveries`), o motorista encontrava múltiplas corridas antigas/abandonadas em andamento simultaneamente (ex: Nadeem R$ 15,00, Hadi R$ 15,00, Dildart R$ 26,50), bloqueando a visão de novas corridas.
+  2. O usuário acreditava que o valor de uma nova corrida recém-solicitada no Marketplace (ex: R$ 13,72) havia sido alterado para R$ 15,00 no App do Entregador.
+  3. No código de exibição de corridas ativas e histórico do entregador (`driver.deliveries.tsx`), havia um fallback arbitrário estático `|| 21.15` caso `r.price` estivesse nulo ou zerado.
+* **Causas Raízes Identificadas**:
+  1. **Ausência de Filtro de Validade/Frescor Temporal**:
+     - A consulta de `activeRides` em `driver.deliveries.tsx` baixava até 50 solicitações de corrida do Supabase e filtrava apenas se o status não era concluído/cancelado (`!isFinished`). Corridas de teste ou solicitações antigas abandonadas há dias ou semanas permaneciam presas na aba "Em rota" indefinidamente.
+  2. **Divergência de Fallback de Preço**:
+     - No Marketplace, o cálculo dinâmico utilizava `base + dist * rate` (R$ 6,99 + dist * R$ 2,00 para moto). No Entregador (`driver.deliveries.tsx`), a expressão continha `|| 21.15` como fallback estático, gerando inconsistências caso o campo `price` não viesse preenchido.
+  3. **Fluxo de Aceite de Corrida**:
+     - Uma corrida recém-solicitada pelo passageiro entra com status `pending` e fica disponível na aba **"Início"** (`/driver`) sob **"Corridas Disponíveis"**. Ela só migra para **"Em rota"** após o motorista clicar explicitamente em "Aceitar Corrida".
+* **Solução Padrão**:
+  1. **Filtro de Frescor Temporal de 24 Horas em `activeRides`**:
+     - Em `driver.deliveries.tsx`, adicionar validação estrita: descartar automaticamente corridas com `created_at` superior a 24 horas (`Date.now() - new Date(r.created_at).getTime() < 86400000`), impedindo o acúmulo de corridas zumbis em "Em rota".
+  2. **Unificação da Função de Preço Dinâmico**:
+     - Em `driver.deliveries.tsx` (ativa e histórico) e `driver.index.tsx` (corridas disponíveis), padronizar o cálculo para usar o preço gravado (`r.price`) ou a fórmula oficial:
+       * Moto Táxi: R$ 6,99 + distância * R$ 2,00 (fallback R$ 10,00).
+       * Táxi: R$ 9,99 + distância * R$ 3,00 (fallback R$ 15,00).
+     - Remoção completa de fallbacks arbitrários (`21.15`).
+  3. **Recompilação e Validação**:
+     - Executar `npm run build` no App do Entregador com validação de tipagem e assets limpos.
