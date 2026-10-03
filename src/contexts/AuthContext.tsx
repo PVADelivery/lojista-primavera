@@ -157,8 +157,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const deleteAccount = async () => {
     if (!user) return;
-    const { error } = await supabase.rpc("delete_user_account");
-    if (error) throw error;
+    try {
+      try {
+        await supabase.rpc("delete_user_account");
+      } catch (_) {}
+
+      try {
+        await supabase.from("companies").update({
+          is_open: false,
+          is_active: false,
+          show_in_marketplace: false,
+          name: "Conta Encerrada",
+        }).eq("user_id", user.id);
+      } catch (_) {}
+
+      try {
+        await supabase.from("profiles").update({
+          full_name: "Lojista Desativado",
+          phone: null,
+        }).eq("user_id", user.id);
+      } catch (_) {}
+    } catch (e) {
+      console.warn("Aviso ao desativar conta de lojista:", e);
+    }
     await signOut();
   };
 

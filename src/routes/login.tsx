@@ -105,6 +105,12 @@ function LoginPage() {
           <p className="mt-6 text-sm text-center text-muted-foreground">
             Acesso exclusivo para lojistas parceiros.
           </p>
+
+          <p className="mt-4 text-center text-xs text-muted-foreground/80 leading-relaxed">
+            <Link to="/privacy" className="underline hover:text-foreground">
+              Política de Privacidade
+            </Link>
+          </p>
         </div>
       </div>
     </div>
