@@ -2140,3 +2140,29 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Remoção completa de fallbacks arbitrários (`21.15`).
   3. **Recompilação e Validação**:
      - Executar `npm run build` no App do Entregador com validação de tipagem e assets limpos.
+---
+
+### 177. Falsos Positivos de "Autoclicker / Flood de Cliques" e "Navegação Anormal / Bot de Varredura de Rotas" no Monitor Anti-Abuso (`useAntiSpamMonitor.ts`, `useAttackMonitor.ts`)
+* **Sintomas**: Usuários legítimos e administradores utilizando o sistema no smartphone recebiam alertas de segurança indevidos no Telegram:
+  1. `[SPAM / ABUSO] Autoclicker / Flood de Cliques Detectado`: com `clicksInLastSecond: 10`, `targetTag: "DIV"`, `className: "min-h-screen bg-background text-foreground"`.
+  2. `[SPAM / ABUSO] Navegação Anormal / Bot de Varredura de Rotas`: com `routeChangesInLastMinute: 25`, `lastPath: "/driver"`.
+* **Causas Raízes Identificadas**:
+  1. **Limiar de Cliques Excessivamente Baixo para Mobile**:
+     - O limite padrão era de apenas 10 cliques em 1 segundo (`maxClicksPerSecond = 10`). Em celulares touchscreen (Android/iOS), gestos de zoom, rolagem rápida com inércia ou toques repetidos geravam facilmente 10 eventos sintéticos de clique na tela de fundo (`DIV.min-h-screen`). Não havia distinção entre eventos físicos de toque humano (`e.isTrusted === true`) e injeções programáticas de scripts (`e.isTrusted === false`).
+  2. **Contagem Indevida de Atualizações de Parâmetros e Estado como "Varredura de Rotas"**:
+     - O hook interceptava cegamente `history.pushState` e `history.replaceState`. Em SPAs utilizando TanStack Router ou React Router, `replaceState` é chamado continuamente a cada alteração de query params (`?tab=rides`, paginação, filtros, coordenadas de mapa) ou hidratação de rotas.
+     - Não havia verificação se o `pathname` havia realmente mudado (`currentPath === lastPathRef.current`). Navegar entre 3 abas e aplicar filtros gerava 25 chamadas de `history.replaceState` dentro da mesma página (`/driver`), disparando a acusação de "bot de varredura".
+  3. **Janela de Cooldown Reduzida (15s)**:
+     - O cooldown curto de 15 segundos causava múltiplos alertas repetidos no Telegram durante testes ou uso regular.
+* **Solução Padrão**:
+  1. **Diferenciação Estrita de `isTrusted` e Ajuste de Limiares**:
+     - Em `useAntiSpamMonitor.ts` e `useAttackMonitor.ts`, eventos físicos genuínos (`e.isTrusted === true`) passam a ter limiar de 35 cliques/s (e 52 cliques/s em containers vazios de background como `DIV`, `MAIN`, `BODY`), eliminando falsos positivos decorrentes de gestos e toques no celular.
+     - Eventos sintéticos não confiáveis injetados via script (`e.isTrusted === false`) continuam sendo vigiados com limiar restrito de 10 eventos/s.
+  2. **Filtro de Rotas Distintas e Descarte de Atualizações de Query/Estado**:
+     - O monitor de rotas agora valida obrigatoriamente se `currentPath !== lastPathRef.current`. Se apenas query strings ou estados mudaram na mesma rota, o evento é desconsiderado.
+     - O limiar de rotas distintas por minuto foi elevado de 25 para 60 rotas/minuto.
+  3. **Aumento de Cooldown e Limiar de Scraping**:
+     - O cooldown entre alertas foi expandido de 15s para 90 segundos.
+     - O detector de cópia em massa (scraping) foi refinado para textos superiores a 1500 caracteres copiados pelo menos 5 vezes em 1 minuto.
+  4. **Padronização em Todos os Módulos**:
+     - Aplicado em `entrega-primavera`, `cliente-primavera`, `lojista-primavera-1`, `lojista-primavera` e `painel-primavera`.
