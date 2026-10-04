@@ -2166,3 +2166,29 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - O detector de cópia em massa (scraping) foi refinado para textos superiores a 1500 caracteres copiados pelo menos 5 vezes em 1 minuto.
   4. **Padronização em Todos os Módulos**:
      - Aplicado em `entrega-primavera`, `cliente-primavera`, `lojista-primavera-1`, `lojista-primavera` e `painel-primavera`.
+---
+
+### 178. Falso Alerta de Queda / Instabilidade no Marketplace ao Despertar Computador da Suspensão / Standby (`ddos_monitor.cjs`, `daily_telegram_report_service.js`)
+* **Sintoma**: O administrador recebia alertas no Telegram:
+  `🚨 ALERTA DE QUEDA / INSTABILIDADE DETECTADA 🚨`
+  `❌ Serviço Afetado: Marketplace (Cliente)`
+  `🔗 URL: https://mt24horasexpress.com/marketplace`
+  `⚠️ Status: TIMEOUT_OU_ERRO`
+  `⏱️ Tempo: 3066ms`
+  E exatamente 60 segundos depois recebia `🟢 SERVIÇO RESTABELECIDO 🟢`.
+* **Causas Raízes Identificadas**:
+  1. **Disparo Imediato sem Confirmação de Falha (Zero Retries)**:
+     - O monitor executava apenas um único `fetch` a cada 60s. Se ocorresse qualquer micro-oscilação de Wi-Fi, perda momentânea de pacote ou demora de handshake TLS no primeiro milissegundo, o monitor disparava imediatamente a notificação de queda sem retentativa.
+  2. **Retomada de Suspensão / Sleep do Notebook**:
+     - Durante a madrugada ou períodos ociosos, o computador entrava em modo de suspensão (*Sleep*). Ao abrir a tampa ou acordar o computador pela manhã, o timer do Node.js executava imediatamente o health check antes que a placa de rede e o Wi-Fi tivessem concluído a renegociação DHCP/DNS com o roteador. Como o Marketplace era o primeiro alvo da lista (`TARGETS[0]`), ele falhava nos primeiros 3 segundos de reconexão do Wi-Fi. Nos 60 segundos seguintes, com a rede estabilizada, o serviço respondia com sucesso e enviava mensagem de recuperação.
+  3. **URL Não Canônica com Redirecionamento Adicional**:
+     - O monitor consultava `https://mt24horasexpress.com/marketplace` (domínio ápice), o qual retornava HTTP 301/308 para `https://www.mt24horasexpress.com/marketplace`, adicionando latência e dependência desnecessária de duplo roundtrip DNS/TLS.
+* **Solução Padrão**:
+  1. **Mecanismo de Confirmação com 3 Tentativas Consecutivas**:
+     - Em `ddos_monitor.cjs` e `daily_telegram_report_service.js`, implementar `verifyTargetWithRetries(target, 3)`. Caso a primeira tentativa falhe, o robô aguarda 3 segundos e retenta uma 2ª e uma 3ª vez. Somente se 3 tentativas consecutivas falharem o alerta de queda é emitido no Telegram.
+  2. **Detecção de Retomada de Suspensão / Sleep**:
+     - Monitorar o tempo decorrido entre ticks (`timeSinceLastCheck > 2.5 * PING_INTERVAL_MS`). Se for detectado que o computador esteve em suspensão, o serviço aguarda 10 segundos antes de disparar pings de rede, aguardando a estabilização do Wi-Fi e DNS do sistema operacional.
+  3. **Uso da URL Canônica Oficial**:
+     - Atualizar o alvo do Marketplace para a URL canônica direta `https://www.mt24horasexpress.com/marketplace` e elevar o timeout de 6000ms para 8000ms.
+  4. **Detalhes Claros do Erro**:
+     - Exibir o código real da falha (`res.error`) e a indicação de que 3 tentativas consecutivas falharam.
