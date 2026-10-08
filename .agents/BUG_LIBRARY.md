@@ -2192,3 +2192,32 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Atualizar o alvo do Marketplace para a URL canônica direta `https://www.mt24horasexpress.com/marketplace` e elevar o timeout de 6000ms para 8000ms.
   4. **Detalhes Claros do Erro**:
      - Exibir o código real da falha (`res.error`) e a indicação de que 3 tentativas consecutivas falharam.
+
+---
+
+### 179. Falso Alerta de Segurança "SPAM / ABUSO DETECTADO: Servidor retornou HTTP 429" para Renovação de Token do Supabase (`logger.ts`, `AuthContext.tsx`, `telegram-logger`)
+* **Sintoma**: O administrador recebia repetidos alertas de segurança alarmantes no Telegram:
+  `🛡️ ALERTA DE SEGURANÇA: SPAM / ABUSO DETECTADO 🛡️`
+  `📱 Módulo / App: App Entregador`
+  `👤 Usuário: Anônimo (Não autenticado)`
+  `⚠️ Tipo de Abuso / Alerta: [SPAM / ABUSO] Servidor retornou HTTP 429 (Rate Limit / Bloqueio de Spam)`
+  `url: https://owlbzwsdcognrgolvnzg.supabase.co/auth/v1/token?grant_type=refresh_token`
+  com IPs normais de smartphones (iOS Safari / Chrome).
+* **Causas Raízes Identificadas**:
+  1. **Interceptação Indiscriminada de HTTP 429 no `window.fetch` do Cliente (`logger.ts`)**:
+     - O manipulador global capturava qualquer resposta com status 429 recebida pelo navegador e a classificava sumariamente como ataque/spam via `reportSpamToTelegram`.
+     - Respostas 429 emitidas pelo Supabase Auth (controle interno de concorrência/taxa do backend do Supabase para endpoints de renovação de sessão) ou por tiles de mapas não são ataques ao sistema, mas sim respostas comuns de rate-limit do próprio provedor externo ao cliente.
+     - Pior: caso o próprio `telegram-logger` ou a API do Telegram retornasse 429 por excesso de mensagens, o interceptador capturava o erro e tentava reportar novamente, criando um loop de reenvio.
+  2. **Chamada Incondicional de `refreshSession()` para Visitantes Deslogados (`AuthContext.tsx`)**:
+     - No aplicativo do entregador, quando `supabase.auth.getSession()` retornava nulo (usuário não autenticado visitando `/driver` ou `/driver/occurrences`), o código executava cegamente `supabase.auth.refreshSession()`.
+     - Sem nenhum token salvo no `localStorage`, a chamada disparava uma requisição inútil para `https://.../auth/v1/token?grant_type=refresh_token`. Em visitas repetidas ou aberturas de tela, o Supabase aplicava rate limit (429) no endpoint de auth, acionando o alerta indevido.
+* **Solução Padrão**:
+  1. **Filtro Estrito no Interceptador de Fetch 429 e Lista de Ignorados (`logger.ts`)**:
+     - Desconsiderar completamente requisições contendo `auth/v1/token`, `refresh_token`, `grant_type=refresh_token`, `telegram-logger`, `api.telegram.org`, `supabase.co/auth` e provedores de mapas.
+     - Adicionar os termos em `isIgnored` do `reportErrorToTelegram` e no tratador de `onunhandledrejection`.
+  2. **Chamada Condicional de `refreshSession()` Apenas se Houver Token Salvo (`AuthContext.tsx`)**:
+     - Quando `getSession()` for nulo, apenas tentar `refreshSession()` se houver token persistido de sessão anterior no `localStorage`. Se o usuário for anônimo/deslogado, a chamada de rede é omitida.
+  3. **Camada de Proteção no Backend da Edge Function (`telegram-logger/index.ts`)**:
+     - Ignorar mensagens recebidas que contenham `refresh_token` ou 429 de autenticação, impedindo a emissão de alertas espúrios no canal de segurança do Telegram.
+  4. **Padronização em Todos os Módulos**:
+     - Replicado em `entrega-primavera`, `lojista-primavera-1`, `lojista-primavera`, `cliente-primavera` e `painel-primavera`.
