@@ -2221,3 +2221,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Ignorar mensagens recebidas que contenham `refresh_token` ou 429 de autenticação, impedindo a emissão de alertas espúrios no canal de segurança do Telegram.
   4. **Padronização em Todos os Módulos**:
      - Replicado em `entrega-primavera`, `lojista-primavera-1`, `lojista-primavera`, `cliente-primavera` e `painel-primavera`.
+
+---
+
+### 180. Entregadores Excluídos pelo Admin Continuando a Acessar o App e Auto-Recriação de Cadastro
+* **Sintoma**: Após o Admin excluir entregadores de teste no Painel Administrativo, esses usuários continuavam conseguindo fazer login e acessar o App do Entregador normalmente.
+* **Causas Raízes Identificadas**:
+  1. **Auto-Recriação do Registro do Entregador (`ensureDriverRow` em `deliveries.ts`)**:
+     - Quando um entregador excluído abria o app, a função `ensureDriverRow` não encontrava a linha em `delivery_drivers` e executava um `INSERT` automático criando uma nova linha para o usuário, ressuscitando o entregador deletado no banco de dados.
+  2. **Ausência de Validação de Permissão e Status no Login (`login.tsx`)**:
+     - O formulário de login chamava apenas `supabase.auth.signInWithPassword` e redirecionava imediatamente para `/driver`. Como a conta de login no `auth.users` ainda existia ou possuía sessão, ele não verificava se o perfil estava com `status = 'deleted'` ou sem a role `driver`.
+  3. **Guarda de Rota Inoperante (`DriverShell.tsx` e `AuthContext.tsx`)**:
+     - `DriverShell` verificava apenas se `user` existia, sem checar `isDriver`. Em `AuthContext`, a exclusão das roles resultava em `roles = []`, mas o usuário nunca era deslogado (`signOut()`).
+* **Solução Padrão**:
+  1. **Remover a auto-inserção de `delivery_drivers` em `ensureDriverRow`**: Nunca recriar linhas de motoristas automaticamente caso não existam.
+  2. **Validação Estrita no Login (`login.tsx`)**: Após `signInWithPassword`, validar se `profiles.status === 'deleted'`, se `delivery_drivers.status === 'deleted'` ou se o usuário não possui a role `driver`. Se inválido, executar `signOut()`, limpar o `localStorage` e emitir aviso de acesso revogado.
+  3. **Validação Contínua em `AuthContext.tsx` e `DriverShell.tsx`**: Ao carregar a sessão, checar se a conta foi excluída ou desativada e forçar `signOut()` imediato se `!isDriver`.
+  4. **Chamada RPC Admin (`admin_delete_driver_user`) no Painel Admin**: Garantir a exclusão completa das credenciais no banco.
