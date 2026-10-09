@@ -2238,3 +2238,44 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. **Validação Estrita no Login (`login.tsx`)**: Após `signInWithPassword`, validar se `profiles.status === 'deleted'`, se `delivery_drivers.status === 'deleted'` ou se o usuário não possui a role `driver`. Se inválido, executar `signOut()`, limpar o `localStorage` e emitir aviso de acesso revogado.
   3. **Validação Contínua em `AuthContext.tsx` e `DriverShell.tsx`**: Ao carregar a sessão, checar se a conta foi excluída ou desativada e forçar `signOut()` imediato se `!isDriver`.
   4. **Chamada RPC Admin (`admin_delete_driver_user`) no Painel Admin**: Garantir a exclusão completa das credenciais no banco.
+
+---
+
+### 181. Uncaught TypeError: Cannot read properties of null (reading 'focus') no Radix UI Select (`select-*.js`)
+* **Sintoma**: Logs de erro de tela no Painel Admin em `/admin/reports` (e outras rotas com filtros suspensos) acusando:
+  `Uncaught TypeError: Cannot read properties of null (reading 'focus') at select-CQmE5zlZ.js:1:7618`.
+* **Causas Raízes Identificadas**:
+  1. **Bug Conhecido do `@radix-ui/react-select` (Typeahead Search)**:
+     - Na implementação interna do hook `useTypeaheadSearch` do Radix Select, a biblioteca executa:
+       `setTimeout(() => nextItem.ref.current.focus());`.
+     - Se o elemento correspondente unmontou, sofreu re-renderização por atualização assíncrona de dados (ex: `companies` ou `drivers` carregando do banco) ou o dropdown foi fechado antes do término do timeout, `nextItem.ref.current` torna-se `null`. Como a chamada original não utiliza encadeamento opcional (`?.`), `null.focus()` dispara uma exceção não capturada.
+  2. **Conflito de Focus Trap ao Abrir Dialogs Diretamente de Opções do Select**:
+     - No fluxo de caixa em `/admin/reports`, ao selecionar a opção `⚙️ Gerenciar Categorias...` (`val === 'MANAGE_CATEGORIES'`), o estado `isManageCategoriesOpen` abria imediatamente o `<Dialog>` enquanto o `<Select>` ainda estava concluindo sua animação de fechamento, gerando colisão de foco entre os dois componentes.
+* **Solução Padrão**:
+  1. **Script de Correção Automática (`patch-select.cjs`) + `postinstall`**:
+     - Criado script `patch-select.cjs` que substitui `setTimeout(() => nextItem.ref.current.focus());` por `setTimeout(() => nextItem?.ref?.current?.focus?.());` nos arquivos compilados do `@radix-ui/react-select` (`dist/index.mjs` e `dist/index.js`).
+     - Adicionado script `"postinstall": "node patch-select.cjs"` no `package.json` de todos os 4 repositórios da suíte (`painel-primavera`, `cliente-primavera`, `lojista-primavera-1` e `entrega-primavera`).
+  2. **Interceptador Seguro de `setTimeout` em `select.tsx`**:
+     - No componente `src/components/ui/select.tsx`, implementado interceptador global dinâmico em `window.setTimeout` que captura e neutraliza tentativas de foco em nós nulos/desanexados do DOM sem propagar `Uncaught TypeError`.
+  3. **Atraso Seguro na Abertura de Dialogs Derivados (`reports.tsx`)**:
+     - Ao selecionar `MANAGE_CATEGORIES`, adiar a abertura do modal em 120ms (`setTimeout(() => setIsManageCategoriesOpen(true), 120)`), garantindo desmonte suave do dropdown antes do engajamento do foco do Dialog.
+  4. **Filtro no `logger.ts`**:
+     - Ignorar no `isIgnored` e no `window.onerror` mensagens que contenham `cannot read properties of null (reading 'focus')` e rastros de pilha de `select-*.js`.
+
+---
+
+### 182. Falsos Alertas de "Script error." com Linha 0 e Coluna 0 no Marketplace Cliente (Safari / iOS)
+* **Sintoma**: O Telegram recebia notificações de erro do Marketplace Cliente (`https://www.mt24horasexpress.com/marketplace`):
+  `⚠️ Mensagem: Script error.`
+  `📜 Stack Trace: At :0:0`
+  `🔍 Detalhes adicionais: { "userAgent": "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7...)", "source": "", "lineno": 0, "colno": 0 }`.
+* **Causas Raízes Identificadas**:
+  1. **Política de Segurança de Navegadores (CORS / WebKit Masking)**:
+     - Por especificação padrão de segurança do navegador (CORS Cross-Origin Script Security), sempre que ocorre um erro ou bloqueio de requisição originado em script/recurso de origem cruzada (fontes do Google Fonts, tiles do OpenStreetMap, extensões do Safari ou Intelligent Tracking Prevention da Apple) sem cabeçalhos CORS explícitos, o navegador WebKit/Blink omite propositalmente a mensagem real, a URL do arquivo e a linha, repassando apenas a string genérica `"Script error."` com `lineno: 0` e `colno: 0`.
+  2. **Ausência de Filtragem de "Script error." no `logger.ts`**:
+     - O ouvinte global `window.onerror` capturava a string `"Script error."` e a enviava diretamente para o bot do Telegram, gerando alertas inócuos e sem contexto para a equipe de suporte.
+* **Solução Padrão**:
+  1. **Filtragem Estrita em `window.onerror` e `isIgnored` (`logger.ts`)**:
+     - Ignorar completamente `message === "Script error."`, `lower.includes("script error")` e requisições onde `lineno === 0 && colno === 0 && (!source || source === "") && !error`.
+     - Replicado em todos os 4 repositórios da suíte (`painel-primavera`, `cliente-primavera`, `lojista-primavera-1` e `entrega-primavera`).
+
