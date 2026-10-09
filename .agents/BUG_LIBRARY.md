@@ -2279,3 +2279,10 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Ignorar completamente `message === "Script error."`, `lower.includes("script error")` e requisições onde `lineno === 0 && colno === 0 && (!source || source === "") && !error`.
      - Replicado em todos os 4 repositórios da suíte (`painel-primavera`, `cliente-primavera`, `lojista-primavera-1` e `entrega-primavera`).
 
+
+---
+
+### 183. App do Entregador Pedindo Login ao Alternar de Aplicativo (WhatsApp, Waze, GPS)
+* **Sintoma**: O entregador reporta que sempre que abre outro aplicativo no Android (ex: WhatsApp, GPS) e retorna, o aplicativo pede login novamente e limpa a sessao.
+* **Causas Raizes**: Chamada destrutiva de signOut() no DriverShell.tsx se isDriver avaliava como false durante o carregamento de roles e checagem agressiva no AuthContext.tsx.
+* **Solucao Padrao**: Eliminar signOut() de verificacao em DriverShell.tsx, inicializar roles com cache sincrono no AuthContext.tsx e restringir signOut() apenas a perfis com status confirmado como 'deleted'.
