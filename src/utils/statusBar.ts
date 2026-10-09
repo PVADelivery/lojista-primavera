@@ -31,6 +31,8 @@ export async function applyStatusBarTheme(isDark: boolean) {
   // 2. Controla o plugin nativo do Capacitor no iOS e Android
   if (Capacitor.isNativePlatform()) {
     try {
+      await StatusBar.show();
+      await StatusBar.setOverlaysWebView({ overlay: false });
       if (isDark) {
         // TEMA ESCURO: Fundo preto e ícones brancos (hora, bateria, wifi)
         await StatusBar.setStyle({ style: Style.Dark });
