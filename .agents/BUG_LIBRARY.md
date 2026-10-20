@@ -2286,3 +2286,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 * **Sintoma**: O entregador reporta que sempre que abre outro aplicativo no Android (ex: WhatsApp, GPS) e retorna, o aplicativo pede login novamente e limpa a sessao.
 * **Causas Raizes**: Chamada destrutiva de signOut() no DriverShell.tsx se isDriver avaliava como false durante o carregamento de roles e checagem agressiva no AuthContext.tsx.
 * **Solucao Padrao**: Eliminar signOut() de verificacao em DriverShell.tsx, inicializar roles com cache sincrono no AuthContext.tsx e restringir signOut() apenas a perfis com status confirmado como 'deleted'.
+
+---
+
+### 184. Erro ao Aceitar Entrega: "Entregador não encontrado." no App do Entregador
+* **Sintoma**: Ao clicar para aceitar uma entrega em `/driver`, o app exibia o toast de erro `[Erro na Tela] Erro ao aceitar entrega: Entregador não encontrado.`, impedindo o entregador de pegar a corrida/entrega.
+* **Causas Raízes**:
+  1. A RPC PostgreSQL `accept_delivery` busca `SELECT id INTO v_driver_id FROM public.delivery_drivers WHERE user_id = auth.uid()`. Se o usuário autenticado não possui linha correspondente na tabela `delivery_drivers`, a RPC retorna `{ success: false, error: 'DRIVER_NOT_FOUND' }`.
+  2. A função `ensureDriverRow` não criava a linha do entregador ausente (possuía apenas `return userId`), deixando o entregador sem linha na tabela `delivery_drivers`.
+  3. A função `acceptDelivery` em `deliveries.ts` ignorava o parâmetro `driverId` e não possuía nenhum mecanismo de auto-criação/sincronização nem fallbacks, disparando imediatamente `throw new Error("Entregador não encontrado.")`.
+* **Solução Padrão**:
+  1. Refatorar `ensureDriverRow`: se o entregador não tem registro em `delivery_drivers`, buscar os dados do perfil/auth e inserir automaticamente o registro (`user_id`, `full_name`, `phone`, `is_active: true`, `is_online: true`, `online: true`, `status: 'active'`, `vehicle_type: 'moto'`), salvando e retornando o `id` gerado.
+  2. Implementar fluxo em camadas em `acceptDelivery`:
+     - Tentar a RPC nativa `accept_delivery`.
+     - Se retornar `DRIVER_NOT_FOUND`, invocar `ensureDriverRow`, criar a linha e re-tentar a RPC nativa.
+     - Se a RPC ainda falhar, aplicar Fallback 1: `update_delivery_status_safe(p_delivery_id, 'accepted', p_driver_id)`.
+     - Se persistir, aplicar Fallback 2: `.update({ status: 'accepted', driver_id, accepted_at, updated_at }).eq('id', deliveryId).in('status', ['pending', 'broadcasted'])`.
+     - Tratar concorrência: se a entrega já foi aceita por outro, exibir toast amigável em vez de erro técnico.
+
