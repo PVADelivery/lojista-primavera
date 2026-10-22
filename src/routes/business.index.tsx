@@ -277,7 +277,16 @@ function BusinessHomePage() {
       </Section>
 
       {/* ── BONASOFT Watermark ── */}
-      <div className="mt-16 pb-8 flex justify-center opacity-40 select-none "> <a href="https://wa.me/5566992734632?text=Ol%C3%A1!%20Conheci%20a%20BonaSoft%20atrav%C3%A9s%20do%20aplicativo%20MT%2024%20Horas%20e%20gostaria%20de%20conhecer%20melhor%20os%20servi%C3%A7os%20de%20desenvolvimento%20de%20aplicativos%20e%20sistemas.%20Podemos%20conversar%3F" target="_blank" rel="noopener noreferrer" className="text-[10px] font-black tracking-[0.5em] text-muted-foreground uppercase cursor-pointer">BONASOFT</a> </div>
+      <div className="mt-16 pb-8 flex justify-center select-none">
+        <a
+          href="https://wa.me/5566992734632?text=Ol%C3%A1!%20Conheci%20a%20BonaSoft%20atrav%C3%A9s%20do%20aplicativo%20MT%2024%20Horas%20e%20gostaria%20de%20conhecer%20melhor%20os%20servi%C3%A7os%20de%20desenvolvimento%20de%20aplicativos%20e%20sistemas.%20Podemos%20conversar%3F"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[10px] font-black tracking-[0.5em] text-foreground opacity-30 hover:opacity-100 active:opacity-100 transition-opacity duration-200 uppercase cursor-pointer"
+        >
+          BONASOFT
+        </a>
+      </div>
     </div>
   );
 }
