@@ -2364,4 +2364,35 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Em `entrega-primavera/src/contexts/AuthContext.tsx`, atualizar o manipulador `SIGNED_OUT` e as rotinas `getSession()` e `refreshSession()` para que, caso a resposta seja `Invalid Refresh Token` ou `Refresh Token Not Found`, o `localStorage` seja imediatamente purgado de chaves obsoletas do Supabase, resetando a sessão para `null` e interrompendo qualquer loop de requisições HTTP 400.
   2. Em `entrega-primavera/src/routes/invite.$token.tsx`, adicionar os atributos `autoComplete="email"`, `autoComplete="new-password"`, `autoComplete="name"` e `autoComplete="tel"` em todos os inputs do formulário.
 
+---
+
+### 189. Valor Incorreto de Ganhos do Mês para Entregador Novo / Hardcoding de `fallbackDriverId`
+* **Sintoma**: Um entregador que acabou de acessar o aplicativo ou que ainda não realizou entregas no mês visualizava um saldo incorreto de ganhos no painel principal (ex: "Mês R$ 38.25") com "Ganhos de hoje R$ 0.00" e "Entregas 0". Além disso, no Painel Admin a sua conta aparecia como "Não vinculado".
+* **Causas Raízes**:
+  1. Havia IDs de teste antigos hardcoded em `entrega-primavera/src/services/deliveries.ts`, `driver.deliveries.tsx`, `driver.profile.tsx`, `Header.tsx` e `useDriverNotifications.ts`, mapeando o `user.id === "b5756a82-d1ab-4adf-9fe4-e283a175e37e"` para um `fallbackDriverId === "26047901-b04b-4276-81ad-5133b83c7ef5"`.
+  2. A linha de ID `26047901-b04b-4276-81ad-5133b83c7ef5` possuía entregas antigas finalizadas no mês de outubro totalizando R$ 38.25.
+  3. A função `ensureDriverRow` não vinculava a linha real do entregador em `delivery_drivers` quando a busca direta por `user_id` falhava, mantendo o cadastro no admin com `user_id = null` ("Não vinculado").
+* **Solução Padrão**:
+  1. Remover completamente qualquer hardcoding de `fallbackDriverId` e IDs fixos de todos os arquivos do aplicativo do entregador (`deliveries.ts`, `driver.deliveries.tsx`, `driver.profile.tsx`, `Header.tsx`, `useDriverNotifications.ts`).
+  2. Em `ensureDriverRow`, limpar do `localStorage` qualquer chave contendo o ID antigo inválido (`26047901-b04b-4276-81ad-5133b83c7ef5`).
+  3. Em `ensureDriverRow`, implementar busca resiliente que, caso não encontre por `user_id` direto, busque por `phone` limpo (últimos 8 dígitos) e também por `full_name`. Ao encontrar a linha correspondente na tabela `delivery_drivers`, realizar o `update({ user_id: userId })` imediatamente, vinculando a conta do entregador de forma definitiva e garantindo que o Admin exiba o status vinculado.
+  4. Na função `fetchEarnings`, consultar exclusivamente os dados do próprio motorista logado (`driverId` e `sessionUser?.id`), calculando R$ 0.00 quando nenhuma entrega foi realizada.
+
+---
+
+### 190. Ordenação Alfabética Obrigatória de Entregadores e Motoristas no Painel Admin
+* **Sintoma**: A listagem de entregadores e motoristas no Painel Admin (`/admin/drivers`) e nos demais serviços (`fetchDrivers`) aparecia desordenada ou ordenada aleatoriamente pela data de criação (`created_at desc`), dificultando a localização rápida de motoristas pela equipe de suporte e expedição.
+* **Causas Raízes**:
+  1. O retorno da função `fetchDrivers()` em `painel-primavera`, `lojista-primavera-1`, `lojista-primavera` e `entrega-primavera` retornava o array `resultDrivers` sem ordenação alfabética.
+  2. Na tela `painel-primavera/src/routes/admin/drivers.tsx`, a constante `filteredDrivers` apenas filtrava por texto e categoria de veículo sem aplicar ordenação por nome.
+* **Solução Padrão**:
+  1. Em todos os arquivos `src/services/drivers.ts` (`painel-primavera`, `lojista-primavera-1`, `lojista-primavera` e `entrega-primavera`), ordenar o array `resultDrivers` em ordem alfabética crescente antes de retornar:
+     ```ts
+     resultDrivers.sort((a, b) =>
+       (a.full_name || "").trim().localeCompare((b.full_name || "").trim(), "pt-BR", { sensitivity: "base" })
+     );
+     ```
+  2. Na tela `painel-primavera/src/routes/admin/drivers.tsx`, encadear `.sort((a, b) => (a.full_name || "").trim().localeCompare((b.full_name || "").trim(), "pt-BR", { sensitivity: "base" }))` no pipeline do `filteredDrivers`, garantindo ordenação alfabética estrita em todas as abas e buscas da interface.
+
+
 

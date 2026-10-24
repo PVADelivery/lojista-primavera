@@ -58,7 +58,17 @@ Deno.serve(async (req) => {
       email_confirm: true,
       user_metadata: { full_name: fullName, role: invitation.role },
     });
-    if (createErr) throw createErr;
+    if (createErr) {
+      const isAlready = createErr.message?.toLowerCase().includes("already") || (createErr as any).status === 422;
+      return new Response(JSON.stringify({ 
+        error: isAlready 
+          ? "Este endereço de e-mail já está cadastrado no sistema. Por favor, faça login com sua senha." 
+          : (createErr.message || "Erro ao criar usuário") 
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const userId = created.user!.id;
 
     const rawVehicle = body.vehicle || body.vehicle_type || "moto";
