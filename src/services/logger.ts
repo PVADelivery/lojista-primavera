@@ -99,7 +99,19 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "MT
   }
 
   const msg = (payload.error_message || "").toLowerCase();
+  const stack = (payload.stack_trace || "").toLowerCase();
   const isIgnored = 
+    msg.includes("failed to fetch") ||
+    msg.includes("load failed") ||
+    msg.includes("networkerror") ||
+    msg.includes("network request failed") ||
+    msg.includes("falha de conexão com a internet") ||
+    msg.includes("falha de conexão") ||
+    msg.includes("verifique sua rede") ||
+    msg.includes("the user aborted a request") ||
+    msg.includes("abort error") ||
+    msg.includes("aborted") ||
+    msg.includes("connection reset") ||
     msg.includes("aceita por outro") ||
     msg.includes("delivery_not_available") ||
     msg.includes("row level security") ||
@@ -128,11 +140,13 @@ export async function reportErrorToTelegram(payload: ErrorPayload, appName = "MT
     msg.includes("react error #418") ||
     msg.includes("refresh_token") ||
     msg.includes("grant_type=refresh_token") ||
-    msg.includes("rate limit") && (msg.includes("token") || msg.includes("auth") || msg.includes("supabase")) ||
-    msg.includes("429") && (msg.includes("token") || msg.includes("auth") || msg.includes("refresh")) ||
+    (msg.includes("rate limit") && (msg.includes("token") || msg.includes("auth") || msg.includes("supabase"))) ||
+    (msg.includes("429") && (msg.includes("token") || msg.includes("auth") || msg.includes("refresh"))) ||
     msg.includes("hydration failed") ||
     msg.includes("script error") ||
-    ((msg.includes("cannot read properties of null") || msg.includes("cannot read property")) && msg.includes("focus"));
+    ((msg.includes("cannot read properties of null") || msg.includes("cannot read property")) && msg.includes("focus")) ||
+    stack.includes("load failed") ||
+    stack.includes("failed to fetch");
 
   if (isIgnored) return;
 
@@ -257,8 +271,19 @@ export function translateErrorMessage(rawMsg: string): string {
   if (lower.includes("signup disabled")) {
     return "Novos cadastros estão temporariamente suspensos.";
   }
-  if (lower.includes("network error") || lower.includes("failed to fetch")) {
-    return "Falha de conexão com a internet. Verifique sua rede e tente novamente.";
+  if (
+    lower.includes("network error") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("load failed") ||
+    lower.includes("networkerror") ||
+    lower.includes("network request failed") ||
+    lower.includes("the user aborted a request") ||
+    lower.includes("abort error") ||
+    lower.includes("aborted") ||
+    lower.includes("connection reset") ||
+    lower.includes("timeout")
+  ) {
+    return "Falha de conexão com a internet. Verifique sua conexão e tente novamente.";
   }
   if (lower.includes("jwt expired") || lower.includes("token expired") || lower.includes("session expired")) {
     return "Sua sessão expirou. Por favor, faça login novamente.";
@@ -344,8 +369,13 @@ export function initializeGlobalErrorHandlers(appName: string) {
             !msgStr ||
             msgStr.includes("cancelada pelo usuário") ||
             lower.includes("failed to fetch") ||
+            lower.includes("load failed") ||
             lower.includes("networkerror") ||
-            lower.includes("network request failed");
+            lower.includes("network request failed") ||
+            lower.includes("falha de conexão") ||
+            lower.includes("conexão com a internet") ||
+            lower.includes("the user aborted a request") ||
+            lower.includes("abort");
 
           if (typeof msgStr === "string" && !isIgnored) {
             reportErrorToTelegram({
@@ -409,6 +439,11 @@ export function initializeGlobalErrorHandlers(appName: string) {
       lower.includes("script error") ||
       (lineno === 0 && colno === 0 && (!source || source === "") && !error) ||
       ((lower.includes("cannot read properties of null") || lower.includes("cannot read property")) && lower.includes("focus")) ||
+      lower.includes("failed to fetch") ||
+      lower.includes("load failed") ||
+      lower.includes("networkerror") ||
+      lower.includes("network request failed") ||
+      lower.includes("abort") ||
       lower.includes("minified react error #520") ||
       lower.includes("minified react error #418") ||
       lower.includes("minified react error #423") ||
@@ -448,6 +483,18 @@ export function initializeGlobalErrorHandlers(appName: string) {
     // Silencia rejeições de JWT Expirado e tenta renovar a sessão silenciosamente sem forçar logout
     if (lower.includes("jwt expired") || lower.includes("token expired") || lower.includes("session expired")) {
       supabase.auth.refreshSession().catch(() => {});
+      return;
+    }
+
+    // Silencia oscilações e quedas temporárias de rede (failed to fetch, timeouts, aborts, load failed)
+    if (
+      lower.includes("failed to fetch") ||
+      lower.includes("load failed") ||
+      lower.includes("networkerror") ||
+      lower.includes("network request failed") ||
+      lower.includes("the user aborted a request") ||
+      lower.includes("abort")
+    ) {
       return;
     }
 

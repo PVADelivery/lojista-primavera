@@ -101,11 +101,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      reportFailedLogin(email, { error_message: error.message }, "MT 24 Horas Express - Lojista");
+    let result = await supabase.auth.signInWithPassword({ email, password });
+
+    // Se falhar por oscilação momentânea de rede / wake do Safari (Load failed / Failed to fetch), tenta novamente após 800ms
+    if (result.error) {
+      const errMsg = (result.error.message || "").toLowerCase();
+      const isNetwork = 
+        errMsg.includes("load failed") || 
+        errMsg.includes("failed to fetch") || 
+        errMsg.includes("network") ||
+        errMsg.includes("abort");
+
+      if (isNetwork) {
+        await new Promise((res) => setTimeout(res, 800));
+        result = await supabase.auth.signInWithPassword({ email, password });
+      }
     }
-    return { error };
+
+    if (result.error) {
+      const errMsg = (result.error.message || "").toLowerCase();
+      const isNetwork = 
+        errMsg.includes("load failed") || 
+        errMsg.includes("failed to fetch") || 
+        errMsg.includes("network") ||
+        errMsg.includes("abort");
+
+      if (!isNetwork) {
+        reportFailedLogin(email, { error_message: result.error.message }, "MT 24 Horas Express - Lojista");
+      }
+    }
+    return result;
   };
 
   const signUp = async (email: string, password: string, fullName: string) => {

@@ -2334,3 +2334,21 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - **Alertas Imediatos (Loop de 1 min)**: Dispara instantaneamente ao violar limites operacionais (quedas confirmadas, pedidos travados >15 min, falhas críticas de banco/Edge Functions), com cooldown anti-spam de 15 min e notificação automática de resolução ao normalizar.
   2. Implementar validação de dados reais de entregadores operacionais via contagem de `driver_id` em entregas ativas e dispositivos registrados em `device_tokens` (78 aparelhos conectados), eliminando a mensagem errônea de "0 de 0".
   3. Adicionar testes sintéticos de catálogo (`companies`), pedidos (`deliveries`) e ping direto no banco PostgreSQL para aferir latência real de consulta (DB Roundtrip).
+
+---
+
+### 187. Erro "[Erro na Tela] Load failed" no Safari/iOS e Deslogue Indevido do Lojista
+* **Sintoma**: Ao usar o painel do lojista no iPhone/iOS Safari (ex: `https://lojista.mt24horasexpress.com/login`), o usuário era deslogado repentinamente e, ao tentar entrar novamente, a tela exibia o toast em inglês `[Erro na Tela] Load failed`, disparando alertas desnecessários de erro de sistema no Telegram.
+* **Causas Raízes**:
+  1. No arquivo `src/integrations/supabase/client.ts`, a cláusula `supabase.auth.onAuthStateChange` incluía a condição `(event === 'TOKEN_REFRESHED' && !session)`. Sempre que o aparelho entrava em bloqueio de tela, transição de Wi-Fi/4G ou acordava do modo repouso, a tentativa de renovação de token falhava temporariamente por oscilação de rede. O app tratava essa oscilação transitória como logout definitivo e executava `window.location.href = '/login'`, expulsando lojistas logados para a tela de login.
+  2. No Safari (WebKit no iOS/macOS), requisições de rede com falha transitória (quedas momentâneas de sinal 4G, atrasos de rádio ou DNS) disparam a exceção nativa `TypeError: Load failed` (equivalente ao `TypeError: Failed to fetch` do Chrome).
+  3. No `src/services/logger.ts`, o interceptor `isIgnored` filtrava `failed to fetch` e `networkerror`, mas não incluía `load failed`. Por isso, qualquer pequena instabilidade no sinal da operadora em iPhones enviava alertas de "Erro Crítico de Tela" para o Telegram do suporte.
+  4. Na tela `login.tsx`, o erro retornado pelo Supabase era enviado diretamente para `toast.error(error.message)` sem passar pela função `translateErrorMessage()`, exibindo o texto em inglês cru "Load failed" para o lojista.
+  5. No método `signIn` em `AuthContext.tsx`, não havia retry para mitigar o delay de ativação do rádio celular do iOS.
+* **Solução Padrão**:
+  1. Em `src/integrations/supabase/client.ts`, remover a condição `TOKEN_REFRESHED && !session` do redirecionamento forçado, mantendo redirecionamento para `/login` estritamente no evento explícito `SIGNED_OUT`.
+  2. Em `src/services/logger.ts`, adicionar `load failed` em todas as camadas de proteção de rede: `translateErrorMessage`, `reportErrorToTelegram`, interceptor `rawToast.error`, `window.onerror` e `window.onunhandledrejection`.
+  3. Em `src/services/logger.ts`, mapear `load failed` para a mensagem amigável em português: *"Falha de conexão com a internet. Verifique sua conexão e tente novamente."*.
+  4. Em `src/routes/login.tsx`, utilizar `toast.error(translateErrorMessage(error.message))`.
+  5. Em `src/contexts/AuthContext.tsx`, adicionar retry automático de 800ms em erros transitórios de rede no `signIn` antes de exibir erro ao usuário e não reportar quedas de conexão como tentativas maliciosas/falhas de login.
+

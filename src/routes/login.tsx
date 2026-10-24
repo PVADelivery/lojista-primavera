@@ -12,6 +12,8 @@ import logoIcon from "@/assets/logo-icon-v3.png";
 
 
 
+import { translateErrorMessage } from "@/services/logger";
+
 export const Route = createFileRoute("/login")({
   component: LoginPage,
 });
@@ -36,8 +38,11 @@ function LoginPage() {
     e.preventDefault();
     setBusy(true);
     const { error } = await signIn(email, password);
-    if (error) toast.error(error.message);
-    else toast.success("Bem-vindo(a)!");
+    if (error) {
+      toast.error(translateErrorMessage(error.message));
+    } else {
+      toast.success("Bem-vindo(a)!");
+    }
     setBusy(false);
   };
 

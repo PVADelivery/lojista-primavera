@@ -40,10 +40,10 @@ export const supabase: any = new Proxy({} as ReturnType<typeof createSupabaseCli
   },
 });
 
-// Global auth state change handling – browser only (localStorage unavailable during SSR)
 if (typeof window !== 'undefined') {
   supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT' || (event === 'TOKEN_REFRESHED' && !session)) {
+    // Apenas redireciona se for um logout explícito do usuário, nunca em oscilações de rede durante refresh
+    if (event === 'SIGNED_OUT') {
       if (!window.location.pathname.includes('/login')) {
         window.location.href = '/login';
       }
