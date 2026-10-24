@@ -2304,3 +2304,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      - Se persistir, aplicar Fallback 2: `.update({ status: 'accepted', driver_id, accepted_at, updated_at }).eq('id', deliveryId).in('status', ['pending', 'broadcasted'])`.
      - Tratar concorrência: se a entrega já foi aceita por outro, exibir toast amigável em vez de erro técnico.
 
+
+---
+
+### 185. Relatório Horário de Performance e Monitoramento Parado no Robô do Telegram
+* **Sintoma**: O robô do Telegram não enviava o "Relatório de Hora em Hora" e os administradores ficavam sem os disparos periódicos de status do sistema.
+* **Causas Raízes**:
+  1. O script `ddos_monitor.cjs` e `daily_telegram_report_service.js` possuía apenas o agendador de 24 horas (`REPORT_INTERVAL_MS = 24 * 60 * 60 * 1000`), sem a rotina de performance horária (`HOURLY_REPORT_INTERVAL_MS = 60 * 60 * 1000`) e sem a função `triggerHourlyPerformanceReport()`.
+  2. O processo Node.js era finalizado sempre que o terminal ou o sistema operacional era fechado/reiniciado, por ausência de inicialização em segundo plano no Startup do Windows (`Microsoft\Windows\Start Menu\Programs\Startup`).
+* **Solução Padrão**:
+  1. Implementar `triggerHourlyPerformanceReport()` em `ddos_monitor.cjs` e `scripts_para_rodar/daily_telegram_report_service.js`, checando uptime, latência média e contagem de entregas, lojas e motoristas da última hora.
+  2. Agendar disparo de 1 em 1 hora (`HOURLY_REPORT_INTERVAL_MS`), além do disparo imediato na inicialização.
+  3. Criar scripts de inicialização automática: `iniciar_robo.bat`, `iniciar_robo_background.vbs` e `configurar_inicializacao_windows.ps1` (criando o atalho `Mt24HorasTelegramBot.lnk` no Startup do Windows).
+  4. Manter o daemon ativo e resiliente a quedas com tratamento global de exceções (`uncaughtException` e `unhandledRejection`).
