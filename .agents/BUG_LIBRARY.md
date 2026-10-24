@@ -2352,3 +2352,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. Em `src/routes/login.tsx`, utilizar `toast.error(translateErrorMessage(error.message))`.
   5. Em `src/contexts/AuthContext.tsx`, adicionar retry automático de 800ms em erros transitórios de rede no `signIn` antes de exibir erro ao usuário e não reportar quedas de conexão como tentativas maliciosas/falhas de login.
 
+---
+
+### 188. Loop de Erro 400 "Invalid Refresh Token: Refresh Token Not Found" e Input Autocomplete no Cadastro de Convite
+* **Sintoma**: Ao acessar o link de convite (`/invite/$token`), o console registrava repetidamente erros HTTP 400 em `auth/v1/token?grant_type=refresh_token: Failed to load resource (400)`, `AuthApiError: Invalid Refresh Token: Refresh Token Not Found` e `[Auth] Evento SIGNED_OUT ignorado para manter sessão persistente do entregador`, além de alertas de DOM sugerindo `autocomplete="new-password"` nos inputs de senha.
+* **Causas Raízes**:
+  1. Em `entrega-primavera/src/contexts/AuthContext.tsx`, o evento `SIGNED_OUT` emitido pelo Supabase era ignorado incondicionalmente sob a justificativa de "manter sessão persistente".
+  2. Quando um refresh token gravado no `localStorage` do navegador era revogado, expirava ou era deletado no servidor, a chamada de renovação retornava HTTP 400 `Invalid Refresh Token`. Como o evento `SIGNED_OUT` era ignorado, os tokens mortos permaneciam gravados no `localStorage` e a aplicação tentava renová-los a cada carregamento de página, gerando um loop de requisições 400 desnecessárias.
+  3. Os campos de senha e confirmação de senha na rota `invite.$token.tsx` não continham o atributo `autoComplete="new-password"`, e os campos de e-mail/dados pessoais não continham atributos de acessibilidade do DOM.
+* **Solução Padrão**:
+  1. Em `entrega-primavera/src/contexts/AuthContext.tsx`, atualizar o manipulador `SIGNED_OUT` e as rotinas `getSession()` e `refreshSession()` para que, caso a resposta seja `Invalid Refresh Token` ou `Refresh Token Not Found`, o `localStorage` seja imediatamente purgado de chaves obsoletas do Supabase, resetando a sessão para `null` e interrompendo qualquer loop de requisições HTTP 400.
+  2. Em `entrega-primavera/src/routes/invite.$token.tsx`, adicionar os atributos `autoComplete="email"`, `autoComplete="new-password"`, `autoComplete="name"` e `autoComplete="tel"` em todos os inputs do formulário.
+
+
