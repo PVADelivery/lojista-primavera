@@ -2317,3 +2317,20 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   2. Agendar disparo de 1 em 1 hora (`HOURLY_REPORT_INTERVAL_MS`), além do disparo imediato na inicialização.
   3. Criar scripts de inicialização automática: `iniciar_robo.bat`, `iniciar_robo_background.vbs` e `configurar_inicializacao_windows.ps1` (criando o atalho `Mt24HorasTelegramBot.lnk` no Startup do Windows).
   4. Manter o daemon ativo e resiliente a quedas com tratamento global de exceções (`uncaughtException` e `unhandledRejection`).
+
+---
+
+### 186. Monitoramento de Saúde Operacional Real, Testes Sintéticos e Alertas Imediatos (MT 24 Horas Express)
+* **Sintoma**: O relatório de monitoramento cobria apenas pings básicos de HTTP e reportava indicadores incompletos ou confusos (ex: "Entregadores Ativos: 0 de 0 cadastrados", sem distinção de entregas travadas, sem testes sintéticos dos 3 apps e sem disparos imediatos de incidentes operacionais no Telegram).
+* **Causas Raízes**:
+  1. Falta de testes sintéticos funcionais nos fluxos críticos (catálogo do Marketplace, sincronização de pedidos do Lojista e fila de chamadas do Entregador).
+  2. A tabela `delivery_drivers` retornava vazia com a chave anônima devido a RLS, ignorando os entregadores operacionais registrados com histórico ativo em `deliveries` e aparelhos conectados em `device_tokens`.
+  3. Ausência de cálculo de latência percentil P95 (apenas média simples).
+  4. Falta de um motor reativo de Alertas Imediatos (ciclo de 1 minuto) para notificar quedas confirmadas em 2 checagens, pedidos sem aceite de loja (>15 min), pedidos aceitos sem entregador (>15 min) e entregas atrasadas (>45 min).
+  5. Ausência de deduplicação com cooldown (15 min) e mensagens automáticas de recuperação de incidentes (`🟢 SERVIÇO RESTABELECIDO`).
+* **Solução Padrão**:
+  1. Reformular `ddos_monitor.cjs` e `scripts_para_rodar/daily_telegram_report_service.js` com arquitetura completa em dois canais de mensageria:
+     - **Relatório Horário de Rotina**: Emitido a cada 1 hora com Disponibilidade %, Latência P95 + Média, Entregas na última 1h, Lojas Abertas, Entregadores Ativos validados, Telemetria de Push (Android FCM + Apple APNs), Tempos médios de aceite/entrega e Auditoria de Segurança.
+     - **Alertas Imediatos (Loop de 1 min)**: Dispara instantaneamente ao violar limites operacionais (quedas confirmadas, pedidos travados >15 min, falhas críticas de banco/Edge Functions), com cooldown anti-spam de 15 min e notificação automática de resolução ao normalizar.
+  2. Implementar validação de dados reais de entregadores operacionais via contagem de `driver_id` em entregas ativas e dispositivos registrados em `device_tokens` (78 aparelhos conectados), eliminando a mensagem errônea de "0 de 0".
+  3. Adicionar testes sintéticos de catálogo (`companies`), pedidos (`deliveries`) e ping direto no banco PostgreSQL para aferir latência real de consulta (DB Roundtrip).
