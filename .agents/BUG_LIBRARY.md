@@ -2394,5 +2394,22 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
      ```
   2. Na tela `painel-primavera/src/routes/admin/drivers.tsx`, encadear `.sort((a, b) => (a.full_name || "").trim().localeCompare((b.full_name || "").trim(), "pt-BR", { sensitivity: "base" }))` no pipeline do `filteredDrivers`, garantindo ordenação alfabética estrita em todas as abas e buscas da interface.
 
+---
+
+### 191. Repasses Duplicados para o Mesmo Entregador no Painel Financeiro / Relatórios
+* **Sintoma**: Ao registrar a baixa de repasse para um entregador no módulo financeiro (`/admin/reports`) e confirmar o pagamento, se o operador clicasse novamente no mesmo entregador ou no botão de pagar, o sistema permitia gerar um novo repasse e lançar outro pagamento em duplicidade no fluxo de caixa para um motoboy que já havia sido pago.
+* **Causas Raízes**:
+  1. **Modo de Cálculo Inadequado (`payoutCalcMode = 'all'`)**: O cálculo de saldo devido iniciava com o modo "all" (acumulado histórico de todas as corridas já registradas no banco), em vez de seguir o período selecionado no filtro (mês, semana, dia). Corridas de períodos antigos não quitadas contabilizavam saldo devedor mesmo após o pagamento do período atual.
+  2. **Ausência de Bloqueio em Entregador Quitado**: O modal de repasse (`handleConfirmPayDriver`) e os botões de ação na tabela não checavam `drv.isFullyPaid || drv.due <= 0.05` antes de permitir submissão, aceitando novos valores e gerando lançamentos redundantes.
+  3. **Descompasso de Chaves de Identificação**: Os repasses no fluxo de caixa podiam ser vinculados por nome ou ID, mas `allTimePaymentsMap` e `allDriversForPayout` utilizavam checagens parciais, por vezes não associando o pagamento quando havia discrepâncias entre `delivery_drivers.id`, `user_id` e o nome exibido.
+  4. **Falta de Atualização Otimista Imediata**: O estado local `cashFlows` aguardava apenas o `fetchCashFlow` assíncrono, mantendo a interface momentaneamente sem o status "Quitado".
+* **Solução Padrão**:
+  1. Alterar o padrão de `payoutCalcMode` para `"period"`, alinhando os saldos e baixas estritamente ao período filtrado na tela.
+  2. Implementar validação estrita em `openPayDriverModal` e `handleConfirmPayDriver`: se `drv.isFullyPaid || drv.due <= 0.05`, exibir notificação amigável de que o entregador já está quitado e bloquear a abertura e o envio de novos repasses.
+  3. No modal, desabilitar os campos de valor e o botão de confirmação caso o entregador selecionado já esteja quitado (`due <= 0.05`), exibindo banner de aviso com `CheckCircle2`.
+  4. Unificar o mapeamento de pagamentos com chave composta e múltipla (`normName`, `driverId`, `driverUserId`), garantindo associação precisa das baixas independentemente da coluna utilizada.
+  5. Aplicar atualização otimista instantânea no estado `cashFlows`, fazendo com que a tabela mude imediatamente para o badge `✅ Quitado` no momento da confirmação.
+
+
 
 
