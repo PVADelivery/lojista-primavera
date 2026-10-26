@@ -2410,6 +2410,15 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   4. Unificar o mapeamento de pagamentos com chave composta e múltipla (`normName`, `driverId`, `driverUserId`), garantindo associação precisa das baixas independentemente da coluna utilizada.
   5. Aplicar atualização otimista instantânea no estado `cashFlows`, fazendo com que a tabela mude imediatamente para o badge `✅ Quitado` no momento da confirmação.
 
+---
 
-
-
+### 192. Truncamento e Corte do Endereço de Entrega no Card do Entregador
+* **Sintoma**: No aplicativo do entregador (`entrega-primavera`), ao visualizar as entregas em andamento ou histórico na tela de "Minhas Entregas", o endereço de entrega do cliente (`Entrega (Cliente):`) era cortado abruptamente com reticências (`...`), ocultando o restante do nome da rua, número da casa, condomínio, quadra, lote ou complemento.
+* **Causas Raízes**:
+  1. No componente `DeliveryCard.tsx`, o container do endereço utilizava a classe `line-clamp-2`, limitando o texto a no máximo 2 linhas. Em telas de smartphones (360px–390px de largura), o prefixo e o início do logradouro consumiam as linhas disponíveis, truncando todo o restante da rota.
+  2. O nome da loja no topo utilizava `truncate`, cortando nomes de estabelecimentos com reticências.
+  3. No `BatchDeliveryCard.tsx` e `driver.index.tsx`, endereços de paradas de lotes e corridas também utilizavam `truncate` e `line-clamp-1`.
+* **Solução Padrão**:
+  1. Em `DeliveryCard.tsx`, remover completamente `line-clamp-2` dos endereços de retirada e de entrega, substituindo por caixas estruturadas com `break-words leading-relaxed select-all`, permitindo que o endereço completo seja exibido sem nenhum corte.
+  2. Adicionar atalhos de GPS (`Navigation`) com links diretos para abertura da rota no Google Maps tanto para o ponto de coleta quanto para o destino final do cliente.
+  3. No `BatchDeliveryCard.tsx`, `driver.deliveries.tsx` e `driver.index.tsx`, substituir classes `truncate` e `line-clamp-1` por `break-words leading-relaxed select-all`, garantindo legibilidade total dos logradouros em todas as visões do entregador.
