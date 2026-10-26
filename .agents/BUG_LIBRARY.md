@@ -2438,3 +2438,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. **Atualização Otimista Imediata**: Mapear o status de transição de forma consistente com a interface (`in_route` / `in_transit`) e liberar o estado `pending` imediatamente para que a próxima ação fique disponível em milissegundos.
   4. **Otimização de Fallbacks de Banco**: Limpar as chamadas de fallback em `advanceDelivery`, tentando imediatamente com status alternativo do banco e evitando requisições desnecessárias.
 
+---
+
+### 194. Lentidão Geral do Sistema por Loops Excessivos de Polling e Descompasso de Instância Supabase
+* **Sintoma**: Usuários e operadores relatam lentidão extrema generalizada na plataforma, com demoras de 5 a 15 segundos nas telas, travamentos e erros ocasionais de conexão com PostgreSQL (`Failed to fetch`, `net::ERR_NAME_NOT_RESOLVED`).
+* **Causas Raízes**:
+  1. **Loops de Polling Automático de Alta Frequência (Violação de Regra)**: No app do entregador (`driver.index.tsx`), existiam 4 consultas executando polling a cada 5 segundos (`refetchInterval: 5000`), sobrecarregando o pool de conexões do Supabase com dezenas de requisições simultâneas por motoboy conectado, ignorando que o Supabase Realtime via WebSockets já notifica as alterações instantaneamente.
+  2. **Descompasso de Banco de Dados (`.env`)**: O repositório `entrega-primavera` teve seu `.env` alterado em commit anterior para uma instância desatualizada (`jgmkbvlnusxvbbzwhufh`) onde faltavam colunas como `short_id`, causando consultas com falhas, erros de permissão (`42501`) e latência duplicada.
+  3. **Processos e Robôs Concorrentes**: Múltiplas instâncias do robô `ddos_monitor.cjs` executando pings e checagens sintéticas continuamente contra os mesmos endpoints da aplicação.
+* **Solução Padrão**:
+  1. **Eliminar Loops de Polling em Favor do Realtime**: Remover os `refetchInterval: 5000` de `driver.index.tsx`, mantendo `refetchOnWindowFocus: true` e confiando nos canais WebSockets nativos do Supabase (`postgres_changes`), reduzindo drasticamente o consumo do connection pool do PostgreSQL.
+  2. **Unificação do Banco Oficial**: Restaurar as credenciais da instância oficial em produção (`owlbzwsdcognrgolvnzg`) em todos os projetos da suíte.
+
+
