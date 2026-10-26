@@ -2422,3 +2422,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Em `DeliveryCard.tsx`, remover completamente `line-clamp-2` dos endereços de retirada e de entrega, substituindo por caixas estruturadas com `break-words leading-relaxed select-all`, permitindo que o endereço completo seja exibido sem nenhum corte.
   2. Adicionar atalhos de GPS (`Navigation`) com links diretos para abertura da rota no Google Maps tanto para o ponto de coleta quanto para o destino final do cliente.
   3. No `BatchDeliveryCard.tsx`, `driver.deliveries.tsx` e `driver.index.tsx`, substituir classes `truncate` e `line-clamp-1` por `break-words leading-relaxed select-all`, garantindo legibilidade total dos logradouros em todas as visões do entregador.
+
+---
+
+### 193. Demora na Liberação e Sensação de Botão Travado para Atualizar Status da Corrida / Entrega
+* **Sintoma**: Entregadores e motoristas relatam que na tela "Minhas Entregas" (`/driver/deliveries`) o botão de avanço de status (ex: "Coletado, indo entregar", "Iniciar Corrida", "Concluir entrega") parece demorar muito para ser liberado ou parece estar travado/inativo, gerando frustração e múltiplos cliques.
+* **Causas Raízes**:
+  1. **Aparência Visual de Desabilitado**: No tema padrão da aplicação, o botão de avanço herdava a variante primária genérica com cor bege/mostarda pálida e sem brilho (`oklch(0.74 0.13 82)`). Em telas de celulares com luminosidade ambiente, o botão parecia desbotado e desabilitado (cinza/bege apagado), induzindo o entregador a achar que o botão ainda não estava liberado para clique.
+  2. **Ausência de Feedback no Toque**: Ao clicar no botão, o estado `pending` bloqueava novos cliques mas o texto permanecia estático, sem ícone giratório (spinner) e sem texto de "Atualizando...". O entregador não sabia se o clique havia sido computado ou se o app havia congelado.
+  3. **Bloqueio Prolongado de Cache (`pending` + `invalidateQueries`)**: No `handleAdvance`, `setPending(null)` era executado simultaneamente ou após a refetch completa das queries, mantendo o botão em estado `disabled` enquanto todas as requisições de rede e resolução de lojas eram finalizadas.
+  4. **Latência de Fallback na RPC**: Em `advanceDelivery`, se o update direto encontrava alguma restrição de RLS, caía em tentativas sucessivas de RPCs sobrecarregadas com 2 e 3 parâmetros gerando retries de rede e atraso de vários segundos antes de concluir.
+* **Solução Padrão**:
+  1. **Design Ouro/Âmbar Vibrante**: Estilizar os botões de ação e avanço com gradiente vibrante (`bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 font-bold text-slate-950 shadow-md hover:brightness-105 active:scale-[0.98]`), deixando imediatamente claro que o botão está 100% ativo e liberado.
+  2. **Feedback Imediato com Spinner**: Adicionar `Loader2` giratório e texto dinâmico (`Atualizando...` / `Aceitando...`), confirmando ao usuário instantaneamente que a ação está em processamento.
+  3. **Atualização Otimista Imediata**: Mapear o status de transição de forma consistente com a interface (`in_route` / `in_transit`) e liberar o estado `pending` imediatamente para que a próxima ação fique disponível em milissegundos.
+  4. **Otimização de Fallbacks de Banco**: Limpar as chamadas de fallback em `advanceDelivery`, tentando imediatamente com status alternativo do banco e evitando requisições desnecessárias.
+
