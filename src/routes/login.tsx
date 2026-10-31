@@ -1,3 +1,4 @@
+import { BonaSoftLogo } from "@/components/BonaSoftLogo";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -116,6 +117,10 @@ function LoginPage() {
               Política de Privacidade
             </Link>
           </p>
+
+          <div className="mt-8 flex justify-center">
+            <BonaSoftLogo />
+          </div>
         </div>
       </div>
     </div>
