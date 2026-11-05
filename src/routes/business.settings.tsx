@@ -131,6 +131,9 @@ function BusinessSettingsPage() {
         if (payload.new.is_open !== undefined) {
           setIsOpen(payload.new.is_open);
         }
+        if (payload.new.show_in_marketplace !== undefined) {
+          setShowInMarketplace(payload.new.show_in_marketplace);
+        }
       })
       .subscribe();
 
