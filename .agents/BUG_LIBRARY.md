@@ -2440,14 +2440,19 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
 
 ---
 
-### 194. Lentidão Geral do Sistema por Loops Excessivos de Polling e Descompasso de Instância Supabase
-* **Sintoma**: Usuários e operadores relatam lentidão extrema generalizada na plataforma, com demoras de 5 a 15 segundos nas telas, travamentos e erros ocasionais de conexão com PostgreSQL (`Failed to fetch`, `net::ERR_NAME_NOT_RESOLVED`).
+
+---
+
+### 195. Loja Fechada e Oculta no Painel Lojista Continuando Visível e Aberta no Marketplace
+* **Sintoma**: Ao configurar o estabelecimento como "Loja Fechada" (`is_open = false`) e "Oculta no Marketplace" (`show_in_marketplace = false`) no Painel do Lojista (`/business/settings`), a loja continuava aparecendo na página inicial do Marketplace (`/marketplace`), inclusive em "Em destaque" (Top lojas) e "Lojas próximas" com a etiqueta verde "● Aberto".
 * **Causas Raízes**:
-  1. **Loops de Polling Automático de Alta Frequência (Violação de Regra)**: No app do entregador (`driver.index.tsx`), existiam 4 consultas executando polling a cada 5 segundos (`refetchInterval: 5000`), sobrecarregando o pool de conexões do Supabase com dezenas de requisições simultâneas por motoboy conectado, ignorando que o Supabase Realtime via WebSockets já notifica as alterações instantaneamente.
-  2. **Descompasso de Banco de Dados (`.env`)**: O repositório `entrega-primavera` teve seu `.env` alterado em commit anterior para uma instância desatualizada (`jgmkbvlnusxvbbzwhufh`) onde faltavam colunas como `short_id`, causando consultas com falhas, erros de permissão (`42501`) e latência duplicada.
-  3. **Processos e Robôs Concorrentes**: Múltiplas instâncias do robô `ddos_monitor.cjs` executando pings e checagens sintéticas continuamente contra os mesmos endpoints da aplicação.
+  1. **Ausência de Filtragem de `show_in_marketplace` no Marketplace**: A consulta principal e a lista `allStores` em `marketplace.index.tsx` filtravam unicamente `is_active !== false`, ignorando a flag `show_in_marketplace`. Lojas marcadas como link-only continuavam sendo indexadas na home, buscas e destaques.
+  2. **Cache Estático em `sessionStorage`**: A lista de empresas ficava retida em `sessionStorage.getItem("pva_cached_companies_v2")` sem invalidação reativa após o lojista alterar suas configurações em outra aba.
+  3. **Ausência de Supabase Realtime para a Tabela `companies`**: O Marketplace não possuía canal Realtime (`postgres_changes`) para a tabela `companies`. Mudanças manuais de status de abertura/fechamento ou visibilidade não notificavam o cliente em tempo real.
+  4. **Status de Abertura Desconectado dos Horários de Atendimento**: O componente `StoreCard` e os banners checavam diretamente `s.is_open` booleano puro sem aplicar o validador `isStoreOpenNow(s)` (que cruza `is_open` com `business_hours` da empresa).
 * **Solução Padrão**:
-  1. **Eliminar Loops de Polling em Favor do Realtime**: Remover os `refetchInterval: 5000` de `driver.index.tsx`, mantendo `refetchOnWindowFocus: true` e confiando nos canais WebSockets nativos do Supabase (`postgres_changes`), reduzindo drasticamente o consumo do connection pool do PostgreSQL.
-  2. **Unificação do Banco Oficial**: Restaurar as credenciais da instância oficial em produção (`owlbzwsdcognrgolvnzg`) em todos os projetos da suíte.
+  1. Em `marketplace.index.tsx`, incluir `show_in_marketplace` na seleção de colunas e filtrar estritamente `s.show_in_marketplace !== false` tanto no cache de inicialização quanto em `queryFn`, `allStores` e busca.
+  2. Implementar canal de sincronização Supabase Realtime (`public-companies-realtime`) ouvindo `postgres_changes` na tabela `companies` para invalidar a query e limpar o cache de sessão instantaneamente no exato momento em que o lojista altera seu status.
+  3. Utilizar o helper `isStoreOpenNow(s)` nos cards de listagem e na rota da loja (`marketplace.store.$storeId.tsx`) para refletir o status exato ("● Aberto" vs "● Fechado" com visual grayscale desativado quando fechada).
 
 
