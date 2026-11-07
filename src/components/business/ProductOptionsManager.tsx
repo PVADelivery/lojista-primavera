@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Plus, Trash2, X, Loader2, ListPlus, Sparkles, Check, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, X, Loader2, ListPlus, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface Group {
@@ -350,7 +350,7 @@ export function ProductOptionsManager({ productId, productName, onClose }: {
       {/* Modelos Rápidos (1-Click Presets) */}
       <div className="bg-gradient-to-r from-amber-500/10 via-primary/5 to-purple-500/10 border border-primary/20 rounded-2xl p-4">
         <div className="flex items-center gap-2 mb-3">
-          <Sparkles className="h-4 w-4 text-amber-500 animate-pulse" />
+          <ListPlus className="h-4 w-4 text-primary" />
           <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
             Modelos Prontos (Clique para adicionar ao produto)
           </h3>

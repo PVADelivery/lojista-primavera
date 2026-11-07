@@ -14,7 +14,6 @@ import {
   Loader2,
   AlertTriangle,
   Clock,
-  Sparkles,
 } from "lucide-react";
 import {
   Dialog,

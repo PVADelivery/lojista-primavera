@@ -8,7 +8,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, AlertCircle, Utensils, Layers, Package, ListPlus, Loader2, Sparkles } from "lucide-react";
+import { CheckCircle2, AlertCircle, Utensils, Layers, Package, ListPlus, Loader2, PlusCircle } from "lucide-react";
 
 interface IFoodImportPreviewModalProps {
   isOpen: boolean;
@@ -85,7 +85,7 @@ export function IFoodImportPreviewModal({
               </div>
 
               <div className="flex flex-col items-center justify-center p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20">
-                <Sparkles className="h-5 w-5 text-emerald-500 mb-1" />
+                <PlusCircle className="h-5 w-5 text-emerald-500 mb-1" />
                 <span className="text-xl font-black text-emerald-500">+{previewData.products_created}</span>
                 <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Novos Itens</span>
               </div>
