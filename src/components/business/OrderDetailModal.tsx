@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import DeliveryTrackingMap from "./DeliveryTrackingMap";
+import { formatDisplayAddress } from "@/lib/format";
 
 interface OrderDetailModalProps {
   order: any;
@@ -239,7 +240,7 @@ export default function OrderDetailModal({
                     <div className="flex items-center gap-1.5 text-slate-100 max-w-xs">
                         <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
                         <p className="text-xs font-bold truncate text-slate-100">
-                            {order.customer?.address || order.delivery_address || order.address || "Endereço não informado"}
+                            {formatDisplayAddress(order.customer?.address || order.delivery_address || order.address)}
                         </p>
                     </div>
                 </div>
@@ -260,7 +261,7 @@ export default function OrderDetailModal({
                  <DeliveryTrackingMap 
                     deliveryId={order.delivery_id} 
                     driverId={order.deliveries?.driver_id || order.deliveryInfo?.driver_id}
-                    destinationAddress={order.delivery_address || order.address}
+                    destinationAddress={formatDisplayAddress(order.delivery_address || order.address)}
                  />
               </div>
             )}

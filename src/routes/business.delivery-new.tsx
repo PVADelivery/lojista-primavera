@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
 import { useCredits } from "@/services/credits";
-import { brl } from "@/lib/format";
+import { brl, cleanStreetName, formatCleanDeliveryAddress, formatDisplayAddress } from "@/lib/format";
 
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
@@ -137,7 +137,7 @@ function NewDeliveryPage() {
         customer_name: editingDelivery.customer_name || "",
         customer_phone: editingDelivery.customer_phone || "",
         customer_cpf: editingDelivery.customer_cpf || "",
-        address: editingDelivery.address ? editingDelivery.address.split(" - ")[0] : "",
+        address: cleanStreetName(editingDelivery.address),
         customer_address_number: editingDelivery.customer_address_number || "",
         customer_neighborhood: editingDelivery.customer_neighborhood || "",
         customer_address_complement: editingDelivery.customer_address_complement || "",
@@ -288,7 +288,7 @@ function NewDeliveryPage() {
                 region_id: d.region_id || "none",
                 addresses: (d.address || d.customer_address_number) ? [{
                   id: "del-addr",
-                  street: d.address || "",
+                  street: cleanStreetName(d.address || ""),
                   number: d.customer_address_number || "",
                   neighborhood: d.customer_neighborhood || "",
                   complement: d.customer_address_complement || "",
@@ -334,7 +334,7 @@ function NewDeliveryPage() {
                 cpf: "",
                 addresses: streetStr ? [{
                   id: "ord-addr",
-                  street: streetStr,
+                  street: cleanStreetName(streetStr),
                   number: o.delivery_address?.number || "",
                   neighborhood: o.delivery_address?.neighborhood || "",
                 }] : []
@@ -746,7 +746,7 @@ function NewDeliveryPage() {
     if (addr) {
       setF((prev) => ({
         ...prev,
-        address: addr.street,
+        address: cleanStreetName(addr.street),
         customer_address_number: addr.number || "",
         customer_neighborhood: addr.neighborhood || "",
         customer_address_complement: addr.complement || "",
@@ -931,8 +931,8 @@ function NewDeliveryPage() {
     const fullAddress = deliveryMode === "rapida" 
       ? `A combinar (Entrega Rápida) - Região: ${f.customer_neighborhood}`
       : f.delivery_type === "BUSCA_CONDICIONAL"
-        ? (f.address.trim() ? `${f.address}, ${f.customer_address_number || "S/N"} - ${f.customer_neighborhood || "Cliente"}` : `Recolher no Cliente (${f.customer_name || "Cliente"})`)
-        : `${f.address}, ${f.customer_address_number} - ${f.customer_neighborhood} ${f.customer_address_complement ? `(${f.customer_address_complement})` : ""}`;
+        ? (f.address.trim() ? formatCleanDeliveryAddress(f.address, f.customer_address_number, f.customer_neighborhood, f.customer_address_complement) : `Recolher no Cliente (${f.customer_name || "Cliente"})`)
+        : formatCleanDeliveryAddress(f.address, f.customer_address_number, f.customer_neighborhood, f.customer_address_complement);
     const shortId = "#" + Math.random().toString(36).substring(2, 6).toUpperCase();
 
     setBusy(true);
@@ -1366,7 +1366,7 @@ function NewDeliveryPage() {
                                     >
                                       <MapPin className="h-3 w-3 text-primary shrink-0" />
                                       <span className="font-semibold text-foreground/80">{addr.label || 'Endereço'}:</span>
-                                      <span className="truncate">{addr.street}{addr.number ? `, ${addr.number}` : ''}{addr.neighborhood ? ` - ${addr.neighborhood}` : ''}</span>
+                                      <span className="truncate">{formatDisplayAddress(formatCleanDeliveryAddress(addr.street, addr.number, addr.neighborhood))}</span>
                                     </button>
                                   ))}
                                 </div>
@@ -1701,7 +1701,7 @@ function NewDeliveryPage() {
                                 >
                                   <MapPin className="h-3 w-3 text-primary shrink-0" />
                                   <span className="font-semibold text-foreground/80">{addr.label || 'Endereço'}:</span>
-                                  <span className="truncate">{addr.street}{addr.number ? `, ${addr.number}` : ''}{addr.neighborhood ? ` - ${addr.neighborhood}` : ''}</span>
+                                  <span className="truncate">{formatDisplayAddress(formatCleanDeliveryAddress(addr.street, addr.number, addr.neighborhood))}</span>
                                 </button>
                               ))}
                             </div>

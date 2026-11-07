@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
-import { brl } from "@/lib/format";
+import { brl, formatDisplayAddress } from "@/lib/format";
 import { Clock, ChefHat, PackageCheck, Truck, CheckCircle2, ShoppingBag, Volume2, VolumeX, Printer, XCircle, Timer, Phone, MapPin, User, LayoutGrid, ArrowRight } from "lucide-react";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
@@ -535,7 +535,7 @@ function OrdersPage() {
         <div class="label">Cliente</div>
         <div class="value">${order.customers?.name || order.customer_name || "Cliente"} (${order.customers?.phone || order.customer_phone || "S/N"})</div>
         <div class="label">Endereço</div>
-        <div class="value">${order.delivery_address || "Retirada/Balcão"}</div>
+        <div class="value">${order.delivery_address ? formatDisplayAddress(order.delivery_address) : "Retirada/Balcão"}</div>
         <div class="label">Status</div>
         <div class="value">${STATUS_LABELS[order.status] || order.status}</div>
         <div class="label">Forma de Pagamento</div>
@@ -780,7 +780,7 @@ function OrdersPage() {
             <div className="space-y-2">
               <label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ml-1">Região da Entrega (Opcional)</label>
               <div className="text-xs text-muted-foreground mb-2 ml-1">
-                Endereço: {selectedOrder?.delivery_address || "Não informado"}
+                Endereço: {formatDisplayAddress(selectedOrder?.delivery_address)}
               </div>
               <select
                 value={selectedRegionId}

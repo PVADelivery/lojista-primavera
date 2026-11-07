@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMyCompany } from "@/services/companies";
 import { useCredits, refundCancelledDelivery } from "@/services/credits";
 import { useAuth } from "@/contexts/AuthContext";
-import { brl } from "@/lib/format";
+import { brl, formatDisplayAddress } from "@/lib/format";
 import {
   Clock, Truck, Wallet, Plus, MapPin, Phone, CheckCircle2,
   ShoppingBag, ArrowUpRight, PlusCircle, Activity, TrendingUp,
@@ -438,7 +438,7 @@ function DeliveryCard({ d, marketplace, onCancel, cancelling }: any) {
       <div className="mt-3 space-y-1.5 text-xs text-muted-foreground bg-muted/30 p-3 rounded-2xl border border-border/40">
         <p className="flex items-start gap-2 leading-relaxed">
           <MapPin className="h-3.5 w-3.5 mt-0.5 shrink-0 text-primary" />
-          <span className="line-clamp-2 text-foreground/90 font-medium">{d.address}</span>
+          <span className="line-clamp-2 text-foreground/90 font-medium">{formatDisplayAddress(d.address)}</span>
         </p>
         {d.customer_phone && (
           <p className="flex items-center gap-2 font-medium">
