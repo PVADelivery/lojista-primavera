@@ -9,7 +9,7 @@ import {
   Store, Camera, ImagePlus, Loader2, Save, User, MapPin, Phone, 
   Smartphone, Eye, Layers, Info, CheckCircle2, Pencil, X, Link as LinkIcon, 
   Clock3, DollarSign, Maximize2, MapPin as MapPinIcon, Crosshair, AlertTriangle,
-  Trash2, Plus, ArrowRight, ShieldAlert, Sparkles, RefreshCw
+  Trash2, Plus, ArrowRight, ShieldAlert, RefreshCw
 } from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import { cn } from "@/lib/utils";

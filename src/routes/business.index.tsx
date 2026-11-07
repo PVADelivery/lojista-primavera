@@ -7,7 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { brl } from "@/lib/format";
 import {
   Clock, Truck, Wallet, Plus, MapPin, Phone, CheckCircle2,
-  ShoppingBag, ArrowUpRight, Sparkles, Activity, TrendingUp,
+  ShoppingBag, ArrowUpRight, PlusCircle, Activity, TrendingUp,
   Pencil, Trash2, Loader2
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -252,7 +252,7 @@ function BusinessHomePage() {
       {/* MANUAL */}
       <Section title="Manuais" kicker="Entregas criadas direto por você" count={manual.length}>
         {manual.length === 0 ? (
-          <EmptyState icon={Sparkles} text="Crie sua primeira entrega manual em segundos." action={
+          <EmptyState icon={PlusCircle} text="Crie sua primeira entrega manual em segundos." action={
             <Link
               to="/business/delivery-new"
               search={{ edit: undefined }}

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMyCompany } from "@/services/companies";
 import { IFoodIntegrationCard } from "@/components/business/IFoodIntegrationCard";
-import { Layers, Plug, ShieldCheck, Sparkles, AlertCircle } from "lucide-react";
+import { Layers, Plug, ShieldCheck, AlertCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -78,7 +78,7 @@ function IntegrationsPage() {
 
         <div className="rounded-2xl bg-card/60 border border-border/60 p-5 space-y-2">
           <div className="h-9 w-9 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center font-bold">
-            <Sparkles className="h-5 w-5" />
+            <ShieldCheck className="h-5 w-5" />
           </div>
           <h4 className="font-black text-sm text-foreground">Zero Duplicidade</h4>
           <p className="text-xs text-muted-foreground leading-relaxed">
