@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2, MapPin, Banknote, Car, Motorbike, Info, Phone, Search, Navigation, Maximize2, MapPinned, X, Check, Home, Briefcase, Package } from "lucide-react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type * as maplibregl from "maplibre-gl";
-import { loadMapLibre, getMapLibre } from "@/lib/maplibre";
+import { loadMapLibre } from "@/lib/maplibre";
 import { createPortal } from "react-dom";
 
 export const Route = createFileRoute("/business/delivery-new")({
@@ -187,12 +187,6 @@ function NewDeliveryPage() {
     };
   }, []);
 
-
-  // Map and routing State
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<maplibregl.Map | null>(null);
-  const pickupMarkerRef = useRef<maplibregl.Marker | null>(null);
-  const dropoffMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // Fullscreen map states
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
@@ -407,45 +401,7 @@ function NewDeliveryPage() {
     return () => clearTimeout(delayDebounceFn);
   }, [customerQuery, company?.id]);
 
-  // Load MapLibre GL - Small Map (Disabled interaction, just shows the route/markers)
-  useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
-
-    const initialCenter = pickupCoords || [-54.3075, -15.5606];
-
-    let cancelled = false;
-    const initSmall = async () => {
-      const ml = await loadMapLibre();
-      if (cancelled || !mapContainerRef.current || mapRef.current) return;
-      mapRef.current = new ml.Map({
-      container: mapContainerRef.current,
-      style: {
-        version: 8,
-        sources: {
-          "osm-tiles": {
-            type: "raster",
-            tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-            tileSize: 256,
-          },
-        },
-        layers: [{ id: "osm-layer", type: "raster", source: "osm-tiles" }],
-      },
-      center: [initialCenter[0], initialCenter[1]],
-      zoom: 12,
-      attributionControl: false,
-      interactive: false, // Make small map static
-      });
-    };
-    initSmall();
-
-    return () => {
-      cancelled = true;
-      mapRef.current?.remove();
-      mapRef.current = null;
-    };
-  }, [pickupCoords]);
-
-  // Load MapLibre GL - Fullscreen Modal
+  // Load MapLibre GL - Fullscreen Modal (apenas quando o mapa em tela cheia é aberto)
   useEffect(() => {
     if (!isMapFullscreen || !mapContainerFull.current || mapFull.current) return;
 
@@ -616,104 +572,34 @@ function NewDeliveryPage() {
     setIsMapFullscreen(false);
   };
 
-  // Update map markers and route when coordinates change
+  // Calcula apenas a distância da rota (OSRM / Haversine) sem inicializar WebGL oculto
   useEffect(() => {
-    const map = mapRef.current;
-    const ml = getMapLibre();
-    if (!map || !ml) return;
+    if (!pickupCoords || !dropoffCoords) return;
 
-    // Handle pickup marker
-    if (pickupCoords) {
-      if (pickupMarkerRef.current) {
-        pickupMarkerRef.current.setLngLat(pickupCoords);
-      } else {
-        const el = document.createElement("div");
-        el.className = "flex items-center justify-center w-8 h-8 rounded-full bg-emerald-500 text-white border-2 border-white shadow-lg";
-        el.innerHTML = "🏪";
-        pickupMarkerRef.current = new ml.Marker({ element: el })
-          .setLngLat(pickupCoords)
-          .addTo(map);
-      }
-    }
-
-    // Handle dropoff marker
-    if (dropoffCoords) {
-      if (dropoffMarkerRef.current) {
-        dropoffMarkerRef.current.setLngLat(dropoffCoords);
-      } else {
-        const el = document.createElement("div");
-        el.className = "flex items-center justify-center w-8 h-8 rounded-full bg-rose-500 text-white border-2 border-white shadow-lg";
-        el.innerHTML = "📍";
-        dropoffMarkerRef.current = new ml.Marker({ element: el })
-          .setLngLat(dropoffCoords)
-          .addTo(map);
-      }
-
-      // Fly to dropoff
-      map.flyTo({ center: dropoffCoords, zoom: 14, duration: 1500 });
-    }
-
-    // Route calculation
-    if (pickupCoords && dropoffCoords) {
-      const getRoute = async () => {
-        try {
-          const res = await fetch(
-            `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropoffCoords[0]},${dropoffCoords[1]}?overview=full&geometries=geojson`
-          );
-          const data = await res.json();
-          if (data && data.routes && data.routes[0]) {
-            const route = data.routes[0];
-            const dist = route.distance / 1000;
-            setRouteDistance(dist);
-
-            const routeGeoJSON = route.geometry;
-
-            if (map.getSource("route")) {
-              (map.getSource("route") as any).setData(routeGeoJSON);
-            } else {
-              map.addSource("route", { type: "geojson", data: routeGeoJSON });
-              map.addLayer({
-                id: "route",
-                type: "line",
-                source: "route",
-                layout: { "line-join": "round", "line-cap": "round" },
-                paint: { "line-color": "#8b5cf6", "line-width": 5, "line-opacity": 0.75 },
-              });
-            }
-            return;
-          }
-        } catch (err) {
-          console.error("OSRM error:", err);
+    const controller = new AbortController();
+    const getRouteDistance = async () => {
+      try {
+        const res = await fetch(
+          `https://router.project-osrm.org/route/v1/driving/${pickupCoords[0]},${pickupCoords[1]};${dropoffCoords[0]},${dropoffCoords[1]}?overview=false`,
+          { signal: controller.signal }
+        );
+        const data = await res.json();
+        if (!controller.signal.aborted && data?.routes?.[0]?.distance != null) {
+          setRouteDistance(data.routes[0].distance / 1000);
+          return;
         }
+      } catch (err: any) {
+        if (err?.name === "AbortError") return;
+      }
 
-        // Straight line fallback
+      if (!controller.signal.aborted) {
         const dist = calculateHaversineDistance(pickupCoords[1], pickupCoords[0], dropoffCoords[1], dropoffCoords[0]);
         setRouteDistance(dist);
+      }
+    };
 
-        const fallbackGeoJSON = {
-          type: "Feature",
-          geometry: {
-            type: "LineString",
-            coordinates: [pickupCoords, dropoffCoords],
-          },
-        };
-
-        if (map.getSource("route")) {
-          (map.getSource("route") as any).setData(fallbackGeoJSON);
-        } else {
-          map.addSource("route", { type: "geojson", data: fallbackGeoJSON });
-          map.addLayer({
-            id: "route",
-            type: "line",
-            source: "route",
-            layout: { "line-join": "round", "line-cap": "round" },
-            paint: { "line-color": "#e11d48", "line-width": 4, "line-dasharray": [2, 2] },
-          });
-        }
-      };
-
-      getRoute();
-    }
+    getRouteDistance();
+    return () => controller.abort();
   }, [pickupCoords, dropoffCoords]);
 
   // Taxa de entrega é definida exclusivamente pela região selecionada no RegionZoneSelector
@@ -795,7 +681,7 @@ function NewDeliveryPage() {
     toast.success(`Cliente ${cust.name} preenchido na Entrega #${idx + 1}!`);
   };
 
-  const handleRegionSelect = (fee: number | string, regionId: string, regionName: string) => {
+  const handleRegionSelect = useCallback((fee: number | string, regionId: string, regionName: string) => {
     const numFee = typeof fee === "number" ? fee : (parseFloat(fee) || 0);
     setF(prev => ({
       ...prev,
@@ -803,7 +689,11 @@ function NewDeliveryPage() {
       value: numFee.toFixed(2),
       customer_neighborhood: regionName || prev.customer_neighborhood,
     }));
-  };
+  }, []);
+
+  const handleZoneSelectOnly = useCallback((regionId: string, fee: number) => {
+    handleRegionSelect(fee, regionId, "");
+  }, [handleRegionSelect]);
 
   const handleMoneyChange = (field: "value" | "order_value" | "change_for", val: string) => {
     const numeric = val.replace(/\D/g, "");
@@ -1946,15 +1836,14 @@ function NewDeliveryPage() {
                     </div>
                   </div>
 
-                  {/* Localização / mapa oculto */}
-                  <div className="space-y-2 pt-2">
-                    <div ref={mapContainerRef} className="hidden" />
-                    {routeDistance !== null && (
+                  {/* Distância calculada */}
+                  {routeDistance !== null && (
+                    <div className="pt-1">
                       <p className="text-xs font-semibold text-primary mt-1">
                         Distância calculada: {routeDistance.toFixed(2)} KM
                       </p>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </>
               )}
 
@@ -1999,7 +1888,7 @@ function NewDeliveryPage() {
                 <Label className="text-xs font-black uppercase tracking-widest text-muted-foreground">Região de Entrega <span className="text-destructive">*</span></Label>
                 <RegionZoneSelector
                   onRegionSelect={handleRegionSelect}
-                  onSelectZone={(regionId, fee) => handleRegionSelect(fee, regionId, "")}
+                  onSelectZone={handleZoneSelectOnly}
                   companyId={company?.id}
                   initialSelectedId={f.region_id}
                   vehicleType={f.vehicle_type}

@@ -2469,3 +2469,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Adicionar `autoComplete="off"` nos `<form>` de `business.delivery-new.tsx` e `autoComplete="one-time-code"`, `autoCorrect="off"`, `spellCheck={false}`, `data-lpignore="true"`, `data-1p-ignore="true"` e `name`s não padronizados nos campos de cliente e endereço (individual, lote e busca no mapa).
   2. Filtrar `.neq("status", "cancelled")` em `delQuery` e coletar até 3 endereços distintos válidos por cliente no autocomplete.
   3. Em `fetchAddressFromCoords`, preencher `customer_address_number` somente se `prev.customer_address_number.trim()` estiver vazio.
+
+---
+
+### 198. Travamento no Clique, Reflow Forçado e `requestAnimationFrame` Lento do MapLibre / Select em `business.delivery-new`
+* **Sintoma**: No console do navegador surgiam violações de desempenho sequenciais (`Forced reflow while executing JavaScript`, `maplibre-gl: 'requestAnimationFrame' handler took 160ms/99ms`, `select: 'setTimeout' handler took 56ms`, `'click' handler took 1259ms`).
+* **Causas Raízes**:
+  1. **Instância MapLibre GL WebGL oculta em `business.delivery-new.tsx`**: Mesmo com `<div ref={mapContainerRef} className="hidden" />`, a tela carregava `maplibre-gl`, criava um mapa WebGL e rodava `map.flyTo()` (`requestAnimationFrame`) ao atualizar coordenadas, apenas para obter `routeDistance` via OSRM/Haversine.
+  2. **Monkey-patch global em `window.setTimeout` (`src/components/ui/select.tsx`)**: O arquivo interceptava globalmente todas as chamadas de `window.setTimeout` da aplicação inteira.
+  3. **Re-renderizações e ordenação em tempo de render no `RegionZoneSelector.tsx`**: Cada instância disparava queries separadas ao Supabase + canal Realtime próprio e reordenava bairros via `localeCompare` dentro do JSX a cada render, além de callbacks inline que quebravam o `memo`.
+* **Solução Padrão**:
+  1. Remover o mapa oculto (`mapContainerRef`/`mapRef`/`initSmall`/`flyTo`) de `business.delivery-new.tsx`, mantendo somente o cálculo leve de `routeDistance` (OSRM com `AbortController` + fallback Haversine) e carregando `maplibre-gl` apenas sob demanda se `isMapFullscreen` for aberto.
+  2. Remover o monkey-patch global de `window.setTimeout` em `src/components/ui/select.tsx`.
+  3. Memoizar `handleRegionSelect`/`handleZoneSelectOnly` com `useCallback`, deduplicar chamadas iniciais em `RegionZoneSelector.tsx` via cache compartilhado e pré-ordenar bairros dentro do `useMemo`, trocando `transition-all` por `transition-colors`.

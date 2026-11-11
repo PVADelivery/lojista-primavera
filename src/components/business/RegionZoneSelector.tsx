@@ -117,75 +117,113 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
     return () => document.removeEventListener("mousedown", handleDocClick);
   }, []);
 
+  // Cache simples em memória para evitar N consultas idênticas ao abrir lote de entregas
+  const lastSyncedRef = useRef<string>("");
+
   // Carregar Regiões, Bairros e Tabela de Preço Personalizada do Banco de Dados
-  const loadData = async () => {
+  const loadData = async (forceRefresh = false) => {
     try {
-      const [regionsRes, hoodsRes] = await Promise.all([
-        supabase.from("regions").select("*"),
-        supabase.from("region_neighborhoods").select("*"),
-      ]);
+      const activeId = targetCompanyId || myCompany?.id || "__global__";
+      const cacheKey = `${activeId}:${myCompany?.pricing_table_id || ""}`;
+      const cacheStore = ((globalThis as any).__regionZoneCache ??= new Map<string, {
+        regions: any[];
+        hoods: any[];
+        company: any;
+        rules: any[];
+        ts: number;
+      }>());
+      const inflightStore = ((globalThis as any).__regionZoneInflight ??= new Map<string, Promise<any>>());
 
-      if (regionsRes.error) {
-        console.error("[RegionZoneSelector] Erro ao buscar regions do banco:", regionsRes.error);
+      const cached = !forceRefresh ? cacheStore.get(cacheKey) : null;
+      if (cached && Date.now() - cached.ts < 30000) {
+        if (cached.regions.length > 0) setDbRegions(cached.regions);
+        if (cached.hoods.length > 0) setDbHoods(cached.hoods);
+        if (cached.company) setCompanySettings(cached.company);
+        setDbRules(cached.rules);
+        setLoading(false);
+        return;
       }
 
-      if (regionsRes.data && regionsRes.data.length > 0) {
-        const filtered = regionsRes.data.filter((r: any) => r.is_active !== false);
-        filtered.sort((a: any, b: any) => {
-          const ordA = a.sort_order != null ? Number(a.sort_order) : (Number(a.price ?? a.delivery_fee ?? 0));
-          const ordB = b.sort_order != null ? Number(b.sort_order) : (Number(b.price ?? b.delivery_fee ?? 0));
-          return ordA - ordB;
-        });
-        setDbRegions(filtered);
-      }
+      let pending = !forceRefresh ? inflightStore.get(cacheKey) : null;
+      if (!pending) {
+        pending = (async () => {
+          const [regionsRes, hoodsRes] = await Promise.all([
+            supabase.from("regions").select("*"),
+            supabase.from("region_neighborhoods").select("*"),
+          ]);
 
-      if (hoodsRes.data && hoodsRes.data.length > 0) {
-        const sortedHoods = [...hoodsRes.data].sort((a: any, b: any) => {
-          return (a.name || "").localeCompare(b.name || "", "pt-BR");
-        });
-        setDbHoods(sortedHoods);
-      }
-
-      // Buscar dados sempre atualizados da empresa do banco (incluindo a tabela de preços personalizada vinculada no Admin)
-      const activeId = targetCompanyId || myCompany?.id;
-      let resolvedCompany = myCompany;
-
-      if (activeId) {
-        const { data: comp } = await supabase
-          .from("companies")
-          .select("id, pricing_table_id, delivery_mode, delivery_fee, delivery_regions_pricing")
-          .eq("id", activeId)
-          .maybeSingle();
-        if (comp) {
-          resolvedCompany = comp;
-          setCompanySettings(comp);
-        }
-      }
-
-      // Tenta buscar regras via RPC get_company_pricing_rules (que bypassa RLS com 100% de garantia)
-      let loadedRules: any[] = [];
-      if (activeId) {
-        try {
-          const { data: rpcRules, error: rpcErr } = await supabase
-            .rpc("get_company_pricing_rules", { p_company_id: activeId });
-          if (!rpcErr && rpcRules && rpcRules.length > 0) {
-            loadedRules = rpcRules;
+          if (regionsRes.error) {
+            console.error("[RegionZoneSelector] Erro ao buscar regions do banco:", regionsRes.error);
           }
-        } catch {}
+
+          let regions: any[] = [];
+          if (regionsRes.data && regionsRes.data.length > 0) {
+            regions = regionsRes.data.filter((r: any) => r.is_active !== false);
+            regions.sort((a: any, b: any) => {
+              const ordA = a.sort_order != null ? Number(a.sort_order) : (Number(a.price ?? a.delivery_fee ?? 0));
+              const ordB = b.sort_order != null ? Number(b.sort_order) : (Number(b.price ?? b.delivery_fee ?? 0));
+              return ordA - ordB;
+            });
+          }
+
+          let hoods: any[] = [];
+          if (hoodsRes.data && hoodsRes.data.length > 0) {
+            hoods = [...hoodsRes.data].sort((a: any, b: any) =>
+              (a.name || "").localeCompare(b.name || "", "pt-BR")
+            );
+          }
+
+          const realCompanyId = targetCompanyId || myCompany?.id;
+          let resolvedCompany = myCompany;
+          let compData: any = null;
+
+          if (realCompanyId) {
+            const { data: comp } = await supabase
+              .from("companies")
+              .select("id, pricing_table_id, delivery_mode, delivery_fee, delivery_regions_pricing")
+              .eq("id", realCompanyId)
+              .maybeSingle();
+            if (comp) {
+              resolvedCompany = comp;
+              compData = comp;
+            }
+          }
+
+          let loadedRules: any[] = [];
+          if (realCompanyId) {
+            try {
+              const { data: rpcRules, error: rpcErr } = await supabase
+                .rpc("get_company_pricing_rules", { p_company_id: realCompanyId });
+              if (!rpcErr && rpcRules && rpcRules.length > 0) {
+                loadedRules = rpcRules;
+              }
+            } catch {}
+          }
+
+          if (loadedRules.length === 0 && resolvedCompany?.pricing_table_id) {
+            const { data: rulesData } = await supabase
+              .from("pricing_rules")
+              .select("*")
+              .eq("pricing_table_id", resolvedCompany.pricing_table_id);
+            if (rulesData) {
+              loadedRules = rulesData;
+            }
+          }
+
+          const payload = { regions, hoods, company: compData, rules: loadedRules, ts: Date.now() };
+          cacheStore.set(cacheKey, payload);
+          return payload;
+        })().finally(() => {
+          inflightStore.delete(cacheKey);
+        });
+        inflightStore.set(cacheKey, pending);
       }
 
-      // Se a RPC não retornar nada (ex: antes de rodar a migration), tenta busca direta em pricing_rules
-      if (loadedRules.length === 0 && resolvedCompany?.pricing_table_id) {
-        const { data: rulesData } = await supabase
-          .from("pricing_rules")
-          .select("*")
-          .eq("pricing_table_id", resolvedCompany.pricing_table_id);
-        if (rulesData) {
-          loadedRules = rulesData;
-        }
-      }
-
-      setDbRules(loadedRules);
+      const result = await pending;
+      if (result.regions.length > 0) setDbRegions(result.regions);
+      if (result.hoods.length > 0) setDbHoods(result.hoods);
+      if (result.company) setCompanySettings(result.company);
+      setDbRules(result.rules);
     } catch (err) {
       console.warn("[RegionZoneSelector] Erro ao carregar regiões:", err);
     } finally {
@@ -196,18 +234,28 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
   useEffect(() => {
     loadData();
 
-    // Inscrição Realtime para atualizar instantaneamente quando o Admin alterar tabelas/regras/preços/bairros
+    // Inscrição Realtime com debounce curto para invalidar cache sem flood
+    let rtTimer: ReturnType<typeof setTimeout> | null = null;
+    const triggerRefresh = () => {
+      if (rtTimer) clearTimeout(rtTimer);
+      rtTimer = setTimeout(() => {
+        (globalThis as any).__regionZoneCache?.clear();
+        loadData(true);
+      }, 250);
+    };
+
     const channelId = `realtime-regions-${Math.random().toString(36).slice(2)}`;
     const channel = supabase
       .channel(channelId)
-      .on("postgres_changes", { event: "*", schema: "public", table: "regions" }, () => loadData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "region_neighborhoods" }, () => loadData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_rules" }, () => loadData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_tables" }, () => loadData())
-      .on("postgres_changes", { event: "*", schema: "public", table: "companies" }, () => loadData())
+      .on("postgres_changes", { event: "*", schema: "public", table: "regions" }, triggerRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "region_neighborhoods" }, triggerRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_rules" }, triggerRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "pricing_tables" }, triggerRefresh)
+      .on("postgres_changes", { event: "*", schema: "public", table: "companies" }, triggerRefresh)
       .subscribe();
 
     return () => {
+      if (rtTimer) clearTimeout(rtTimer);
       supabase.removeChannel(channel);
     };
   }, [targetCompanyId, myCompany?.pricing_table_id]);
@@ -242,10 +290,11 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
         pricingRules: dbRules,
       });
 
-      // Bairros vinculados à região no Admin
+      // Bairros vinculados à região no Admin (já ordenados em pt-BR no useMemo)
       const hoods = dbHoods
         .filter((h) => h.region_id === r.id)
-        .map((h) => h.name);
+        .map((h) => h.name)
+        .sort((a: string, b: string) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
       return {
         id: r.id,
@@ -296,10 +345,14 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       }
 
       if (match) {
+        const syncKey = `${match.id}|${match.price}|${match.title}|${vehicleType}`;
         setSelected({ zoneId: match.id, name: match.title });
-        // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote e individuais)
-        onSelectZone?.(match.id, match.price);
-        onRegionSelect?.(match.price, match.id, match.title);
+        if (lastSyncedRef.current !== syncKey) {
+          lastSyncedRef.current = syncKey;
+          // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote e individuais)
+          onSelectZone?.(match.id, match.price);
+          onRegionSelect?.(match.price, match.id, match.title);
+        }
       }
     }
   }, [selectedRegionId, initialSelectedId, resolvedZones, vehicleType]);
@@ -513,9 +566,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
               {isExpanded && hasNeighborhoods && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
                   {(() => {
-                    const sorted = [...zone.neighborhoods].sort((a, b) =>
-                      a.localeCompare(b, "pt-BR", { sensitivity: "base" })
-                    );
+                    const sorted = zone.neighborhoods;
                     const mid = Math.ceil(sorted.length / 2);
                     const left = sorted.slice(0, mid);
                     const right = sorted.slice(mid);
@@ -527,7 +578,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
                             key={left[i]}
                             type="button"
                             onClick={() => pick(zone, left[i])}
-                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
+                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-colors ${
                               isZoneSelected && selected?.name === left[i]
                                 ? "border-black bg-black text-white shadow-md font-black"
                                 : "border-black/20 bg-white/90 hover:bg-white text-black"
@@ -546,7 +597,7 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
                             key={right[i]}
                             type="button"
                             onClick={() => pick(zone, right[i])}
-                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-all ${
+                            className={`relative text-left text-[11px] sm:text-xs font-bold rounded-xl border px-3 py-2 transition-colors ${
                               isZoneSelected && selected?.name === right[i]
                                 ? "border-black bg-black text-white shadow-md font-black"
                                 : "border-black/20 bg-white/90 hover:bg-white text-black"
