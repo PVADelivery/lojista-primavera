@@ -146,14 +146,15 @@ export function BusinessLayout({ children }: { children?: React.ReactNode }) {
       <div className="min-h-screen bg-background text-foreground flex">
         {/* PREMIUM WIDE SIDEBAR WITH TOGGLE */}
         <aside 
-          className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border flex-shrink-0 shadow-xl shadow-black/5 z-20 transition-all duration-300 relative ${
+          className={`hidden lg:flex flex-col bg-sidebar border-r border-sidebar-border flex-shrink-0 shadow-xl shadow-black/5 z-30 transition-all duration-300 relative ${
             isSidebarExpanded ? "w-64" : "w-20"
           }`}
         >
           {/* Toggle Button */}
           <button
+            type="button"
             onClick={() => setIsSidebarExpanded(!isSidebarExpanded)}
-            className="absolute -right-3.5 top-8 h-7 w-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-md hover:scale-110 transition-transform z-30"
+            className="absolute -right-3.5 top-8 h-7 w-7 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-md ring-2 ring-background hover:scale-110 transition-transform z-40 cursor-pointer"
             aria-label="Toggle Sidebar"
           >
             {isSidebarExpanded ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
