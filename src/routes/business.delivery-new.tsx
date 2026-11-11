@@ -258,6 +258,7 @@ function NewDeliveryPage() {
         let delQuery = supabase
           .from("deliveries")
           .select("customer_id, customer_name, customer_phone, customer_cpf, address, customer_address_number, customer_neighborhood, customer_address_complement, region_id")
+          .neq("status", "cancelled")
           .order("created_at", { ascending: false })
           .limit(30);
 
@@ -279,22 +280,35 @@ function NewDeliveryPage() {
         if (delData) {
           delData.forEach((d: any) => {
             const key = (d.customer_name || "").toLowerCase().trim() || d.customer_phone;
-            if (key && !combinedMap.has(key)) {
+            if (!key) return;
+            const addrEntry = (d.address || d.customer_address_number) ? {
+              id: `del-addr-${key}`,
+              street: cleanStreetName(d.address || ""),
+              number: d.customer_address_number || "",
+              neighborhood: d.customer_neighborhood || "",
+              complement: d.customer_address_complement || "",
+              region_id: d.region_id || "none"
+            } : null;
+
+            const existing = combinedMap.get(key);
+            if (!existing) {
               combinedMap.set(key, {
                 id: d.customer_id || key,
                 name: d.customer_name,
                 phone: d.customer_phone,
                 cpf: d.customer_cpf,
                 region_id: d.region_id || "none",
-                addresses: (d.address || d.customer_address_number) ? [{
-                  id: "del-addr",
-                  street: cleanStreetName(d.address || ""),
-                  number: d.customer_address_number || "",
-                  neighborhood: d.customer_neighborhood || "",
-                  complement: d.customer_address_complement || "",
-                  region_id: d.region_id || "none"
-                }] : []
+                addresses: addrEntry ? [{ ...addrEntry, id: "del-addr-0" }] : []
               });
+            } else if (addrEntry && existing.addresses.length < 3) {
+              const dup = existing.addresses.some(
+                (a: any) =>
+                  (a.street || "").toLowerCase().trim() === addrEntry.street.toLowerCase().trim() &&
+                  (a.number || "").toLowerCase().trim() === addrEntry.number.toLowerCase().trim()
+              );
+              if (!dup) {
+                existing.addresses.push({ ...addrEntry, id: `del-addr-${existing.addresses.length}` });
+              }
             }
           });
         }
@@ -533,7 +547,7 @@ function NewDeliveryPage() {
         setF((prev) => ({
           ...prev,
           address: street,
-          customer_address_number: houseNo || prev.customer_address_number,
+          customer_address_number: prev.customer_address_number.trim() ? prev.customer_address_number : houseNo,
           customer_neighborhood: bairro || prev.customer_neighborhood,
           region_id: "none"
         }));
@@ -1276,7 +1290,7 @@ function NewDeliveryPage() {
 
         {/* FORMS: LOTE VS INDIVIDUAL */}
         {!editId && deliveryMode === "rapida" && batchCount > 1 ? (
-          <form onSubmit={submit} className="space-y-6">
+          <form onSubmit={submit} autoComplete="off" className="space-y-6">
             <div className="bg-primary/5 border border-primary/20 p-4 rounded-2xl flex items-center justify-between">
               <div>
                 <p className="text-xs font-black uppercase text-primary tracking-wider">Entregas Rápidas em Lote ({batchCount} entregas)</p>
@@ -1311,6 +1325,12 @@ function NewDeliveryPage() {
                     <div ref={batchCustomerSearchRef} className="space-y-1.5 relative">
                       <Label className="text-xs font-bold">Nome do cliente *</Label>
                       <Input
+                        name={`batch-cust-label-${idx}`}
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
                         value={item.customer_name}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1380,6 +1400,12 @@ function NewDeliveryPage() {
                     <div className="space-y-1.5">
                       <Label className="text-xs font-bold">WhatsApp / Telefone</Label>
                       <Input
+                        name={`batch-cust-contact-${idx}`}
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
                         value={item.customer_phone}
                         onChange={(e) => {
                           const val = e.target.value;
@@ -1540,7 +1566,7 @@ function NewDeliveryPage() {
             </Button>
           </form>
         ) : (
-          <form onSubmit={submit} className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
+          <form onSubmit={submit} autoComplete="off" className="space-y-8 bg-card border border-border/40 p-6 sm:p-8 rounded-[2rem] shadow-sm">
           {/* Seção: Tipo de Solicitação (Apenas no modo Entrega Normal / Completa) */}
           {deliveryMode !== "rapida" && (
             <div className="space-y-3 bg-secondary/20 border border-border/40 p-4 sm:p-5 rounded-2xl">
@@ -1615,6 +1641,12 @@ function NewDeliveryPage() {
                         Endereço de Destino (Novo Cliente / Local):
                       </Label>
                       <Input
+                        name="delivery-cond-custom-top"
+                        autoComplete="one-time-code"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        data-lpignore="true"
+                        data-1p-ignore="true"
                         value={f.condicional_custom_address}
                         onChange={(e) => setF((prev) => ({ ...prev, condicional_custom_address: e.target.value }))}
                         placeholder="Informe a rua, número, bairro ou nome do novo cliente..."
@@ -1647,6 +1679,12 @@ function NewDeliveryPage() {
                 <Label>Nome do cliente</Label>
                 <div className="relative">
                   <Input
+                    name="delivery-recipient-label"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={f.customer_name}
                     onChange={(e) => {
                       setF({ ...f, customer_name: e.target.value });
@@ -1717,6 +1755,12 @@ function NewDeliveryPage() {
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
+                    name="delivery-recipient-contact"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={f.customer_phone}
                     onChange={(e) => {
                       setF({ ...f, customer_phone: e.target.value });
@@ -1738,6 +1782,12 @@ function NewDeliveryPage() {
                 <div className="space-y-1.5">
                   <Label>CPF do Cliente (Opcional)</Label>
                   <Input
+                    name="delivery-recipient-doc"
+                    autoComplete="one-time-code"
+                    autoCorrect="off"
+                    spellCheck={false}
+                    data-lpignore="true"
+                    data-1p-ignore="true"
                     value={f.customer_cpf}
                     onChange={(e) => {
                       setF({ ...f, customer_cpf: e.target.value });
@@ -1773,6 +1823,12 @@ function NewDeliveryPage() {
                           Endereço de Destino (Novo Cliente / Local de Entrega) *
                         </Label>
                         <Input
+                          name="delivery-cond-custom-dest"
+                          autoComplete="one-time-code"
+                          autoCorrect="off"
+                          spellCheck={false}
+                          data-lpignore="true"
+                          data-1p-ignore="true"
                           value={f.condicional_custom_address}
                           onChange={(e) => setF((prev) => ({ ...prev, condicional_custom_address: e.target.value }))}
                           placeholder="Informe a rua, número, bairro ou nome do cliente destino..."
@@ -1797,6 +1853,12 @@ function NewDeliveryPage() {
                           <div className="relative">
                             <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                             <Input
+                              name="delivery-dest-way"
+                              autoComplete="one-time-code"
+                              autoCorrect="off"
+                              spellCheck={false}
+                              data-lpignore="true"
+                              data-1p-ignore="true"
                               value={f.address}
                               onChange={(e) => setF({ ...f, address: e.target.value })}
                               required={deliveryMode === "normal"}
@@ -1808,6 +1870,12 @@ function NewDeliveryPage() {
                         <div className="space-y-1.5">
                           <Label>Número</Label>
                           <Input
+                            name="delivery-dest-door"
+                            autoComplete="one-time-code"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            data-lpignore="true"
+                            data-1p-ignore="true"
                             value={f.customer_address_number}
                             onChange={(e) => setF({ ...f, customer_address_number: e.target.value })}
                             required={deliveryMode === "normal"}
@@ -1820,6 +1888,12 @@ function NewDeliveryPage() {
                         <div className="space-y-1.5">
                           <Label>Complemento (Opcional)</Label>
                           <Input
+                            name="delivery-dest-extra"
+                            autoComplete="one-time-code"
+                            autoCorrect="off"
+                            spellCheck={false}
+                            data-lpignore="true"
+                            data-1p-ignore="true"
                             value={f.customer_address_complement}
                             onChange={(e) => setF({ ...f, customer_address_complement: e.target.value })}
                             className="rounded-xl h-11 bg-background"
@@ -2085,6 +2159,12 @@ function NewDeliveryPage() {
             <div className="relative">
               <input
                 type="text"
+                name="delivery-map-search-noautofill"
+                autoComplete="one-time-code"
+                autoCorrect="off"
+                spellCheck={false}
+                data-lpignore="true"
+                data-1p-ignore="true"
                 value={dropoffText}
                 onChange={(e) => {
                   setDropoffText(e.target.value);

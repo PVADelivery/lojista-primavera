@@ -2456,3 +2456,16 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   3. Utilizar o helper `isStoreOpenNow(s)` nos cards de listagem e na rota da loja (`marketplace.store.$storeId.tsx`) para refletir o status exato ("● Aberto" vs "● Fechado" com visual grayscale desativado quando fechada).
 
 
+
+---
+
+### 197. Endereço/Número Fixo da Própria Loja (`1214`) Injetado em Entregas de Clientes Distintos por Autofill do Navegador
+* **Sintoma**: Para apenas 1 lojista específico (`Casa dos Bolos`), ao solicitar novas entregas em `business.delivery-new.tsx`, o número `1214` (endereço físico da própria Casa dos Bolos: `Av. Campo Grande, 1214 - Jardim Riva`) passava a substituir o número real de clientes completamente diferentes em várias ruas (`GEOVANA RIVA` que é `483`, `ÉVORA` `499`, `FACULDADE ANHANGUERA` `241`, `SALÃO TH CONCEPT` `498`, `PRISCILA BUSANELLO` `469`).
+* **Causas Raízes**:
+  1. **Autofill Nativo do Navegador (Chrome)**: O `<form>` e os `<Input>` de destinatário em `business.delivery-new.tsx` (`Nome do cliente`, `WhatsApp`, `CPF`, `Rua / Avenida`, `Número`, `Complemento`) não possuíam bloqueio anti-autofill (`autoComplete="one-time-code"` + `name` não semântico + `data-lpignore="true"`), fazendo com que o navegador do lojista autopreenchesse o endereço salvo do próprio dispositivo (`Av. Campo Grande, 1214`) sobre o número dos clientes.
+  2. **Reuso de Histórico Cancelado no Autocomplete**: A busca `delQuery` em `deliveries` não filtrava `status != 'cancelled'` e retornava apenas o primeiro endereço, reaproveitando entregas canceladas com número incorreto (como `#I522` cancelada) nas solicitações seguintes.
+  3. **Sobrescrita em Reverse Geocoding**: `fetchAddressFromCoords` usava `houseNo || prev.customer_address_number`, podendo sobrescrever um número já digitado pelo operador.
+* **Solução Padrão**:
+  1. Adicionar `autoComplete="off"` nos `<form>` de `business.delivery-new.tsx` e `autoComplete="one-time-code"`, `autoCorrect="off"`, `spellCheck={false}`, `data-lpignore="true"`, `data-1p-ignore="true"` e `name`s não padronizados nos campos de cliente e endereço (individual, lote e busca no mapa).
+  2. Filtrar `.neq("status", "cancelled")` em `delQuery` e coletar até 3 endereços distintos válidos por cliente no autocomplete.
+  3. Em `fetchAddressFromCoords`, preencher `customer_address_number` somente se `prev.customer_address_number.trim()` estiver vazio.
