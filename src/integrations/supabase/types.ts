@@ -3102,6 +3102,12 @@ export type Database = {
         Args: { _amount: number; _company_id: string; _description?: string }
         Returns: Json
       }
+      admin_delete_driver_user:
+        | { Args: { p_user_id: string }; Returns: undefined }
+        | {
+            Args: { p_driver_id?: string; p_user_id: string }
+            Returns: undefined
+          }
       batch_create_delivery_requests: {
         Args: { p_company_id: string; p_deliveries: Json }
         Returns: Json
@@ -3114,6 +3120,22 @@ export type Database = {
           p_vehicle_type?: string
         }
         Returns: number
+      }
+      cancel_delivery_and_refund: {
+        Args: {
+          p_cancelled_by?: string
+          p_cancelled_by_name?: string
+          p_delivery_id: string
+        }
+        Returns: Json
+      }
+      cancel_delivery_safe: {
+        Args: {
+          p_cancelled_by?: string
+          p_cancelled_by_name?: string
+          p_delivery_id: string
+        }
+        Returns: Json
       }
       create_admin_user:
         | {
