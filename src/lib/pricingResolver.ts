@@ -96,3 +96,40 @@ export function resolveRegionDeliveryFee(options: RegionPricingOptions): number 
   // 2. Tabela Padrão Oficial da Região definida pelo Admin
   return officialRegionPrice;
 }
+
+export const REGION_FALLBACK_UUID_MAP: Record<string, string> = {
+  "zona-1": "11111111-1111-4111-8111-000000000001",
+  "zona-2": "11111111-1111-4111-8111-000000000002",
+  "zona-3": "11111111-1111-4111-8111-000000000003",
+  "zona-4": "11111111-1111-4111-8111-000000000004",
+  "zona-5": "b57f6fe1-3936-4dc9-a6d6-5318577ea670",
+};
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isUuid(val: string | null | undefined): boolean {
+  if (!val || typeof val !== "string") return false;
+  return UUID_REGEX.test(val.trim());
+}
+
+/**
+ * Sanitiza qualquer region_id antes de enviar para o banco/RPCs do Supabase:
+ * - Mapeia "zona-1" ... "zona-5" para os UUIDs reais do banco.
+ * - Se for UUID válido, retorna o UUID.
+ * - Caso contrário ("none", string arbitrária, undefined, null), retorna null.
+ */
+export function sanitizeRegionId(val: string | null | undefined): string | null {
+  if (!val || typeof val !== "string") return null;
+  const clean = val.trim();
+  if (clean === "none" || clean === "" || clean === "null" || clean === "undefined") {
+    return null;
+  }
+  if (REGION_FALLBACK_UUID_MAP[clean]) {
+    return REGION_FALLBACK_UUID_MAP[clean];
+  }
+  if (isUuid(clean)) {
+    return clean;
+  }
+  return null;
+}
+

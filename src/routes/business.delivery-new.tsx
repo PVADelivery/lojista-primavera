@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMyCompany } from "@/services/companies";
 import { useCredits } from "@/services/credits";
 import { brl, cleanStreetName, formatCleanDeliveryAddress, formatDisplayAddress } from "@/lib/format";
+import { sanitizeRegionId } from "@/lib/pricingResolver";
 
 import { toast } from "sonner";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
@@ -650,7 +651,7 @@ function NewDeliveryPage() {
         customer_address_number: addr.number || "",
         customer_neighborhood: addr.neighborhood || "",
         customer_address_complement: addr.complement || "",
-        region_id: addr.region_id || "none",
+        region_id: sanitizeRegionId(addr.region_id) || "none",
         address_label: addr.label || "Casa",
       }));
 
@@ -663,7 +664,8 @@ function NewDeliveryPage() {
 
   const selectBatchCustomer = (idx: number, cust: any, targetAddress?: any) => {
     const addr = targetAddress || (cust.addresses && cust.addresses.length > 0 ? cust.addresses[0] : null);
-    const targetRegionId = addr?.region_id || cust.region_id || "none";
+    const rawRegionId = addr?.region_id || cust.region_id || "none";
+    const targetRegionId = sanitizeRegionId(rawRegionId) || (rawRegionId !== "none" ? rawRegionId : "none");
 
     setBatchItems((prev) => {
       const copy = [...prev];
@@ -683,9 +685,10 @@ function NewDeliveryPage() {
 
   const handleRegionSelect = useCallback((fee: number | string, regionId: string, regionName: string) => {
     const numFee = typeof fee === "number" ? fee : (parseFloat(fee) || 0);
+    const cleanRegionId = sanitizeRegionId(regionId) || regionId;
     setF(prev => ({
       ...prev,
-      region_id: regionId,
+      region_id: cleanRegionId,
       value: numFee.toFixed(2),
       customer_neighborhood: regionName || prev.customer_neighborhood,
     }));
@@ -738,7 +741,7 @@ function NewDeliveryPage() {
             customer_name: item.customer_name.trim(),
             customer_phone: item.customer_phone.trim(),
             address: "Entrega Rápida",
-            region_id: item.region_id,
+            region_id: sanitizeRegionId(item.region_id),
             value: item.value,
             delivery_fee: item.value,
             vehicle_type: item.vehicle_type || "moto",
@@ -796,7 +799,7 @@ function NewDeliveryPage() {
                 customer_name: item.customer_name,
                 customer_phone: item.customer_phone,
                 address: item.address,
-                region_id: item.region_id,
+                region_id: sanitizeRegionId(item.region_id),
                 value: item.value,
                 delivery_fee: item.value,
                 vehicle_type: "moto",
@@ -922,7 +925,7 @@ function NewDeliveryPage() {
             order_value: f.is_paid ? 0 : Number(f.order_value || 0),
             change_for: f.is_paid ? 0 : Number(f.change_for || 0),
             vehicle_type: f.vehicle_type,
-            region_id: f.region_id === "none" ? null : f.region_id,
+            region_id: sanitizeRegionId(f.region_id),
             value: Number(f.value || 0),
             notes: f.notes,
           },
@@ -981,7 +984,7 @@ function NewDeliveryPage() {
             order_value: f.is_paid ? 0 : Number(f.order_value || 0),
             change_for: f.is_paid ? 0 : Number(f.change_for || 0),
             vehicle_type: f.vehicle_type,
-            region_id: f.region_id === "none" ? null : f.region_id,
+            region_id: sanitizeRegionId(f.region_id),
             value: Number(f.value || 0),
             notes: f.notes,
             latitude: dropoffCoords ? dropoffCoords[1] : null,

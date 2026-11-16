@@ -2482,3 +2482,17 @@ Este documento registra os bugs encontrados no sistema, suas causas raízes e as
   1. Remover o mapa oculto (`mapContainerRef`/`mapRef`/`initSmall`/`flyTo`) de `business.delivery-new.tsx`, mantendo somente o cálculo leve de `routeDistance` (OSRM com `AbortController` + fallback Haversine) e carregando `maplibre-gl` apenas sob demanda se `isMapFullscreen` for aberto.
   2. Remover o monkey-patch global de `window.setTimeout` em `src/components/ui/select.tsx`.
   3. Memoizar `handleRegionSelect`/`handleZoneSelectOnly` com `useCallback`, deduplicar chamadas iniciais em `RegionZoneSelector.tsx` via cache compartilhado e pré-ordenar bairros dentro do `useMemo`, trocando `transition-all` por `transition-colors`.
+
+---
+
+### 199. Erro na Tela `invalid input syntax for type uuid: "zona-2"` ao Solicitar Nova Entrega
+* **Sintoma**: Ao tentar cadastrar uma nova entrega no Painel do Lojista (`/business/delivery-new`), o sistema exibe notificação de erro: `[Erro na Tela] invalid input syntax for type uuid: "zona-2"`, impedindo a criação da entrega para lojas parceiras (ex: `unidunitesapatinhos@outlook.com`).
+* **Causas Raízes**:
+  1. **Identificadores Fake de Região (`FALLBACK_ZONES`)**: O componente `RegionZoneSelector.tsx` definia um array estático de fallback com identificadores em formato de string não-UUID (`id: "zona-1"`, `"zona-2"`, `"zona-3"`, `"zona-4"`, `"zona-5"`).
+  2. **Condição de Corrida em Conexão Lenta**: Quando a consulta assíncrona ao Supabase (`loadData()`) estava em andamento ou se a loja selecionava a região rapidamente antes da resposta do banco (comum em navegadores mobile como Samsung Browser em 3G/4G), `resolvedZones` retornava `FALLBACK_ZONES`. O estado `f.region_id` recebia a string literal `"zona-2"`.
+  3. **Validação Estrita de UUID no PostgreSQL**: No banco de dados, a tabela `deliveries` possui a coluna `region_id UUID REFERENCES regions(id)`. Ao submeter a criação via RPC `create_delivery_with_credits`, `update_delivery_with_credits` ou `batch_create_delivery_requests`, o PostgreSQL tentava fazer o cast de `"zona-2"` para `uuid`, falhando com a exceção `22P02: invalid input syntax for type uuid: "zona-2"`.
+* **Solução Padrão**:
+  1. Atualizar `FALLBACK_ZONES` em `RegionZoneSelector.tsx` com os UUIDs reais oficiais das regiões cadastradas no banco de dados (`11111111-1111-4111-8111-000000000001` a `11111111-1111-4111-8111-000000000004` e `b57f6fe1-3936-4dc9-a6d6-5318577ea670`).
+  2. Criar a função centralizadora `sanitizeRegionId(val)` e `REGION_FALLBACK_UUID_MAP` em `src/lib/pricingResolver.ts`, mapeando automaticamente strings legadas (`"zona-1"` a `"zona-5"`) para seus UUIDs equivalentes, validando regex de UUID, e convertendo strings inválidas (`"none"`, `""`, etc.) estritamente para `null`.
+  3. Sanitizar `region_id` com `sanitizeRegionId` em todos os pontos de entrada e payloads de RPC/tabela em `business.delivery-new.tsx`, `BatchDeliveryModal.tsx` e `business.orders.tsx`.
+

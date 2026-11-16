@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 
 import OrderDetailModal from "@/components/business/OrderDetailModal";
 import { useAudioAlert } from "@/hooks/useAudioAlert";
-import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
+import { resolveRegionDeliveryFee, sanitizeRegionId } from "@/lib/pricingResolver";
 import { StoreOverlay } from "@/plugins/StoreOverlay";
 
 export const Route = createFileRoute("/business/orders")({
@@ -437,7 +437,7 @@ function OrdersPage() {
           value: fee,
           price: fee,
           delivery_fee: fee,
-          region_id: regionId || null,
+          region_id: sanitizeRegionId(regionId),
           status: "pending"
         }).select("id").single();
 
@@ -454,7 +454,7 @@ function OrdersPage() {
           value: fee,
           price: fee,
           delivery_fee: fee,
-          region_id: regionId || null,
+          region_id: sanitizeRegionId(regionId),
           status: "pending"
         }).eq("id", deliveryRecordId);
       }

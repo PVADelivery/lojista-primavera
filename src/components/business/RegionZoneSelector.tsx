@@ -1,5 +1,5 @@
 import { memo, useState, useEffect, useMemo, useRef } from "react";
-import { resolveRegionDeliveryFee } from "@/lib/pricingResolver";
+import { resolveRegionDeliveryFee, sanitizeRegionId } from "@/lib/pricingResolver";
 import { supabase } from "@/integrations/supabase/client";
 import { CheckCircle2, Building2, ChevronDown, Loader2, Search, MapPin, X } from "lucide-react";
 import { useMyCompany } from "@/services/companies";
@@ -14,10 +14,10 @@ export interface DeliveryZone {
   color?: string;
 }
 
-// Fallback initial zones in case database is offline
+// Fallback initial zones with valid database UUIDs in case database is offline or query is in-flight
 const FALLBACK_ZONES: DeliveryZone[] = [
   {
-    id: "zona-1",
+    id: "11111111-1111-4111-8111-000000000001",
     title: "Região 1",
     number: "1",
     price: 8,
@@ -25,7 +25,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     color: "#eab308",
   },
   {
-    id: "zona-2",
+    id: "11111111-1111-4111-8111-000000000002",
     title: "CENTRO - PVA 1 / JD RIVA 1/2/3/4",
     number: "2",
     price: 10,
@@ -43,7 +43,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     color: "#eab308",
   },
   {
-    id: "zona-3",
+    id: "11111111-1111-4111-8111-000000000003",
     title: "REGIÃO 3",
     number: "3",
     price: 12,
@@ -58,7 +58,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     color: "#eab308",
   },
   {
-    id: "zona-4",
+    id: "11111111-1111-4111-8111-000000000004",
     title: "REGIÃO 4",
     number: "4",
     price: 15,
@@ -71,7 +71,7 @@ const FALLBACK_ZONES: DeliveryZone[] = [
     color: "#eab308",
   },
   {
-    id: "zona-5",
+    id: "b57f6fe1-3936-4dc9-a6d6-5318577ea670",
     title: "Região 5",
     number: "5",
     price: 20,
@@ -329,14 +329,16 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
 
   const pick = (zone: DeliveryZone, name: string) => {
     if (disabled) return;
-    setSelected({ zoneId: zone.id, name });
-    onRegionSelect?.(zone.price, zone.id, name);
-    onSelectZone?.(zone.id, zone.price);
+    const cleanId = sanitizeRegionId(zone.id) || zone.id;
+    setSelected({ zoneId: cleanId, name });
+    onRegionSelect?.(zone.price, cleanId, name);
+    onSelectZone?.(cleanId, zone.price);
   };
 
   useEffect(() => {
     if (resolvedZones.length > 0) {
-      const activeId = selected?.zoneId || selectedRegionId || initialSelectedId;
+      const rawActiveId = selected?.zoneId || selectedRegionId || initialSelectedId;
+      const activeId = sanitizeRegionId(rawActiveId) || rawActiveId;
       let match = activeId && activeId !== "none" ? resolvedZones.find((z) => z.id === activeId) : null;
       
       // Se nenhuma região estiver pré-selecionada (ou estiver 'none'), seleciona a 1ª região por padrão
@@ -345,13 +347,14 @@ export const RegionZoneSelector = memo(({ onRegionSelect, onSelectZone, disabled
       }
 
       if (match) {
-        const syncKey = `${match.id}|${match.price}|${match.title}|${vehicleType}`;
-        setSelected({ zoneId: match.id, name: match.title });
+        const cleanId = sanitizeRegionId(match.id) || match.id;
+        const syncKey = `${cleanId}|${match.price}|${match.title}|${vehicleType}`;
+        setSelected({ zoneId: cleanId, name: match.title });
         if (lastSyncedRef.current !== syncKey) {
           lastSyncedRef.current = syncKey;
           // Sincronizar o valor da taxa com o componente pai (garante que value > 0 nas entregas em lote e individuais)
-          onSelectZone?.(match.id, match.price);
-          onRegionSelect?.(match.price, match.id, match.title);
+          onSelectZone?.(cleanId, match.price);
+          onRegionSelect?.(match.price, cleanId, match.title);
         }
       }
     }

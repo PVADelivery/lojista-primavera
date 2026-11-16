@@ -5,6 +5,7 @@ import { useCredits } from "@/services/credits";
 import { useMyCompany } from "@/services/companies";
 import { RegionZoneSelector } from "@/components/business/RegionZoneSelector";
 import { brl } from "@/lib/format";
+import { sanitizeRegionId } from "@/lib/pricingResolver";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -149,7 +150,7 @@ export function BatchDeliveryModal({ open, onOpenChange, onSuccess }: Props) {
         customer_name: item.customer_name.trim(),
         customer_phone: item.customer_phone.trim(),
         address: item.address.trim(),
-        region_id: item.region_id,
+        region_id: sanitizeRegionId(item.region_id),
         value: parseFloat(item.value),
         vehicle_type: item.vehicle_type || "moto",
       }));
